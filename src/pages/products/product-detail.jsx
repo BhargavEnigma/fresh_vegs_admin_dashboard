@@ -9,6 +9,7 @@ import { StatusBadge } from "../../components/common/status-badge";
 import { ConfirmDialog } from "../../components/common/confirm-dialog";
 import { useToast } from "../../components/toast/toast-context";
 import { assetUrl } from "../../lib/utils";
+import { ProductPacksManager } from "../../components/products/product-packs-manager";
 
 export function ProductDetailPage() {
   const { productId } = useParams();
@@ -155,6 +156,8 @@ export function ProductDetailPage() {
           </Card>
         </div>
       ) : null}
+
+      {p ? <ProductPacksManager productId={p.id} /> : null}
 
       <ConfirmDialog
         open={confirm.open}

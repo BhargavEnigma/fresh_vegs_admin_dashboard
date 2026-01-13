@@ -78,6 +78,11 @@ export const ENDPOINTS = {
       updatePack: (packId) => `/v1/admin/product/packs/${packId}`,
       setPackActive: (packId) => `/v1/admin/product/packs/${packId}/active`,
       deletePack: (packId) => `/v1/admin/product/packs/${packId}`,
+      listPacks: (productId) => `/v1/admin/product/${productId}/packs`,
+      updateWithImages: (productId) => `/v1/admin/product/${productId}/with-images`,
+      uploadImages: (productId) => `/v1/admin/product/${productId}/images/upload`,
+      deleteImage: (imageId) => `/v1/admin/product/images/${imageId}`,
+      reorderImages: (productId) => `/v1/admin/product/${productId}/images/reorder`,
 
     },
     deliverySlot: {

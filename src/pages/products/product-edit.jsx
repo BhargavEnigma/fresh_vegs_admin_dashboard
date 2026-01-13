@@ -13,11 +13,14 @@ import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { ProductImagePicker } from "../../components/products/product-image-picker";
 import { useState } from "react";
+import { updateProductWithImages } from "../../api/services/products.service";
+import { assetUrl } from "../../lib/utils";
+import { deleteProductImage, uploadProductImages, reorderProductImages } from "../../api/services/products.service";
+
 
 function paiseToRupees(paise) {
   return Number(paise || 0) / 100;
 }
-
 
 function rupeesToPaise(rupees) {
   const n = Number(rupees || 0);
@@ -29,9 +32,9 @@ export function ProductEditPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  
-  const [images, setImages] = useState([]);
-  
+
+  const [newImages, setNewImages] = useState([]);
+
   const prodQ = useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProductById(productId),
@@ -75,8 +78,14 @@ export function ProductEditPage() {
   });
 
   const mutation = useMutation({
-    mutationFn: (payload) => updateProduct(productId, payload),
+    mutationFn: async (payload) => {
+      if (newImages.length) {
+        return updateProductWithImages(productId, payload, newImages);
+      }
+      return updateProduct(productId, payload);
+    },
     onSuccess: () => {
+      setNewImages([]);
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["product", productId] });
       toast.push({ variant: "success", title: "Saved", description: "Product updated." });
@@ -201,20 +210,20 @@ export function ProductEditPage() {
               </label>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            {/* <div className="space-y-2 md:col-span-2">
               <Label>Product Images</Label>
-              <ProductImagePicker value={images} onChange={setImages} maxFiles={10} />
-              {!images?.length ? <p className="text-xs text-slate-500">At least 1 image is required.</p> : []}
-            </div>
+              <ProductImagePicker value={newImages} onChange={setNewImages} maxFiles={10} />
+              {!newImages?.length ? <p className="text-xs text-slate-500">At least 1 image is required.</p> : []}
+            </div> */}
 
             <div className="flex gap-2 md:col-span-2">
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Saving…" : "Save"}
               </Button>
               <Button type="button" variant="outline" onClick={() => {
-                  form.reset();
-                  setImages([]);
-                }}
+                form.reset();
+                setNewImages([]);
+              }}
               >
                 Reset
               </Button>
@@ -224,6 +233,51 @@ export function ProductEditPage() {
               Backend requires full payload on update (category_id, name, unit, base_quantity, mrp_paise, selling_price_paise).
             </div>
           </form>
+
+          <div className="mt-6 md:col-span-2">
+            <div className="text-sm font-semibold">Add new images</div>
+            <div className="mt-2 text-xs text-slate-500">
+              These images will upload when you click Save (PUT /v1/admin/product/:id/with-images).
+            </div>
+
+            <div className="mt-3">
+              <ProductImagePicker value={[]} onChange={(files) => setNewImages(files)} maxFiles={10} />
+            </div>
+
+            {newImages.length ? (
+              <div className="mt-2 text-xs text-slate-500">{newImages.length} new image(s) selected.</div>
+            ) : null}
+
+            {(p?.newImages || []).length ? (
+              <div className="mt-6">
+                <div className="text-sm font-semibold">Existing images</div>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  {p.newImages.map((img) => (
+                    <div key={img.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="aspect-square bg-slate-50 dark:bg-slate-900">
+                        <img src={assetUrl(img.image_url)} alt={p.name} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="p-2">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          className="w-full"
+                          onClick={async () => {
+                            await deleteProductImage(img.id);
+                            qc.invalidateQueries({ queryKey: ["product", productId] });
+                            toast.push({ variant: "success", title: "Deleted", description: "Image removed." });
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
         </CardContent>
       </Card>
     </div>
