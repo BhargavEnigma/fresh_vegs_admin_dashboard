@@ -79,27 +79,8 @@ export function ProductDetailPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardContent className="pt-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="ID" value={<span className="font-mono text-xs">{p.id}</span>} />
-                <Field label="Name" value={p.name} />
-                <Field label="Category" value={p.category?.name || "—"} />
-                <Field label="Unit" value={p.unit} />
-                <Field label="Base quantity" value={p.base_quantity} />
-                <Field label="MRP" value={`₹${(Number(p.mrp_paise || 0) / 100).toFixed(2)}`} />
-                <Field label="Selling price" value={`₹${(Number(p.selling_price_paise || 0) / 100).toFixed(2)}`} />
-                <Field label="Active" value={<StatusBadge value={p.is_active ? "active" : "inactive"} />} />
-                <Field label="Out of stock" value={<StatusBadge value={p.is_out_of_stock ? "out_of_stock" : "in_stock"} />} />
-              </div>
-
-              {p.description ? (
-                <div className="mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                  <div className="text-xs text-slate-500">Description</div>
-                  <div className="mt-2">{p.description}</div>
-                </div>
-              ) : null}
-
               {(p.images || []).length ? (
-                <div className="mt-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                <div className="mb-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                   <div className="text-xs text-slate-500">Images</div>
                   <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                     {p.images.map((img) => (
@@ -121,6 +102,24 @@ export function ProductDetailPage() {
                       </a>
                     ))}
                   </div>
+                </div>
+              ) : null}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="ID" value={<span className="font-mono text-xs">{p.id}</span>} />
+                <Field label="Name" value={p.name} />
+                <Field label="Category" value={p.category?.name || "—"} />
+                <Field label="Unit" value={p.unit} />
+                <Field label="Base quantity" value={p.base_quantity} />
+                <Field label="MRP" value={`₹${(Number(p.mrp_paise || 0) / 100).toFixed(2)}`} />
+                <Field label="Selling price" value={`₹${(Number(p.selling_price_paise || 0) / 100).toFixed(2)}`} />
+                <Field label="Active" value={<StatusBadge value={p.is_active ? "active" : "inactive"} />} />
+                <Field label="Out of stock" value={<StatusBadge value={p.is_out_of_stock ? "out_of_stock" : "in_stock"} />} />
+              </div>
+
+              {p.description ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                  <div className="text-xs text-slate-500">Description</div>
+                  <div className="mt-2">{p.description}</div>
                 </div>
               ) : null}
             </CardContent>
