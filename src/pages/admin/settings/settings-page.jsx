@@ -90,7 +90,7 @@ export function AdminSettingsPage() {
     };
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Settings"
                 subtitle="Admin settings stored as JSON (Setting table)."

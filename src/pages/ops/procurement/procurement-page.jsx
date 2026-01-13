@@ -38,7 +38,7 @@ export function ProcurementPage() {
     const rows = query.data?.items || [];
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Procurement"
                 subtitle="Locked & paid orders procurement summary for a delivery date."

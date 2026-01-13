@@ -122,7 +122,7 @@ export function AdminUsersPage() {
     };
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Admin Users"
                 subtitle="Create users, assign roles, and search/list existing users."

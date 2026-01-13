@@ -22,7 +22,7 @@ export function OpsJobsPage() {
     });
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Ops Jobs"
                 subtitle="Run operational jobs (currently: lock orders)."

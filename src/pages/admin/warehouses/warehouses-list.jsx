@@ -68,7 +68,7 @@ export function WarehousesListPage() {
     );
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Warehouses"
                 subtitle="Create and manage your warehouse locations."

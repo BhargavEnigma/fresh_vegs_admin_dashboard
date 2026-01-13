@@ -194,7 +194,7 @@ export function OpsOrdersPage() {
     );
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader title="Orders (Ops)" subtitle="Warehouse operations orders list and status updates." />
 
             <Filters value={filters} onChange={(v) => setFilters({ ...filters, ...v, page: 1 })} />
