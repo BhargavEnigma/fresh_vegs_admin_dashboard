@@ -15,6 +15,12 @@ import { Label } from "../../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { StatusBadge } from "../../../components/common/status-badge";
 import { useToast } from "../../../components/toast/toast-context";
+import { Link } from "react-router-dom";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { OpsOrdersListPdf } from "./ops-orders-list-pdf";
+import { exportOrdersCsv } from "./ops-orders-export";
+
+import { downloadBlob } from "../../../utils/download";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -24,7 +30,14 @@ function money(paise) {
 function Filters({ value, onChange }) {
     const form = useForm({ resolver: zodResolver(opsOrdersFilterSchema), defaultValues: value });
 
-    const submit = (v) => onChange(v);
+    const submit = (v) => onChange({
+        page: v.page ?? value.page ?? 1,
+        limit: v.limit ?? value.limit ?? 20,
+        status: v.status ?? "",
+        warehouse_id: v.warehouse_id ?? "",
+        delivery_date: v.delivery_date ?? "",
+        q: v.q ?? "",
+    });
 
     return (
         <form onSubmit={form.handleSubmit(submit)} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
@@ -51,6 +64,7 @@ function Filters({ value, onChange }) {
                 </div>
             </div>
             <div className="flex items-center justify-end gap-2">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Don't forget to reset Filters to see Original Data</p>
                 <Button
                     type="button"
                     variant="secondary"
@@ -127,6 +141,36 @@ export function OpsOrdersPage() {
         keepPreviousData: true,
     });
 
+    const orders = query.data?.orders || []; // keep this aligned with your existing data shape
+    const activeFilters = filters;
+
+    const [isExportingAll, setIsExportingAll] = useState(false);
+
+    async function handleExportAllCsv() {
+        try {
+            setIsExportingAll(true);
+
+            // IMPORTANT:
+            // Export should respect current filters, but NOT pagination
+            // So we pass only filters, without page/limit
+            const { blob, filename } = await OpsOrdersService.exportAllCsv({
+                status: filters.status,
+                warehouse_id: filters.warehouse_id,
+                delivery_date: filters.delivery_date,
+                q: filters.q,
+            });
+
+            downloadBlob(blob, filename);
+        } catch (e) {
+            console.error("EXPORT ALL CSV ERROR:", e);
+            // If you have toast system, call it here:
+            // toast.error("Failed to export CSV");
+            alert("Failed to export CSV");
+        } finally {
+            setIsExportingAll(false);
+        }
+    }
+
     const updateMut = useMutation({
         mutationFn: ({ orderId, payload }) => OpsOrdersService.updateStatus(orderId, payload),
         onSuccess: () => {
@@ -147,6 +191,8 @@ export function OpsOrdersPage() {
             {
                 id: "order",
                 header: "Order",
+                // Enable DataTable global search (search bar) to match order number/id.
+                accessorFn: (row) => `${row.order_number || ""} ${row.id || ""}`.trim(),
                 cell: ({ row }) => (
                     <div>
                         <div className="font-medium">{row.original.order_number}</div>
@@ -157,6 +203,8 @@ export function OpsOrdersPage() {
             {
                 id: "customer",
                 header: "Customer",
+                // Enable global search by customer name/phone.
+                accessorFn: (row) => `${row.user?.full_name || ""} ${row.user?.phone || ""}`.trim(),
                 cell: ({ row }) => (
                     <div>
                         <div className="font-medium">{row.original.user?.full_name || "—"}</div>
@@ -168,16 +216,19 @@ export function OpsOrdersPage() {
             {
                 id: "warehouse",
                 header: "Warehouse",
+                accessorFn: (row) => row.warehouse?.name || "",
                 cell: ({ row }) => row.original.warehouse?.name || "—",
             },
             {
                 id: "total",
                 header: "Total",
+                accessorFn: (row) => String(row.total_paise ?? ""),
                 cell: ({ row }) => <span className="font-medium">{money(row.original.total_paise)}</span>,
             },
             {
                 id: "status",
                 header: "Status",
+                accessorFn: (row) => row.status || "",
                 cell: ({ row }) => <StatusBadge value={row.original.status} />,
             },
             {
@@ -185,6 +236,9 @@ export function OpsOrdersPage() {
                 header: "Actions",
                 cell: ({ row }) => (
                     <div className="flex items-center justify-end">
+                        <Button variant="secondary" asChild>
+                            <Link to={`/ops/orders/${row.original.id}`}>View</Link>
+                        </Button>
                         <Button variant="secondary" onClick={() => setSelected(row.original)}>Update Status</Button>
                     </div>
                 ),
@@ -199,7 +253,36 @@ export function OpsOrdersPage() {
 
             <Filters value={filters} onChange={(v) => setFilters({ ...filters, ...v, page: 1 })} />
 
-            <div className="mt-6">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+                <PDFDownloadLink
+                    document={<OpsOrdersListPdf orders={orders} filters={activeFilters} />}
+                    fileName={`ops_orders_${new Date().toISOString().slice(0, 10)}.pdf`}
+                >
+                    {({ loading }) => (
+                        <Button variant="secondary" disabled={loading || !orders.length}>
+                            {loading ? "Preparing PDF..." : "Export PDF (Current Page)"}
+                        </Button>
+                    )}
+                </PDFDownloadLink>
+
+                <Button
+                    variant="secondary"
+                    disabled={!orders.length}
+                    onClick={() => exportOrdersCsv({ orders, filters: activeFilters })}
+                >
+                    Export CSV (Current Page)
+                </Button>
+
+                <Button
+                    variant="secondary"
+                    onClick={handleExportAllCsv}
+                    disabled={isExportingAll}
+                >
+                    {isExportingAll ? "Exporting..." : "Export ALL (CSV)"}
+                </Button>
+            </div>
+
+            <div className="mt-3">
                 <Card className="p-4">
                     <DataTable
                         columns={columns}

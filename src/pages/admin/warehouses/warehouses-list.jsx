@@ -35,7 +35,17 @@ export function WarehousesListPage() {
 
     const columns = useMemo(
         () => [
-            { accessorKey: "name", header: "Name" },
+            // { accessorKey: "name", header: "Name" },
+            {
+                id: "name",
+                header: "Name",
+                cell: ({ row }) => (
+                    <div>
+                        <div className="font-medium">{row.original.name}</div>
+                        <div className="text-xs text-slate-500">{row.original.id}</div>
+                    </div>
+                ),
+            },
             { accessorKey: "city", header: "City" },
             { accessorKey: "state", header: "State" },
             { accessorKey: "pincode", header: "Pincode" },

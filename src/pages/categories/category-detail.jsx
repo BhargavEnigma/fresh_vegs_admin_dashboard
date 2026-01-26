@@ -20,7 +20,7 @@ export function CategoryDetailPage() {
     <div>
       <PageHeader
         title="Category Detail"
-        subtitle={`GET /v1/opsCategories/${id}`}
+        subtitle={`GET /v1/ops/categories/${id}`}
         actions={
           <>
             <Button asChild variant="outline">

@@ -68,29 +68,32 @@ export const ENDPOINTS = {
     },
     product: {
       create: "/v1/admin/product",
-      // multipart/form-data (field name: images)
       createWithImages: "/v1/admin/product/with-images",
-      uploadImages: (id) => `/v1/admin/product/${id}/images/upload`,
-      deleteProduct: (id) => `/v1/admin/product/${id}`,
       update: (productId) => `/v1/admin/product/${productId}`,
+      updateWithImages: (productId) => `/v1/admin/product/${productId}/with-images`,
       setActive: (productId) => `/v1/admin/product/${productId}/active`,
+      deleteProduct: (id) => `/v1/admin/product/${id}`,
+
+      // Packs
       createPack: (productId) => `/v1/admin/product/${productId}/packs`,
+      listPacks: (productId) => `/v1/admin/product/${productId}/packs`,
       updatePack: (packId) => `/v1/admin/product/packs/${packId}`,
       setPackActive: (packId) => `/v1/admin/product/packs/${packId}/active`,
       deletePack: (packId) => `/v1/admin/product/packs/${packId}`,
-      listPacks: (productId) => `/v1/admin/product/${productId}/packs`,
-      updateWithImages: (productId) => `/v1/admin/product/${productId}/with-images`,
+
+      // Images
       uploadImages: (productId) => `/v1/admin/product/${productId}/images/upload`,
       deleteImage: (imageId) => `/v1/admin/product/images/${imageId}`,
       reorderImages: (productId) => `/v1/admin/product/${productId}/images/reorder`,
+    },
+    
+    // deliverySlot: {
+    //   list: "/v1/admin/deliveryslot",
+    //   create: "/v1/admin/deliveryslot",
+    //   update: (id) => `/v1/admin/deliveryslot/${id}`,
+    //   setActive: (id) => `/v1/admin/deliveryslot/${id}/active`,
+    // },
 
-    },
-    deliverySlot: {
-      list: "/v1/admin/deliveryslot",
-      create: "/v1/admin/deliveryslot",
-      update: (id) => `/v1/admin/deliveryslot/${id}`,
-      setActive: (id) => `/v1/admin/deliveryslot/${id}/active`,
-    },
     settings: {
       list: "/v1/adminSetting",
       getByKey: (key) => `/v1/adminSetting/${encodeURIComponent(key)}`,
@@ -109,26 +112,39 @@ export const ENDPOINTS = {
       list: "/v1/admin/users",
       getById: (id) => `/v1/admin/users/${id}`,
     },
+
+    banners: {
+      list: "/v1/admin/banners",
+      create: "/v1/admin/banners",
+      createWithImage: "/v1/admin/banners/with-image",
+      update: (bannerId) => `/v1/admin/banners/${bannerId}`,
+      updateWithImage: (bannerId) => `/v1/admin/banners/${bannerId}/with-image`,
+      setActive: (bannerId) => `/v1/admin/banners/${bannerId}/active`,
+      reorder: "/v1/admin/banners/reorder",
+      remove: (bannerId) => `/v1/admin/banners/${bannerId}`,
+    },
   },
 
   ops: {
     orders: {
-      list: "/v1/opsOrder",
-      updateStatus: (orderId) => `/v1/opsOrder/${orderId}/status`,
+      list: "/v1/ops/orders",
+      getById: (orderId) => `/v1/ops/orders/${orderId}`,
+      updateStatus: (orderId) => `/v1/ops/orders/${orderId}/status`,
+      exportCsv: "/v1/ops/orders/export",
     },
     reports: {
-      procurement: "/v1/opsReports/procurement",
+      procurement: "/v1/ops/reports/procurement",
     },
     jobs: {
-      lockOrders: "/v1/opsJobs/lock-orders",
+      lockOrders: "/v1/ops/jobs/lock-orders",
     },
     categories: {
-      list: "/v1/opsCategories",
-      getById: (id) => `/v1/opsCategories/${id}`,
-      create: "/v1/opsCategories",
-      update: (id) => `/v1/opsCategories/${id}`,
-      toggleActive: (id) => `/v1/opsCategories/${id}/toggle-active`,
-      reorder: "/v1/opsCategories/reorder",
+      list: "/v1/ops/categories",
+      getById: (id) => `/v1/ops/categories/${id}`,
+      create: "/v1/ops/categories",
+      update: (id) => `/v1/ops/categories/${id}`,
+      toggleActive: (id) => `/v1/ops/categories/${id}/toggle-active`,
+      reorder: "/v1/ops/categories/reorder",
     },
   },
 };

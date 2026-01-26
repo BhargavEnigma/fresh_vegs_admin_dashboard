@@ -56,7 +56,7 @@ export function CategoryEditPage() {
     <div>
       <PageHeader
         title="Edit Category"
-        subtitle={`PATCH /v1/opsCategories/${id}`}
+        subtitle={`PATCH /v1/ops/categories/${id}`}
         actions={
           <Button asChild variant="outline">
             <Link to={`/categories/${id}`}>Back</Link>

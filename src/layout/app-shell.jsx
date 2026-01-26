@@ -64,6 +64,9 @@ export function AppShell() {
             mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             "transition-transform"
           )}
+          style={{
+            position: "fixed"
+          }}
         >
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -120,7 +123,7 @@ export function AppShell() {
         </aside>
 
         {/* Main */}
-        <main className="w-full flex-1 p-4 lg:p-8">
+        <main className={`w-full flex-1 p-4 lg:p-8 lg:ms-72`}>
           <Outlet />
         </main>
       </div>

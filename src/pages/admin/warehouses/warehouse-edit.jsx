@@ -32,7 +32,7 @@ export function WarehouseEditPage() {
 
     return (
         <div className="p-4 sm:p-6">
-            <PageHeader title="Edit Warehouse" subtitle="Update warehouse details." />
+            <PageHeader title="Edit Warehouse" subtitle={id} />
             <Card className="p-4">
                 {query.isLoading ? (
                     <p className="text-sm text-slate-500">Loading...</p>

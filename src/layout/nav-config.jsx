@@ -9,6 +9,7 @@ import {
   FileText,
   Wrench,
   Clock,
+  Image,
 } from "lucide-react";
 
 // Navigation is driven by backend capabilities.
@@ -25,6 +26,7 @@ export const NAV_ITEMS = [
   // { key: "adminDeliverySlots", label: "Delivery Slots", icon: Clock, to: "/admin/delivery-slots", roles: ["admin"] },
   { key: "adminWarehouses", label: "Warehouses", icon: Warehouse, to: "/admin/warehouses", roles: ["admin"] },
   { key: "adminUsers", label: "Admin Users", icon: Users, to: "/admin/users", roles: ["admin"] },
+  { key: "adminBanners", label: "Banners", icon: Image, to: "/admin/banners", roles: ["admin"] },
   { key: "adminSettings", label: "Settings", icon: Settings, to: "/admin/settings", roles: ["admin"] },
 
   { key: "opsJobs", label: "Ops Jobs", icon: Wrench, to: "/ops/jobs", roles: ["admin"] },

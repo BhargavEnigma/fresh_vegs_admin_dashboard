@@ -22,7 +22,7 @@ export function WarehouseDetailPage() {
         <div className="p-4 sm:p-6">
             <PageHeader
                 title={w?.name || "Warehouse"}
-                subtitle="Warehouse details"
+                subtitle={w?.id}
                 actions={(
                     <div className="flex items-center gap-2">
                         <Button asChild variant="secondary">

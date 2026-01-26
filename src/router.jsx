@@ -16,6 +16,7 @@ import { ProductEditPage } from "./pages/products/product-edit";
 import { ProductDetailPage } from "./pages/products/product-detail";
 
 import { OpsOrdersPage } from "./pages/ops/orders/ops-orders-page";
+import { OpsOrderDetailPage } from "./pages/ops/orders/ops-order-detail-page";
 import { ProcurementPage } from "./pages/ops/procurement/procurement-page";
 import { OpsJobsPage } from "./pages/ops/jobs/jobs-page";
 
@@ -26,6 +27,7 @@ import { WarehouseEditPage } from "./pages/admin/warehouses/warehouse-edit";
 import { WarehouseDetailPage } from "./pages/admin/warehouses/warehouse-detail";
 import { AdminSettingsPage } from "./pages/admin/settings/settings-page";
 import { AdminUsersPage } from "./pages/admin/users/admin-users-page";
+import { AdminBannersPage } from "./pages/admin/banners/banners-page";
 
 import { NotFoundPage } from "./pages/system/not-found";
 
@@ -53,6 +55,7 @@ export function AppRouter() {
 
             {/* Ops */}
             <Route path="ops/orders" element={<OpsOrdersPage />} />
+            <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} /> 
             <Route path="ops/procurement" element={<ProcurementPage />} />
           </Route>
 
@@ -67,6 +70,7 @@ export function AppRouter() {
 
             <Route path="admin/settings" element={<AdminSettingsPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/banners" element={<AdminBannersPage />} />
 
             <Route path="ops/jobs" element={<OpsJobsPage />} />
           </Route>

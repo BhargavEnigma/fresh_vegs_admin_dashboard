@@ -39,7 +39,7 @@ export function CategoryCreatePage() {
     <div>
       <PageHeader
         title="Create Category"
-        subtitle="POST /v1/opsCategories"
+        subtitle="POST /v1/ops/categories"
         actions={
           <Button asChild variant="outline">
             <Link to="/categories">Back</Link>

@@ -75,7 +75,7 @@ export function CategoriesListPage() {
     <div>
       <PageHeader
         title="Categories"
-        subtitle="Ops Categories module mapped to /v1/opsCategories/*"
+        subtitle="Ops Categories module mapped to /v1/ops/categories/*"
         actions={
           <Button asChild>
             <Link to="/categories/new">Create Category</Link>
@@ -96,7 +96,7 @@ export function CategoriesListPage() {
         open={confirm.open}
         onOpenChange={(open) => setConfirm((c) => ({ ...c, open }))}
         title={confirm.nextActive ? "Enable category?" : "Disable category?"}
-        description="This uses PATCH /v1/opsCategories/:id/toggle-active"
+        description="This uses PATCH /v1/ops/categories/:id/toggle-active"
         confirmText={confirm.nextActive ? "Enable" : "Disable"}
         variant={confirm.nextActive ? "default" : "destructive"}
         onConfirm={() => mutation.mutateAsync({ id: confirm.id, is_active: confirm.nextActive })}
