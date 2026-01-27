@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCategorySchema } from "../../validations/categories";
@@ -15,6 +16,13 @@ export function CategoryCreatePage() {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+
+  const [imageFile, setImageFile] = useState(null);
+
+  const previewUrl = useMemo(() => {
+    if (!imageFile) return null;
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
 
   const form = useForm({
     resolver: zodResolver(createCategorySchema),
@@ -51,25 +59,30 @@ export function CategoryCreatePage() {
         <CardContent className="pt-6">
           <form
             className="grid gap-4 md:max-w-xl"
-            onSubmit={form.handleSubmit((v) =>
+            onSubmit={form.handleSubmit((v) => {
               mutation.mutate({
                 name: v.name,
-                slug: v.slug || null,
-                sort_order: v.sort_order ?? null,
+                slug: v.slug ? v.slug : undefined,
+                sort_order: v.sort_order ?? undefined,
                 is_active: v.is_active ?? true,
-              })
-            )}
+                image: imageFile || undefined,
+              });
+            })}
           >
             <div className="space-y-2">
               <Label>Name</Label>
               <Input {...form.register("name")} placeholder="Vegetables" />
-              {form.formState.errors.name ? <p className="text-xs text-red-600">{form.formState.errors.name.message}</p> : null}
+              {form.formState.errors.name ? (
+                <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
               <Label>Slug (optional)</Label>
               <Input {...form.register("slug")} placeholder="vegetables" />
-              {form.formState.errors.slug ? <p className="text-xs text-red-600">{form.formState.errors.slug.message}</p> : null}
+              {form.formState.errors.slug ? (
+                <p className="text-xs text-red-600">{form.formState.errors.slug.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -80,11 +93,47 @@ export function CategoryCreatePage() {
               ) : null}
             </div>
 
+            <div className="space-y-2">
+              <Label>Category Image (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  setImageFile(f);
+                }}
+              />
+
+              {previewUrl ? (
+                <div className="mt-2 space-y-2">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="h-24 w-24 rounded-md object-cover border"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setImageFile(null)}
+                  >
+                    Remove image
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Creating…" : "Create"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => form.reset()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  form.reset();
+                  setImageFile(null);
+                }}
+              >
                 Reset
               </Button>
             </div>

@@ -8,6 +8,7 @@ import { DataTable } from "../../components/common/data-table";
 import { StatusBadge } from "../../components/common/status-badge";
 import { ConfirmDialog } from "../../components/common/confirm-dialog";
 import { useToast } from "../../components/toast/toast-context";
+import { assetUrl, cn } from "../../lib/utils";
 
 export function CategoriesListPage() {
   const qc = useQueryClient();
@@ -35,6 +36,20 @@ export function CategoriesListPage() {
 
   const columns = React.useMemo(
     () => [
+      {
+        header: "Image", accessorKey: "image_url", cell: ({ row }) => <div className="font-medium">
+          {row.original.image_url ? (
+            <img
+              src={assetUrl(row.original.image_url)}
+              alt={row.original.name}
+              className="h-10 w-10 rounded-lg object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-900" />
+          )}
+        </div>
+      },
       { header: "Name", accessorKey: "name", cell: ({ row }) => <div className="font-medium">{row.original.name}</div> },
       { header: "Slug", accessorKey: "slug", cell: ({ row }) => <div className="text-slate-500">{row.original.slug || "—"}</div> },
       { header: "Sort", accessorKey: "sort_order", cell: ({ row }) => row.original.sort_order ?? "—" },

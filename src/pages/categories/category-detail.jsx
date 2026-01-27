@@ -5,6 +5,7 @@ import { PageHeader } from "../../components/common/page-header";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { StatusBadge } from "../../components/common/status-badge";
+import { assetUrl } from "../../lib/utils";
 
 export function CategoryDetailPage() {
   const { id } = useParams();
@@ -45,6 +46,29 @@ export function CategoryDetailPage() {
       {c ? (
         <Card>
           <CardContent className="pt-6">
+              {c.image_url ? (
+                <div className="mb-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="text-xs text-slate-500">Images</div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    <a
+                      key={c.id || c.image_url}
+                      href={assetUrl(c.image_url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800"
+                    >
+                      <div className="aspect-square bg-slate-50 dark:bg-slate-900">
+                        <img
+                          src={assetUrl(c.image_url)}
+                          alt={c.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              ) : null}
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="ID" value={<span className="font-mono text-xs">{c.id}</span>} />
               <Field label="Name" value={c.name} />

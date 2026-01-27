@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateCategorySchema } from "../../validations/categories";
@@ -17,6 +18,8 @@ export function CategoryEditPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
+  const [imageFile, setImageFile] = useState(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ["category", id],
     queryFn: () => getCategoryById(id),
@@ -25,16 +28,21 @@ export function CategoryEditPage() {
 
   const c = data?.data?.category;
 
+  const previewUrl = useMemo(() => {
+    if (!imageFile) return null;
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
+
   const form = useForm({
     resolver: zodResolver(updateCategorySchema),
     defaultValues: { name: "", slug: "", sort_order: 0, is_active: true },
     values: c
       ? {
-          name: c.name || "",
-          slug: c.slug || "",
-          sort_order: c.sort_order ?? 0,
-          is_active: !!c.is_active,
-        }
+        name: c.name || "",
+        slug: c.slug || "",
+        sort_order: c.sort_order ?? 0,
+        is_active: !!c.is_active,
+      }
       : undefined,
   });
 
@@ -44,6 +52,7 @@ export function CategoryEditPage() {
       qc.invalidateQueries({ queryKey: ["categories", "ops"] });
       qc.invalidateQueries({ queryKey: ["category", id] });
       toast.push({ variant: "success", title: "Saved", description: "Category updated." });
+      setImageFile(null);
       navigate(`/categories/${id}`);
     },
     onError: (e) => {
@@ -70,25 +79,31 @@ export function CategoryEditPage() {
         <CardContent className="pt-6">
           <form
             className="grid gap-4 md:max-w-xl"
-            onSubmit={form.handleSubmit((v) =>
+            onSubmit={form.handleSubmit((v) => {
               mutation.mutate({
-                name: v.name || null,
-                slug: v.slug || null,
-                sort_order: v.sort_order ?? null,
-                is_active: v.is_active ?? null,
-              })
-            )}
+                // IMPORTANT: don't send null/undefined as "null" string in FormData
+                name: v.name && String(v.name).trim() !== "" ? v.name : undefined,
+                slug: v.slug !== undefined ? v.slug : undefined,
+                sort_order: v.sort_order ?? undefined,
+                is_active: v.is_active ?? undefined,
+                image: imageFile || undefined,
+              });
+            })}
           >
             <div className="space-y-2">
               <Label>Name</Label>
               <Input {...form.register("name")} />
-              {form.formState.errors.name ? <p className="text-xs text-red-600">{form.formState.errors.name.message}</p> : null}
+              {form.formState.errors.name ? (
+                <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
               <Label>Slug</Label>
               <Input {...form.register("slug")} />
-              {form.formState.errors.slug ? <p className="text-xs text-red-600">{form.formState.errors.slug.message}</p> : null}
+              {form.formState.errors.slug ? (
+                <p className="text-xs text-red-600">{form.formState.errors.slug.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -99,11 +114,63 @@ export function CategoryEditPage() {
               ) : null}
             </div>
 
+            <div className="space-y-2">
+              <Label>Category Image</Label>
+
+              {c?.image_url && !previewUrl ? (
+                <div className="mt-2">
+                  <div className="text-xs text-slate-500 mb-2">Current</div>
+                  <img
+                    src={c.image_url}
+                    alt="Current"
+                    className="h-24 w-24 rounded-md object-cover border"
+                  />
+                </div>
+              ) : null}
+
+              {previewUrl ? (
+                <div className="mt-2">
+                  <div className="text-xs text-slate-500 mb-2">New (not saved yet)</div>
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="h-24 w-24 rounded-md object-cover border"
+                  />
+                </div>
+              ) : null}
+
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  setImageFile(f);
+                }}
+              />
+
+              {imageFile ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setImageFile(null)}
+                >
+                  Remove new image
+                </Button>
+              ) : null}
+            </div>
+
             <div className="flex gap-2">
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => form.reset()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  form.reset();
+                  setImageFile(null);
+                }}
+              >
                 Reset
               </Button>
             </div>

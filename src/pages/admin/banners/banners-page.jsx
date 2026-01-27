@@ -244,7 +244,7 @@ export function AdminBannersPage() {
     );
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="">
             <PageHeader
                 title="Banners"
                 subtitle="Manage home banners (offers / ads). Backend: /v1/admin/banners"
