@@ -259,10 +259,12 @@ function PackDialog({ open, onOpenChange, mode, pack, onSubmit, pending }) {
             <div className="space-y-1">
               <Label>MRP (₹)</Label>
               <Input type="number" step="0.01" value={form.mrp_paise} onChange={(e) => setForm((s) => ({ ...s, mrp_paise: e.target.value }))} />
+              <div className="text-xs text-slate-500">Leave blank for dynamic pricing from product based on Unit.</div>
             </div>
             <div className="space-y-1">
               <Label>Selling (₹)</Label>
               <Input type="number" step="0.01" value={form.selling_price_paise} onChange={(e) => setForm((s) => ({ ...s, selling_price_paise: e.target.value }))} />
+              <div className="text-xs text-slate-500">Leave blank for dynamic pricing from product based on Unit.</div>
             </div>
           </div>
 

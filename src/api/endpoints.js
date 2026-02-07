@@ -86,13 +86,6 @@ export const ENDPOINTS = {
       deleteImage: (imageId) => `/v1/admin/product/images/${imageId}`,
       reorderImages: (productId) => `/v1/admin/product/${productId}/images/reorder`,
     },
-    
-    // deliverySlot: {
-    //   list: "/v1/admin/deliveryslot",
-    //   create: "/v1/admin/deliveryslot",
-    //   update: (id) => `/v1/admin/deliveryslot/${id}`,
-    //   setActive: (id) => `/v1/admin/deliveryslot/${id}/active`,
-    // },
 
     settings: {
       list: "/v1/adminSetting",
@@ -123,6 +116,16 @@ export const ENDPOINTS = {
       reorder: "/v1/admin/banners/reorder",
       remove: (bannerId) => `/v1/admin/banners/${bannerId}`,
     },
+    deals: {
+      list: "/v1/admin/deals",
+      create: "/v1/admin/deals",
+      getById: (dealId) => `/v1/admin/deals/${dealId}`,
+      update: (dealId) => `/v1/admin/deals/${dealId}`,
+      remove: (dealId) => `/v1/admin/deals/${dealId}`,
+      packSearch: "/v1/admin/deals/packs",
+      upsertItems: (dealId) => `/v1/admin/deals/${dealId}/items`,
+      removeItem: (dealId, itemId) => `/v1/admin/deals/${dealId}/items/${itemId}`,
+    },
   },
 
   ops: {
@@ -137,6 +140,11 @@ export const ENDPOINTS = {
     },
     jobs: {
       lockOrders: "/v1/ops/jobs/lock-orders",
+      runs: "/v1/ops/jobs/runs",
+    },
+    scheduler: {
+      lockOrders: "/v1/ops/scheduler/lock-orders",
+      lockOrdersPresets: "/v1/ops/scheduler/lock-orders/presets",
     },
     categories: {
       list: "/v1/ops/categories",

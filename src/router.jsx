@@ -28,7 +28,7 @@ import { WarehouseDetailPage } from "./pages/admin/warehouses/warehouse-detail";
 import { AdminSettingsPage } from "./pages/admin/settings/settings-page";
 import { AdminUsersPage } from "./pages/admin/users/admin-users-page";
 import { AdminBannersPage } from "./pages/admin/banners/banners-page";
-
+import { AdminDealsPage } from "./pages/admin/deals/deals-page";
 import { NotFoundPage } from "./pages/system/not-found";
 
 export function AppRouter() {
@@ -71,7 +71,7 @@ export function AppRouter() {
             <Route path="admin/settings" element={<AdminSettingsPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
             <Route path="admin/banners" element={<AdminBannersPage />} />
-
+            <Route path="admin/deals" element={<AdminDealsPage />} />
             <Route path="ops/jobs" element={<OpsJobsPage />} />
           </Route>
 
