@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProductById, setProductActive } from "../../api/services/products.service";
+import { getAdminProductById, setProductActive } from "../../api/services/products.service";
 import { PageHeader } from "../../components/common/page-header";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -19,7 +19,7 @@ export function ProductDetailPage() {
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["product", productId],
-    queryFn: () => getProductById(productId),
+    queryFn: () => getAdminProductById(productId),
     enabled: !!productId,
   });
 
@@ -114,6 +114,7 @@ export function ProductDetailPage() {
                 <Field label="Selling price" value={`₹${(Number(p.selling_price_paise || 0) / 100).toFixed(2)}`} />
                 <Field label="Active" value={<StatusBadge value={p.is_active ? "active" : "inactive"} />} />
                 <Field label="Out of stock" value={<StatusBadge value={p.is_out_of_stock ? "out_of_stock" : "in_stock"} />} />
+                <Field label="Tag" value={p.tag || "—"} />
               </div>
 
               {p.description ? (

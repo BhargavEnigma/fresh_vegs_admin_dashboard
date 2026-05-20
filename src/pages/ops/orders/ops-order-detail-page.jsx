@@ -1,6 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "../../../auth/auth-context";
+import { useToast } from "../../../components/toast/toast-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
+import { Input } from "../../../components/ui/input";
+import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { PageHeader } from "../../../components/common/page-header";
@@ -10,6 +15,7 @@ import { DataTable } from "../../../components/common/data-table";
 import { StatusBadge } from "../../../components/common/status-badge";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { OpsOrderPdf } from "./ops-order-pdf";
+import { Label } from "../../../components/ui/label";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -22,7 +28,44 @@ function pickFirstImageUrl(item) {
 }
 
 export function OpsOrderDetailPage() {
+
     const { orderId } = useParams();
+
+    const { roles } = useAuth();
+    const toast = useToast();
+    const isAdmin = roles.includes("admin");
+
+    const [refundOpen, setRefundOpen] = useState(false);
+    const [refundReason, setRefundReason] = useState("");
+
+    const paymentAuditQuery = useQuery({
+        queryKey: ["adminOrderPaymentAudit", orderId],
+        queryFn: () => AdminOrdersService.getPaymentAudit(orderId),
+        enabled: !!orderId && isAdmin,
+    });
+
+    const refundMut = useMutation({
+        mutationFn: () => AdminOrdersService.initiateRefund(orderId, refundReason),
+        onSuccess: () => {
+            toast.push({
+                variant: "success",
+                title: "Refund initiated",
+                description: "Refund request sent successfully.",
+            });
+            setRefundOpen(false);
+            setRefundReason("");
+            paymentAuditQuery.refetch();
+            query.refetch();
+        },
+        onError: (e) => {
+            const msg = e?.response?.data?.error?.message || e?.message || "Refund failed";
+            toast.push({
+                variant: "error",
+                title: "Refund failed",
+                description: msg,
+            });
+        },
+    });
 
     const query = useQuery({
         queryKey: ["opsOrder", orderId],
@@ -121,7 +164,7 @@ export function OpsOrderDetailPage() {
                                 </Button>
                             )}
                         </PDFDownloadLink>
-                        
+
                         <Button variant="secondary" asChild>
                             <Link to="/ops/orders">Back</Link>
                         </Button>
@@ -199,14 +242,90 @@ export function OpsOrderDetailPage() {
                         </div>
                     </div>
 
+                    <h3 className="mt-5 text-sm font-semibold">Delivery Partner</h3>
+                    <div className="mt-2 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
+                        {order.delivery_partner ? (
+                            <>
+                                <div className="font-medium">{order.delivery_partner.full_name || "—"}</div>
+                                <div className="text-slate-500">{order.delivery_partner.phone || "—"}</div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                    Assigned at: {order.delivery_assigned_at || "—"}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-slate-500">Not assigned</div>
+                        )}
+                    </div>
+
                     <h3 className="mt-5 text-sm font-semibold">Meta</h3>
                     <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                         <div><span className="font-medium text-slate-700 dark:text-slate-200">Locked:</span> {order.is_locked ? "Yes" : "No"}</div>
                         <div><span className="font-medium text-slate-700 dark:text-slate-200">Created:</span> {order.created_at}</div>
                         <div><span className="font-medium text-slate-700 dark:text-slate-200">Updated:</span> {order.updated_at}</div>
                     </div>
+
+                    {isAdmin ? (
+                        <div className="mt-5">
+                            <h3 className="text-sm font-semibold">Payment Audit</h3>
+
+                            {paymentAuditQuery.isLoading ? (
+                                <div className="mt-2 text-sm text-slate-500">Loading payment audit…</div>
+                            ) : paymentAuditQuery.data ? (
+                                <div className="mt-2 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
+                                    <div><span className="font-medium">Payment Status:</span> {paymentAuditQuery.data.payment_status || "—"}</div>
+                                    <div><span className="font-medium">Refund Status:</span> {paymentAuditQuery.data.refund_status || "—"}</div>
+                                    <div><span className="font-medium">Retry Allowed:</span> {paymentAuditQuery.data.retry_allowed ? "Yes" : "No"}</div>
+                                    <div><span className="font-medium">Attempts:</span> {(paymentAuditQuery.data.payment_attempts || []).length}</div>
+                                    <div><span className="font-medium">Refund Rows:</span> {(paymentAuditQuery.data.refunds || []).length}</div>
+
+                                    {(paymentAuditQuery.data.latest_payment_attempt || null) ? (
+                                        <div className="mt-3 rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-900">
+                                            <div className="font-semibold">Latest Attempt</div>
+                                            <pre className="mt-2 overflow-auto whitespace-pre-wrap">
+                                                {JSON.stringify(paymentAuditQuery.data.latest_payment_attempt, null, 2)}
+                                            </pre>
+                                        </div>
+                                    ) : null}
+
+                                    {order.status === "cancelled" && order.payment_status === "paid" ? (
+                                        <div className="mt-3">
+                                            <Button onClick={() => setRefundOpen(true)}>
+                                                Initiate Refund
+                                            </Button>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </Card>
             </div>
+
+            <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Initiate Refund</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="grid gap-2">
+                        <Label>Reason (optional)</Label>
+                        <Input
+                            value={refundReason}
+                            onChange={(e) => setRefundReason(e.target.value)}
+                            placeholder="Customer cancellation approved"
+                        />
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-end gap-2">
+                        <Button variant="secondary" onClick={() => setRefundOpen(false)} disabled={refundMut.isPending}>
+                            Cancel
+                        </Button>
+                        <Button onClick={() => refundMut.mutate()} disabled={refundMut.isPending}>
+                            {refundMut.isPending ? "Submitting..." : "Confirm Refund"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

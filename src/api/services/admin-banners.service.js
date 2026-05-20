@@ -65,4 +65,12 @@ export const AdminBannersService = {
         const res = await api.delete(ENDPOINTS.admin.banners.remove(bannerId));
         return res.data;
     },
+
+    async listActionProducts() {
+        return api.get("/v1/admin/banners/options/products");
+    },
+
+    async listActionCategories() {
+        return api.get("/v1/admin/banners/options/categories");
+    },
 };

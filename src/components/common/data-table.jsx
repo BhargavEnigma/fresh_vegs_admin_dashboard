@@ -49,7 +49,7 @@ export function DataTable({
         <div className="flex items-center gap-2">{toolbarRight}</div>
       </div>
 
-      <div className="w-full overflow-x-auto">
+      <div className="w-full">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left dark:bg-slate-900/40">
             {table.getHeaderGroups().map((hg) => (

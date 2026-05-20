@@ -17,8 +17,11 @@ export const AdminUsersService = {
         return res.data?.data;
     },
 
-    async setRoles(userId, roles) {
-        const res = await api.put(ENDPOINTS.admin.users.setRoles(userId), { roles });
+    async setRoles(userId, roles, warehouse_ids = []) {
+        const res = await api.put(ENDPOINTS.admin.users.setRoles(userId), {
+            roles,
+            warehouse_ids,
+        });
         return res.data?.data;
     },
 };

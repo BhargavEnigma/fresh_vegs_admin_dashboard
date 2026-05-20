@@ -4,6 +4,7 @@ export const createProductSchema = z.object({
   category_id: z.string().uuid(),
   name: z.string().min(2).max(150),
   description: z.string().max(2000).optional().nullable(),
+  tag: z.string().max(2000).optional().nullable(),
   unit: z.string().max(20),
   base_quantity: z.coerce.number().positive(),
   mrp_paise: z.coerce.number().int().positive(),

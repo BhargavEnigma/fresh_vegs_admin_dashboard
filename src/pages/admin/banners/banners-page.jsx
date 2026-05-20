@@ -46,6 +46,10 @@ export function AdminBannersPage() {
 
     const createMut = useMutation({
         mutationFn: async ({ payload, imageFile }) => {
+            // Debug: Log the payload before sending
+            console.log('Create payload:', payload);
+            console.log('sort_order type:', typeof payload.sort_order);
+
             if (imageFile) {
                 return AdminBannersService.createWithImage(payload, imageFile);
             }
@@ -64,6 +68,10 @@ export function AdminBannersPage() {
 
     const updateMut = useMutation({
         mutationFn: async ({ bannerId, payload, imageFile }) => {
+            // Debug: Log the payload before sending
+            console.log('Update payload:', payload);
+            console.log('sort_order type:', typeof payload.sort_order);
+
             if (imageFile) {
                 return AdminBannersService.updateWithImage(bannerId, payload, imageFile);
             }
@@ -313,7 +321,11 @@ export function AdminBannersPage() {
                     {edit.banner ? (
                         <BannerForm
                             mode="edit"
-                            defaultValues={edit.banner}
+                            defaultValues={{
+                                ...edit.banner,
+                                sort_order: Number(edit.banner.sort_order) || 0,  // Convert to number
+                                is_active: Boolean(edit.banner.is_active),        // Ensure boolean
+                            }}
                             isSubmitting={updateMut.isPending}
                             onCancel={() => setEdit({ open: false, banner: null })}
                             onSubmit={({ payload, imageFile }) =>

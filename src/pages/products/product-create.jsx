@@ -44,6 +44,7 @@ export function ProductCreatePage() {
       selling_price_paise: 0,
       is_out_of_stock: false,
       is_active: true,
+      tag: ""
     },
   });
 
@@ -92,6 +93,7 @@ export function ProductCreatePage() {
                   category_id: v.category_id,
                   name: v.name,
                   description: v.description || null,
+                  tag: v.tag,
                   unit: v.unit,
                   base_quantity: Number(v.base_quantity),
                   mrp_paise: rupeesToPaise(v.mrp_paise),
@@ -125,6 +127,14 @@ export function ProductCreatePage() {
               <Label>Name</Label>
               <Input {...form.register("name")} placeholder="Tomato" />
               {form.formState.errors.name ? <p className="text-xs text-red-600">{form.formState.errors.name.message}</p> : null}
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Tag (optional)</Label>
+              <Input {...form.register("tag")} placeholder="e.g. organic, fresh, premium" />
+              {form.formState.errors.tag ? (
+                <p className="text-xs text-red-600">{form.formState.errors.tag.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-2 md:col-span-2">

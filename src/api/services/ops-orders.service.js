@@ -8,7 +8,10 @@ export const OpsOrdersService = {
             limit = 20,
             status,
             warehouse_id,
+            delivery_partner_user_id,
             delivery_date,
+            assigned,
+            unassigned,
             q,
         } = filters;
 
@@ -17,7 +20,10 @@ export const OpsOrdersService = {
             limit,
             ...(status ? { status } : {}),
             ...(warehouse_id ? { warehouse_id } : {}),
+            ...(delivery_partner_user_id ? { delivery_partner_user_id } : {}),
             ...(delivery_date ? { delivery_date } : {}),
+            ...(assigned ? { assigned } : {}),
+            ...(unassigned ? { unassigned } : {}),
             ...(q ? { q } : {}),
         };
 
@@ -31,22 +37,21 @@ export const OpsOrdersService = {
     },
 
     async exportAllCsv(filters = {}) {
-        const { status, warehouse_id, delivery_date, q } = filters;
+        const { status, warehouse_id, delivery_partner_user_id, delivery_date, q } = filters;
 
         const params = {
             ...(status ? { status } : {}),
             ...(warehouse_id ? { warehouse_id } : {}),
+            ...(delivery_partner_user_id ? { delivery_partner_user_id } : {}),
             ...(delivery_date ? { delivery_date } : {}),
             ...(q ? { q } : {}),
         };
 
-        // IMPORTANT: responseType blob so browser can download file
         const res = await api.get(ENDPOINTS.ops.orders.exportCsv, {
             params,
             responseType: "blob",
         });
 
-        // Try to read filename from Content-Disposition
         const cd = res.headers?.["content-disposition"] || res.headers?.["Content-Disposition"];
         let filename = null;
 
@@ -64,5 +69,40 @@ export const OpsOrdersService = {
     async updateStatus(orderId, payload) {
         const res = await api.patch(ENDPOINTS.ops.orders.updateStatus(orderId), payload);
         return res.data?.data;
+    },
+
+    // ================= DELIVERY PARTNER =================
+    async listDeliveryPartners(params = {}) {
+        const res = await api.get(ENDPOINTS.ops.orders.deliveryPartners, { params });
+        return res.data?.data;
+    },
+
+    async assignDeliveryPartner(orderId, payload) {
+        const res = await api.post(ENDPOINTS.ops.orders.assignDeliveryPartner(orderId), payload);
+        return res.data?.data;
+    },
+
+    async unassignDeliveryPartner(orderId, payload = {}) {
+        const res = await api.post(ENDPOINTS.ops.orders.unassignDeliveryPartner(orderId), payload);
+        return res.data?.data;
+    },
+
+    async bulkAssignDeliveryPartner(payload) {
+        const res = await api.post(ENDPOINTS.ops.orders.bulkAssignDeliveryPartner, payload);
+        return res.data?.data;
+    },
+
+    async bulkUnassignDeliveryPartner(payload) {
+        const res = await api.post(ENDPOINTS.ops.orders.bulkUnassignDeliveryPartner, payload);
+        return res.data?.data;
+    },
+
+    async bulkUpdateStatus({ orderIds, toStatus, note }) {
+        console.log('{ orderIds, toStatus, note } : ', orderIds, toStatus, note);
+        return api.post(ENDPOINTS.ops.orders.bulkUpdateStatus, {
+            order_ids: Array.isArray(orderIds) ? orderIds : orderIds.split(",").map(id => id.trim()),
+            to_status: toStatus,
+            note: note ?? null,
+        });
     },
 };

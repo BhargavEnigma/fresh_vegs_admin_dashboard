@@ -11,3 +11,37 @@ body {
 }
 
 a { @apply text-slate-900 dark:text-slate-50; }
+
+.thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.dark .thin-scrollbar {
+    scrollbar-color: #475569 transparent;
+}
+
+.dark .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+.dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}

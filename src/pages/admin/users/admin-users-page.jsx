@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { AdminUsersService } from "../../../api/services/admin-users.service";
 import { adminUserCreateSchema, adminSetRolesSchema } from "../../../validations/admin-users";
+import { WarehousesService } from "../../../api/services/warehouses.service";
 
 import { PageHeader } from "../../../components/common/page-header";
 import { Card } from "../../../components/ui/card";
@@ -32,7 +33,7 @@ function RolePill({ value, active, onToggle }) {
 }
 
 function RolesPicker({ value, onChange }) {
-    const all = ["admin", "warehouse_manager", "customer"];
+    const all = ["admin", "warehouse_manager", "customer", "delivery_partner"];
     const set = new Set(value || []);
 
     const toggle = (role) => {
@@ -48,6 +49,26 @@ function RolesPicker({ value, onChange }) {
                 <RolePill key={r} value={r} active={set.has(r)} onToggle={toggle} />
             ))}
         </div>
+    );
+}
+
+function WarehouseMultiSelect({ warehouses, value, onChange }) {
+    return (
+        <select
+            multiple
+            value={value || []}
+            onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                onChange(selected);
+            }}
+            className="min-h-[140px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+        >
+            {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                    {w.name} ({w.city || "—"})
+                </option>
+            ))}
+        </select>
     );
 }
 
@@ -67,6 +88,11 @@ export function AdminUsersPage() {
         return p;
     }, [listParams]);
 
+    const warehousesQuery = useQuery({
+        queryKey: ["adminUserWarehouses"],
+        queryFn: () => WarehousesService.list({ includeInactive: false }),
+    });
+
     const listQuery = useQuery({
         queryKey: ["adminUsers", queryParams],
         queryFn: () => AdminUsersService.list(queryParams),
@@ -75,12 +101,22 @@ export function AdminUsersPage() {
 
     const createForm = useForm({
         resolver: zodResolver(adminUserCreateSchema),
-        defaultValues: { phone: "91", full_name: "", email: "", roles: ["warehouse_manager"] },
+        defaultValues: {
+            phone: "91",
+            full_name: "",
+            email: "",
+            roles: ["warehouse_manager"],
+            warehouse_ids: [],
+        },
     });
 
     const rolesForm = useForm({
         resolver: zodResolver(adminSetRolesSchema),
-        defaultValues: { user_id: "", roles: ["warehouse_manager"] },
+        defaultValues: {
+            user_id: "",
+            roles: ["warehouse_manager"],
+            warehouse_ids: [],
+        },
     });
 
     const createMut = useMutation({
@@ -98,7 +134,8 @@ export function AdminUsersPage() {
     });
 
     const setRolesMut = useMutation({
-        mutationFn: ({ user_id, roles }) => AdminUsersService.setRoles(user_id, roles),
+        mutationFn: ({ user_id, roles, warehouse_ids }) =>
+            AdminUsersService.setRoles(user_id, roles, warehouse_ids),
         onSuccess: () => {
             toast.success("Roles updated");
             listQuery.refetch();
@@ -107,18 +144,22 @@ export function AdminUsersPage() {
     });
 
     const submitCreate = (values) => {
-        // backend expects phone like 91XXXXXXXXXX (12 digits)
         const phone = String(values.phone || "").trim();
         createMut.mutate({
             phone,
             full_name: values.full_name || null,
             email: values.email || null,
             roles: values.roles,
+            warehouse_ids: values.warehouse_ids || [],
         });
     };
 
     const submitRoles = (values) => {
-        setRolesMut.mutate({ user_id: values.user_id, roles: values.roles });
+        setRolesMut.mutate({
+            user_id: values.user_id,
+            roles: values.roles,
+            warehouse_ids: values.warehouse_ids || [],
+        });
     };
 
     return (
@@ -146,9 +187,10 @@ export function AdminUsersPage() {
                             value={listParams.role}
                             onChange={(e) => setListParams((s) => ({ ...s, page: 1, role: e.target.value }))}
                         >
-                            <option value="">All</option>
+                            {/* <option value="">All</option> */}
                             <option value="admin">admin</option>
                             <option value="warehouse_manager">warehouse_manager</option>
+                            <option value="delivery_partner">delivery_partner</option>
                             <option value="customer">customer</option>
                         </select>
                     </div>
@@ -245,6 +287,7 @@ export function AdminUsersPage() {
                                             onClick={() => {
                                                 rolesForm.setValue("user_id", u.id, { shouldValidate: true });
                                                 rolesForm.setValue("roles", u.roles || [], { shouldValidate: true });
+                                                rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true });
                                                 toast.success("Loaded user into role editor");
                                             }}
                                         >
@@ -318,6 +361,25 @@ export function AdminUsersPage() {
                             ) : null}
                         </div>
 
+                        <div className="grid gap-2">
+                            <Label>Warehouse Assignments</Label>
+                            <WarehouseMultiSelect
+                                warehouses={warehousesQuery.data || []}
+                                value={createForm.watch("warehouse_ids")}
+                                onChange={(warehouse_ids) => createForm.setValue("warehouse_ids", warehouse_ids, { shouldValidate: true })}
+                            />
+
+                            {createForm.formState.errors.warehouse_ids ? (
+                                <p className="text-sm text-red-600">
+                                    {createForm.formState.errors.warehouse_ids.message}
+                                </p>
+                            ) : null}
+
+                            <p className="text-xs text-slate-500">
+                                Assign warehouses for warehouse_manager access. Leave empty for admin-only users if needed.
+                            </p>
+                        </div>
+
                         <div className="flex justify-end">
                             <Button type="submit" disabled={createMut.isPending}>
                                 {createMut.isPending ? "Creating..." : "Create"}
@@ -354,6 +416,21 @@ export function AdminUsersPage() {
                             />
                             {rolesForm.formState.errors.roles ? (
                                 <p className="text-sm text-red-600">{rolesForm.formState.errors.roles.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label>Warehouse Assignments</Label>
+                            <WarehouseMultiSelect
+                                warehouses={warehousesQuery.data || []}
+                                value={rolesForm.watch("warehouse_ids")}
+                                onChange={(warehouse_ids) => rolesForm.setValue("warehouse_ids", warehouse_ids, { shouldValidate: true })}
+                            />
+
+                            {rolesForm.formState.errors.warehouse_ids ? (
+                                <p className="text-sm text-red-600">
+                                    {rolesForm.formState.errors.warehouse_ids.message}
+                                </p>
                             ) : null}
                         </div>
 

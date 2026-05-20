@@ -15,6 +15,8 @@ import { ProductCreatePage } from "./pages/products/product-create";
 import { ProductEditPage } from "./pages/products/product-edit";
 import { ProductDetailPage } from "./pages/products/product-detail";
 
+import { CostPage } from "./pages/admin/cost/cost-page";
+
 import { OpsOrdersPage } from "./pages/ops/orders/ops-orders-page";
 import { OpsOrderDetailPage } from "./pages/ops/orders/ops-order-detail-page";
 import { ProcurementPage } from "./pages/ops/procurement/procurement-page";
@@ -38,30 +40,31 @@ export function AppRouter() {
 
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
-
-          {/* Categories (admin + warehouse_manager) */}
+          {/* Shared: admin + warehouse_manager */}
           <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>
+            <Route index element={<DashboardPage />} />
+
             <Route path="categories" element={<CategoriesListPage />} />
-            <Route path="categories/new" element={<CategoryCreatePage />} />
             <Route path="categories/:id" element={<CategoryDetailPage />} />
-            <Route path="categories/:id/edit" element={<CategoryEditPage />} />
 
-            {/* Products */}
-            <Route path="products" element={<ProductsListPage />} />
-            <Route path="products/new" element={<ProductCreatePage />} />
-            <Route path="products/:productId" element={<ProductDetailPage />} />
-            <Route path="products/:productId/edit" element={<ProductEditPage />} />
-
-            {/* Ops */}
             <Route path="ops/orders" element={<OpsOrdersPage />} />
-            <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} /> 
+            <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />
           </Route>
 
           {/* Admin only */}
           <Route element={<RequireRole allowed={["admin"]} />}>
-            <Route path="admin/delivery-slots" element={<DeliverySlotsAdminPage />} />
+            <Route path="categories/new" element={<CategoryCreatePage />} />
+            <Route path="categories/:id/edit" element={<CategoryEditPage />} />
+
+            <Route path="products" element={<ProductsListPage />} />
+            <Route path="products/new" element={<ProductCreatePage />} />
+            <Route path="products/:productId" element={<ProductDetailPage />} />
+            <Route path="products/:productId/edit" element={<ProductEditPage />} />
+
+            <Route path="products/:productId/edit" element={<ProductEditPage />} />
+
+            <Route path="/admin/cost" element={<CostPage />} />
 
             <Route path="admin/warehouses" element={<WarehousesListPage />} />
             <Route path="admin/warehouses/new" element={<WarehouseCreatePage />} />

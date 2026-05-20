@@ -1,10 +1,14 @@
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateProductSchema } from "../../validations/products";
-import { getProductById, updateProduct } from "../../api/services/products.service";
-import { listCategoriesOps } from "../../api/services/categories.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
+import { updateProductSchema } from "../../validations/products";
+import { getAdminProductById, updateProduct, updateProductWithImages } from "../../api/services/products.service";
+import { listCategoriesOps } from "../../api/services/categories.service";
+import { deleteProductImage, uploadProductImages, reorderProductImages } from "../../api/services/products.service";
+
 import { useToast } from "../../components/toast/toast-context";
 import { PageHeader } from "../../components/common/page-header";
 import { Card, CardContent } from "../../components/ui/card";
@@ -12,274 +16,540 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { ProductImagePicker } from "../../components/products/product-image-picker";
-import { useState } from "react";
-import { updateProductWithImages } from "../../api/services/products.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { assetUrl } from "../../lib/utils";
-import { deleteProductImage, uploadProductImages, reorderProductImages } from "../../api/services/products.service";
-
 
 function paiseToRupees(paise) {
-  return Number(paise || 0) / 100;
+    return Number(paise || 0) / 100;
 }
 
 function rupeesToPaise(rupees) {
-  const n = Number(rupees || 0);
-  return Math.round(n * 100);
+    const n = Number(rupees || 0);
+    return Math.round(n * 100);
+}
+
+function normalizeImages(product) {
+    const raw =
+        product?.images ||
+        product?.product_images ||
+        product?.productImages ||
+        product?.image_urls ||
+        product?.imageUrls ||
+        [];
+
+    // If backend returns array of strings (urls)
+    if (Array.isArray(raw) && raw.length && typeof raw[0] === "string") {
+        return raw.map((url, idx) => ({
+            id: `${idx}`, // fallback; ideally backend returns image id
+            image_url: url,
+            sort_order: idx,
+        }));
+    }
+
+    // If backend returns objects
+    if (Array.isArray(raw)) {
+        return raw
+            .map((img, idx) => ({
+                id: img?.id,
+                image_url: img?.image_url || img?.url || img?.path,
+                sort_order: Number.isFinite(img?.sort_order) ? img.sort_order : idx,
+            }))
+            .filter((x) => x.id && x.image_url);
+    }
+
+    return [];
 }
 
 export function ProductEditPage() {
-  const { productId } = useParams();
-  const toast = useToast();
-  const qc = useQueryClient();
-  const navigate = useNavigate();
+    const { productId } = useParams();
+    const toast = useToast();
+    const qc = useQueryClient();
+    const navigate = useNavigate();
 
-  const [newImages, setNewImages] = useState([]);
+    const [newImages, setNewImages] = useState([]);
+    const [deleteDialog, setDeleteDialog] = useState({ open: false, image: null });
+    const [reorderDirty, setReorderDirty] = useState(false);
 
-  const prodQ = useQuery({
-    queryKey: ["product", productId],
-    queryFn: () => getProductById(productId),
-    enabled: !!productId,
-  });
+    const prodQ = useQuery({
+        queryKey: ["product", productId],
+        queryFn: () => getAdminProductById(productId),
+        enabled: !!productId,
+    });
 
-  const catsQ = useQuery({
-    queryKey: ["categories", "ops"],
-    queryFn: () => listCategoriesOps({ include_inactive: true }),
-  });
+    const catsQ = useQuery({
+        queryKey: ["categories", "ops"],
+        queryFn: () => listCategoriesOps({ include_inactive: true }),
+    });
 
-  const p = prodQ.data?.data?.product;
-  const categories = catsQ.data?.data?.categories || [];
+    const p = prodQ.data?.data?.product;
+    const categories = catsQ.data?.data?.categories || [];
 
-  const form = useForm({
-    resolver: zodResolver(updateProductSchema),
-    defaultValues: {
-      category_id: "",
-      name: "",
-      description: "",
-      unit: "kg",
-      base_quantity: 1,
-      mrp_paise: 0,
-      selling_price_paise: 0,
-      is_out_of_stock: false,
-      is_active: true,
-    },
-    values: p
-      ? {
-        category_id: p.category_id,
-        name: p.name,
-        description: p.description || "",
-        unit: p.unit || "kg",
-        base_quantity: Number(p.base_quantity || 1),
-        mrp_paise: paiseToRupees(p.mrp_paise),
-        selling_price_paise: paiseToRupees(p.selling_price_paise),
-        is_out_of_stock: !!p.is_out_of_stock,
-        is_active: !!p.is_active,
-      }
-      : undefined,
-  });
+    // Local editable list for reorder UI
+    const [existingImages, setExistingImages] = useState([]);
 
-  const mutation = useMutation({
-    mutationFn: async (payload) => {
-      if (newImages.length) {
-        return updateProductWithImages(productId, payload, newImages);
-      }
-      return updateProduct(productId, payload);
-    },
-    onSuccess: () => {
-      setNewImages([]);
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: ["product", productId] });
-      toast.push({ variant: "success", title: "Saved", description: "Product updated." });
-      navigate(`/products/${productId}`);
-    },
-    onError: (e) => {
-      const msg = e?.response?.data?.error?.message || e?.message || "Failed";
-      toast.push({ variant: "error", title: "Update failed", description: msg });
-    },
-  });
+    // Sync existing images when product loads/changes.
+    useEffect(() => {
+        const imgs = normalizeImages(p);
+        imgs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        setExistingImages(imgs);
+        setReorderDirty(false);
+    }, [p?.id, p?.updated_at]);
 
-  return (
-    <div>
-      <PageHeader
-        title="Edit Product"
-        subtitle={`PUT /v1/admin/product/${productId}`}
-        actions={
-          <Button asChild variant="outline">
-            <Link to={`/products/${productId}`}>Back</Link>
-          </Button>
-        }
-      />
+    const form = useForm({
+        resolver: zodResolver(updateProductSchema),
+        defaultValues: {
+            category_id: "",
+            name: "",
+            description: "",
+            tag: "",
+            unit: "kg",
+            base_quantity: 1,
+            mrp_paise: 0,
+            selling_price_paise: 0,
+            is_out_of_stock: false,
+            is_active: true,
+        },
+    });
 
-      {prodQ.isLoading ? <div className="text-sm text-slate-500">Loading…</div> : null}
-      {prodQ.isError ? (
-        <div className="rounded-2xl border border-red-200 bg-white p-4 text-sm text-red-700 dark:border-red-900 dark:bg-slate-950">
-          {prodQ.error?.response?.data?.error?.message || prodQ.error?.message || "Failed to load"}
-          <div className="mt-2 text-xs text-slate-500">
-            Note: inactive products cannot be fetched by GET /v1/products/:id (backend limitation).
-          </div>
-        </div>
-      ) : null}
+    useEffect(() => {
+        if (!p) return;
 
-      <Card>
-        <CardContent className="pt-6">
-          <form
-            className="grid gap-4 md:max-w-2xl md:grid-cols-2"
-            onSubmit={form.handleSubmit((v) =>
-              mutation.mutate({
-                category_id: v.category_id,
-                name: v.name,
-                description: v.description || null,
-                unit: v.unit,
-                base_quantity: Number(v.base_quantity),
-                mrp_paise: rupeesToPaise(v.mrp_paise),
-                selling_price_paise: rupeesToPaise(v.selling_price_paise),
-                is_out_of_stock: !!v.is_out_of_stock,
-                is_active: v.is_active ?? true,
-              })
-            )}
-          >
-            <div className="space-y-2 md:col-span-2">
-              <Label>Category</Label>
-              <select
-                {...form.register("category_id")}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-              >
-                <option value="">Select category…</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {form.formState.errors.category_id ? (
-                <p className="text-xs text-red-600">{form.formState.errors.category_id.message}</p>
-              ) : null}
-            </div>
+        form.reset({
+            category_id: p.category_id ?? "",
+            name: p.name ?? "",
+            description: p.description ?? "",
+            tag: p.tag ?? "",
+            unit: p.unit ?? "kg",
+            base_quantity: Number(p.base_quantity ?? 1),
+            mrp_paise: paiseToRupees(p.mrp_paise),
+            selling_price_paise: paiseToRupees(p.selling_price_paise),
+            is_out_of_stock: !!p.is_out_of_stock,
+            is_active: !!p.is_active,
+        });
+    }, [
+        form,
+        p?.id,
+        p?.category_id,
+        p?.name,
+        p?.description,
+        p?.tag,
+        p?.unit,
+        p?.base_quantity,
+        p?.mrp_paise,
+        p?.selling_price_paise,
+        p?.is_out_of_stock,
+        p?.is_active,
+    ]);
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Name</Label>
-              <Input {...form.register("name")} />
-              {form.formState.errors.name ? <p className="text-xs text-red-600">{form.formState.errors.name.message}</p> : null}
-            </div>
+    const saveMut = useMutation({
+        mutationFn: async (payload) => {
+            if (newImages.length) {
+                return updateProductWithImages(productId, payload, newImages);
+            }
+            return updateProduct(productId, payload);
+        },
+        onSuccess: () => {
+            setNewImages([]);
+            qc.invalidateQueries({ queryKey: ["products"] });
+            qc.invalidateQueries({ queryKey: ["product", productId] });
+            toast.push({ variant: "success", title: "Saved", description: "Product updated." });
+            navigate(`/products/${productId}`);
+        },
+        onError: (e) => {
+            const msg = e?.response?.data?.error?.message || e?.message || "Failed";
+            toast.push({ variant: "error", title: "Update failed", description: msg });
+        },
+    });
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Description</Label>
-              <Input {...form.register("description")} />
-              {form.formState.errors.description ? (
-                <p className="text-xs text-red-600">{form.formState.errors.description.message}</p>
-              ) : null}
-            </div>
+    const uploadImagesMut = useMutation({
+        mutationFn: async () => {
+            if (!newImages.length) return null;
+            return uploadProductImages(productId, newImages);
+        },
+        onSuccess: () => {
+            setNewImages([]);
+            qc.invalidateQueries({ queryKey: ["product", productId] });
+            toast.push({ variant: "success", title: "Uploaded", description: "Images uploaded." });
+        },
+        onError: (e) => {
+            const msg = e?.response?.data?.error?.message || e?.message || "Failed";
+            toast.push({ variant: "error", title: "Upload failed", description: msg });
+        },
+    });
 
-            <div className="space-y-2">
-              <Label>Unit</Label>
-              <Input {...form.register("unit")} />
-              {form.formState.errors.unit ? <p className="text-xs text-red-600">{form.formState.errors.unit.message}</p> : null}
-            </div>
+    // ✅ Optimistic delete: remove instantly, restore if error
+    const deleteImageMut = useMutation({
+        mutationFn: async (imageId) => deleteProductImage(imageId),
+        onMutate: async (imageId) => {
+            setExistingImages((prev) => prev.filter((x) => x.id !== imageId));
+            setDeleteDialog({ open: false, image: null });
+            return { imageId };
+        },
+        onSuccess: () => {
+            toast.push({ variant: "success", title: "Deleted", description: "Image removed." });
+            // optional: keep cache consistent too
+            qc.invalidateQueries({ queryKey: ["product", productId] });
+        },
+        onError: (e, imageId) => {
+            const msg = e?.response?.data?.error?.message || e?.message || "Failed";
+            toast.push({ variant: "error", title: "Delete failed", description: msg });
 
-            <div className="space-y-2">
-              <Label>Base quantity</Label>
-              <Input type="number" step="0.001" {...form.register("base_quantity", { valueAsNumber: true })} />
-              {form.formState.errors.base_quantity ? (
-                <p className="text-xs text-red-600">{form.formState.errors.base_quantity.message}</p>
-              ) : null}
-            </div>
+            // restore from server truth
+            qc.invalidateQueries({ queryKey: ["product", productId] });
+        },
+    });
 
-            <div className="space-y-2">
-              <Label>MRP (₹)</Label>
-              <Input type="number" step="0.01" {...form.register("mrp_paise", { valueAsNumber: true })} />
-              {form.formState.errors.mrp_paise ? (
-                <p className="text-xs text-red-600">{form.formState.errors.mrp_paise.message}</p>
-              ) : null}
-            </div>
+    const reorderMut = useMutation({
+        mutationFn: async () => {
+            // ✅ FIX: payload = { images: [...] } (not { images: { images: [...] } })
+            const payload = existingImages.map((img, idx) => ({
+                id: img.id,
+                sort_order: idx,
+            }));
+            return reorderProductImages(productId, payload);
+        },
+        onSuccess: () => {
+            setReorderDirty(false);
+            qc.invalidateQueries({ queryKey: ["product", productId] });
+            toast.push({ variant: "success", title: "Reordered", description: "Image order saved." });
+        },
+        onError: (e) => {
+            const msg = e?.response?.data?.error?.message || e?.message || "Failed";
+            toast.push({ variant: "error", title: "Reorder failed", description: msg });
+        },
+    });
 
-            <div className="space-y-2">
-              <Label>Selling price (₹)</Label>
-              <Input type="number" step="0.01" {...form.register("selling_price_paise", { valueAsNumber: true })} />
-              {form.formState.errors.selling_price_paise ? (
-                <p className="text-xs text-red-600">{form.formState.errors.selling_price_paise.message}</p>
-              ) : null}
-            </div>
+    function moveImage(fromIdx, toIdx) {
+        setExistingImages((prev) => {
+            const next = [...prev];
+            const [item] = next.splice(fromIdx, 1);
+            next.splice(toIdx, 0, item);
+            return next;
+        });
+        setReorderDirty(true);
+    }
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" {...form.register("is_out_of_stock")} />
-                Out of stock
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" {...form.register("is_active")} />
-                Active
-              </label>
-            </div>
+    const isBusy = saveMut.isPending || uploadImagesMut.isPending || deleteImageMut.isPending || reorderMut.isPending;
 
-            {/* <div className="space-y-2 md:col-span-2">
-              <Label>Product Images</Label>
-              <ProductImagePicker value={newImages} onChange={setNewImages} maxFiles={10} />
-              {!newImages?.length ? <p className="text-xs text-slate-500">At least 1 image is required.</p> : []}
-            </div> */}
+    return (
+        <div>
+            <PageHeader
+                title="Edit Product"
+                subtitle={`PUT /v1/admin/product/${productId}`}
+                actions={
+                    <Button asChild variant="outline">
+                        <Link to={`/products/${productId}`}>Back</Link>
+                    </Button>
+                }
+            />
 
-            <div className="flex gap-2 md:col-span-2">
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? "Saving…" : "Save"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => {
-                form.reset();
-                setNewImages([]);
-              }}
-              >
-                Reset
-              </Button>
-            </div>
-
-            <div className="md:col-span-2 text-xs text-slate-500">
-              Backend requires full payload on update (category_id, name, unit, base_quantity, mrp_paise, selling_price_paise).
-            </div>
-          </form>
-
-          <div className="mt-6 md:col-span-2">
-            <div className="text-sm font-semibold">Add new images</div>
-            <div className="mt-2 text-xs text-slate-500">
-              These images will upload when you click Save (PUT /v1/admin/product/:id/with-images).
-            </div>
-
-            <div className="mt-3">
-              <ProductImagePicker value={[]} onChange={(files) => setNewImages(files)} maxFiles={10} />
-            </div>
-
-            {newImages.length ? (
-              <div className="mt-2 text-xs text-slate-500">{newImages.length} new image(s) selected.</div>
-            ) : null}
-
-            {(p?.newImages || []).length ? (
-              <div className="mt-6">
-                <div className="text-sm font-semibold">Existing images</div>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {p.newImages.map((img) => (
-                    <div key={img.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-                      <div className="aspect-square bg-slate-50 dark:bg-slate-900">
-                        <img src={assetUrl(img.image_url)} alt={p.name} className="h-full w-full object-cover" />
-                      </div>
-                      <div className="p-2">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          className="w-full"
-                          onClick={async () => {
-                            await deleteProductImage(img.id);
-                            qc.invalidateQueries({ queryKey: ["product", productId] });
-                            toast.push({ variant: "success", title: "Deleted", description: "Image removed." });
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+            {prodQ.isLoading ? <div className="text-sm text-slate-500">Loading…</div> : null}
+            {prodQ.isError ? (
+                <div className="rounded-2xl border border-red-200 bg-white p-4 text-sm text-red-700 dark:border-red-900 dark:bg-slate-950">
+                    {prodQ.error?.response?.data?.error?.message || prodQ.error?.message || "Failed to load"}
+                    <div className="mt-2 text-xs text-slate-500">
+                        Note: inactive products cannot be fetched by GET /v1/products/:id (backend limitation).
                     </div>
-                  ))}
                 </div>
-              </div>
             ) : null}
-          </div>
 
-        </CardContent>
-      </Card>
-    </div>
-  );
+            <Card>
+                <CardContent className="pt-6">
+                    <form
+                        className="grid gap-4 md:max-w-2xl md:grid-cols-2"
+                        onSubmit={form.handleSubmit((v) => {
+
+                            console.log("submitted values:", v);
+                            console.log("watched tag:", form.watch("tag"));
+
+                            saveMut.mutate({
+                                category_id: v.category_id,
+                                name: v.name,
+                                description: v.description || null,
+                                tag: v.tag,
+                                unit: v.unit,
+                                base_quantity: Number(v.base_quantity),
+                                mrp_paise: rupeesToPaise(v.mrp_paise),
+                                selling_price_paise: rupeesToPaise(v.selling_price_paise),
+                                is_out_of_stock: !!v.is_out_of_stock,
+                                is_active: v.is_active ?? true,
+                            })
+                        })}
+                    >
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Category</Label>
+                            <select
+                                {...form.register("category_id")}
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                            >
+                                <option value="">Select category…</option>
+                                {categories.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {form.formState.errors.category_id ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.category_id.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Name</Label>
+                            <Input {...form.register("name")} />
+                            {form.formState.errors.name ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Description</Label>
+                            <Input {...form.register("description")} />
+                            {form.formState.errors.description ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.description.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>Tag (optional)</Label>
+                            <Input {...form.register("tag")} placeholder="e.g. organic, fresh, premium" />
+                            {form.formState.errors.tag ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.tag.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Unit</Label>
+                            <Input {...form.register("unit")} />
+                            {form.formState.errors.unit ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.unit.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Base quantity</Label>
+                            <Input type="number" step="0.001" {...form.register("base_quantity", { valueAsNumber: true })} />
+                            {form.formState.errors.base_quantity ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.base_quantity.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>MRP (₹)</Label>
+                            <Input type="number" step="0.01" {...form.register("mrp_paise", { valueAsNumber: true })} />
+                            {form.formState.errors.mrp_paise ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.mrp_paise.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Selling price (₹)</Label>
+                            <Input type="number" step="0.01" {...form.register("selling_price_paise", { valueAsNumber: true })} />
+                            {form.formState.errors.selling_price_paise ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.selling_price_paise.message}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="flex items-center gap-4 md:col-span-2">
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" {...form.register("is_out_of_stock")} />
+                                Out of stock
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input type="checkbox" {...form.register("is_active")} />
+                                Active
+                            </label>
+                        </div>
+
+                        <div className="md:col-span-2 text-xs text-slate-500">
+                            Backend requires full payload on update (category_id, name, unit, base_quantity, mrp_paise,
+                            selling_price_paise).
+                        </div>
+
+                        {/* ------------------ IMAGES ------------------ */}
+                        <div className="md:col-span-2 mt-6 border-t border-slate-200 pt-6 dark:border-slate-800">
+                            <div className="text-base font-semibold">Product Images</div>
+
+                            <div className="mt-4">
+                                <div className="text-sm font-semibold">Existing images</div>
+
+                                {!existingImages.length ? (
+                                    <div className="mt-2 text-xs text-slate-500">No images found for this product.</div>
+                                ) : (
+                                    <>
+                                        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                                            {existingImages.map((img, idx) => (
+                                                <div
+                                                    key={img.id}
+                                                    className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800"
+                                                >
+                                                    <div className="aspect-square bg-slate-50 dark:bg-slate-900">
+                                                        <img
+                                                            src={assetUrl(img.image_url)}
+                                                            alt={p?.name || "Product"}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    </div>
+
+                                                    <div className="p-2 space-y-2">
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className="w-full"
+                                                                disabled={idx === 0 || isBusy}
+                                                                onClick={() => moveImage(idx, idx - 1)}
+                                                            >
+                                                                Up
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                className="w-full"
+                                                                disabled={idx === existingImages.length - 1 || isBusy}
+                                                                onClick={() => moveImage(idx, idx + 1)}
+                                                            >
+                                                                Down
+                                                            </Button>
+                                                        </div>
+
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            className="w-full"
+                                                            disabled={isBusy}
+                                                            onClick={() => setDeleteDialog({ open: true, image: img })}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={!reorderDirty || reorderMut.isPending}
+                                                onClick={() => reorderMut.mutate()}
+                                            >
+                                                {reorderMut.isPending ? "Saving order…" : "Save image order"}
+                                            </Button>
+
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                disabled={!reorderDirty || isBusy}
+                                                onClick={() => {
+                                                    const imgs = normalizeImages(p);
+                                                    imgs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+                                                    setExistingImages(imgs);
+                                                    setReorderDirty(false);
+                                                }}
+                                            >
+                                                Reset order
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="mt-8">
+                                <div className="text-sm font-semibold">Add new images</div>
+                                <div className="mt-2 text-xs text-slate-500">
+                                    Select images and click <b>Upload</b>.
+                                </div>
+
+                                <div className="mt-3">
+                                    <ProductImagePicker value={newImages} onChange={setNewImages} maxFiles={10} />
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        disabled={!newImages.length || uploadImagesMut.isPending}
+                                        onClick={() => uploadImagesMut.mutate()}
+                                    >
+                                        {uploadImagesMut.isPending ? "Uploading…" : "Upload"}
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={!newImages.length || isBusy}
+                                        onClick={() => setNewImages([])}
+                                    >
+                                        Clear selection
+                                    </Button>
+
+                                    {newImages.length ? (
+                                        <div className="text-xs text-slate-500">{newImages.length} new image(s) selected.</div>
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ------------------ SAVE / RESET AT VERY BOTTOM ------------------ */}
+                        <div className="md:col-span-2 mt-8 flex gap-2">
+                            <Button type="submit" disabled={saveMut.isPending}>
+                                {saveMut.isPending ? "Saving…" : "Save"}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isBusy}
+                                onClick={() => {
+                                    form.reset();
+                                    setNewImages([]);
+                                    const imgs = normalizeImages(p);
+                                    imgs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+                                    setExistingImages(imgs);
+                                    setReorderDirty(false);
+                                }}
+                            >
+                                Reset
+                            </Button>
+                        </div>
+                    </form>
+
+                    {/* Delete confirmation dialog */}
+                    <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog((s) => ({ ...s, open }))}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Delete image?</DialogTitle>
+                            </DialogHeader>
+
+                            <div className="text-sm text-slate-600 dark:text-slate-300">
+                                This will permanently remove the image from this product.
+                            </div>
+
+                            <div className="mt-4 flex justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={deleteImageMut.isPending}
+                                    onClick={() => setDeleteDialog({ open: false, image: null })}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    disabled={deleteImageMut.isPending}
+                                    onClick={() => {
+                                        const id = deleteDialog.image?.id;
+                                        if (!id) return;
+                                        deleteImageMut.mutate(id);
+                                    }}
+                                >
+                                    {deleteImageMut.isPending ? "Deleting…" : "Delete"}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

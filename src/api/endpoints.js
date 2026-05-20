@@ -85,8 +85,20 @@ export const ENDPOINTS = {
       uploadImages: (productId) => `/v1/admin/product/${productId}/images/upload`,
       deleteImage: (imageId) => `/v1/admin/product/images/${imageId}`,
       reorderImages: (productId) => `/v1/admin/product/${productId}/images/reorder`,
+      list: "/v1/admin/product",
+      getById: (productId) => `/v1/admin/product/${productId}`,
     },
-
+    cost: {
+      list: "/v1/admin/cost",
+      summary: "/v1/admin/cost/summary",
+      profitOverview: "/v1/admin/cost/profit-overview",
+      procurementItems: "/v1/admin/cost/procurement-items",
+      bulkUpsertProcurement: "/v1/admin/cost/procurement-costs/bulk",
+      getById: (id) => `/v1/admin/cost/${id}`,
+      create: "/v1/admin/cost",
+      update: (id) => `/v1/admin/cost/${id}`,
+      remove: (id) => `/v1/admin/cost/${id}`,
+    },
     settings: {
       list: "/v1/adminSetting",
       getByKey: (key) => `/v1/adminSetting/${encodeURIComponent(key)}`,
@@ -134,6 +146,13 @@ export const ENDPOINTS = {
       getById: (orderId) => `/v1/ops/orders/${orderId}`,
       updateStatus: (orderId) => `/v1/ops/orders/${orderId}/status`,
       exportCsv: "/v1/ops/orders/export",
+
+      deliveryPartners: "/v1/ops/orders/delivery-partners",
+      assignDeliveryPartner: (orderId) => `/v1/ops/orders/${orderId}/assign-delivery-partner`,
+      unassignDeliveryPartner: (orderId) => `/v1/ops/orders/${orderId}/unassign-delivery-partner`,
+      bulkAssignDeliveryPartner: "/v1/ops/orders/bulk/assign-delivery-partner",
+      bulkUnassignDeliveryPartner: "/v1/ops/orders/bulk/unassign-delivery-partner",
+      bulkUpdateStatus: "/v1/ops/orders/bulk/status",
     },
     reports: {
       procurement: "/v1/ops/reports/procurement",

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { listProducts } from "../../api/services/products.service";
+import { listAdminProducts } from "../../api/services/products.service";
 import { listCategoriesOps } from "../../api/services/categories.service";
 import { PageHeader } from "../../components/common/page-header";
 import { Button } from "../../components/ui/button";
@@ -21,11 +21,12 @@ export function ProductsListPage() {
   const productsQ = useQuery({
     queryKey: ["products", { page, limit, q, category_id, include_out_of_stock }],
     queryFn: () =>
-      listProducts({
+      listAdminProducts({
         page,
         limit,
         q: q || undefined,
         category_id: category_id || undefined,
+        include_inactive: true,
         include_out_of_stock,
       }),
   });
@@ -41,7 +42,7 @@ export function ProductsListPage() {
   const categories = catsQ.data?.data?.categories || [];
 
   console.log("products : : ", products);
-  
+
   function set(key, value) {
     const next = new URLSearchParams(params);
     if (!value) next.delete(key);
@@ -115,6 +116,7 @@ export function ProductsListPage() {
                   <th className="px-4 py-3 font-semibold">Name</th>
                   <th className="px-4 py-3 font-semibold">Category</th>
                   <th className="px-4 py-3 font-semibold">Base</th>
+                  <th className="px-4 py-3 font-semibold">Unit</th>
                   <th className="px-4 py-3 font-semibold">MRP</th>
                   <th className="px-4 py-3 font-semibold">Selling</th>
                   <th className="px-4 py-3 font-semibold">Stock</th>
@@ -149,6 +151,7 @@ export function ProductsListPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{p.category?.name || "—"}</td>
                       <td className="px-4 py-3">{p.base_quantity ?? "—"}</td>
+                      <td className="px-4 py-3">{p.unit ?? "—"}</td>
                       <td className="px-4 py-3">₹{(Number(p.mrp_paise || 0) / 100).toFixed(2)}</td>
                       <td className="px-4 py-3">₹{(Number(p.selling_price_paise || 0) / 100).toFixed(2)}</td>
                       <td className="px-4 py-3">

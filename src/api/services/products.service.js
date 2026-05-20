@@ -118,3 +118,29 @@ export async function reorderProductImages(productId, images) {
   const res = await api.put(ENDPOINTS.admin.product.reorderImages(productId), { images });
   return res.data;
 }
+
+export async function listAdminProducts({
+  page,
+  limit,
+  q,
+  category_id,
+  include_inactive = true,
+  include_out_of_stock = true,
+} = {}) {
+  const res = await api.get(ENDPOINTS.admin.product.list, {
+    params: {
+      page: page || undefined,
+      limit: limit || undefined,
+      q: q || undefined,
+      category_id: category_id || undefined,
+      include_inactive: include_inactive ? true : undefined,
+      include_out_of_stock: include_out_of_stock ? true : undefined,
+    },
+  });
+  return res.data;
+}
+
+export async function getAdminProductById(productId) {
+  const res = await api.get(ENDPOINTS.admin.product.getById(productId));
+  return res.data;
+}

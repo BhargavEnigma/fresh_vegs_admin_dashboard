@@ -1,8 +1,10 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 
 import { bannerUpsertSchema } from "../../../validations/banners";
+import { AdminBannersService } from "../../../api/services/admin-banners.service";
 
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -82,20 +84,61 @@ export function BannerForm({
         if (value === "1" || value === "true" || value === true || value === 1) {
             return true;
         }
-        // Default fallback
         return Boolean(value);
     }
+
+    const actionType = form.watch("action_type");
+
+    // Clear action_value if action_type changes to avoid storing wrong IDs
+    React.useEffect(() => {
+        form.setValue("action_value", null, { shouldValidate: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [actionType]);
+
+    // Load products when action_type = product
+    const productsQuery = useQuery({
+        queryKey: ["admin", "banner-action-options", "products"],
+        queryFn: () => AdminBannersService.listActionProducts(),
+        enabled: actionType === "product",
+        staleTime: 60 * 1000,
+    });
+
+    // Load categories when action_type = category
+    const categoriesQuery = useQuery({
+        queryKey: ["admin", "banner-action-options", "categories"],
+        queryFn: () => AdminBannersService.listActionCategories(),
+        enabled: actionType === "category",
+        staleTime: 60 * 1000,
+    });
+
+    const isOptionsLoading = (actionType === "product" && productsQuery.isLoading)
+        || (actionType === "category" && categoriesQuery.isLoading);
+
+    const optionsError = (actionType === "product" ? productsQuery.error : categoriesQuery.error);
+
+    const options = React.useMemo(() => {
+        if (actionType === "product") return productsQuery.data?.data?.data?.items || [];
+        if (actionType === "category") return categoriesQuery.data?.data?.data?.items || [];
+        return [];
+    }, [actionType, productsQuery.data, categoriesQuery.data]);
+
+    const shouldShowDropdown = actionType === "product" || actionType === "category";
+    const shouldShowTextInput = actionType === "external_url" || actionType === "collection";
+    const shouldDisableActionValue = actionType === "none";
+
+    console.log("options : ", productsQuery.data?.data?.items);
 
     return (
         <form
             onSubmit={form.handleSubmit((values) => {
+                // Ensure sort_order is always a number
+                const sortOrder = Number(values.sort_order);
+                const finalSortOrder = isNaN(sortOrder) ? 0 : sortOrder;
+
                 const payload = {
                     ...values,
-                    // Convert string to number
-                    sort_order: Number(values.sort_order) || 0,
-                    // Convert string to boolean
+                    sort_order: finalSortOrder || 0,
                     is_active: toBoolean(values.is_active),
-                    // backend accepts ISO datetime strings; empty => null
                     start_at: values.start_at ? new Date(values.start_at).toISOString() : null,
                     end_at: values.end_at ? new Date(values.end_at).toISOString() : null,
                     title: values.title === "" ? null : values.title,
@@ -103,14 +146,10 @@ export function BannerForm({
                     action_value: values.action_value === "" ? null : values.action_value,
                 };
 
-                // Remove any fields that should be sent as null
-                Object.keys(payload).forEach(key => {
-                    if (payload[key] === null) {
-                        payload[key] = null;
-                    }
-                });
+                // Debug: Log the payload to verify sort_order type
+                console.log('Payload being sent:', payload);
+                console.log('sort_order type:', typeof payload.sort_order, 'value:', payload.sort_order);
 
-                // If a file is selected, backend will ignore image_url and use upload.
                 onSubmit?.({ payload, imageFile });
             })}
             className="grid gap-3 sm:gap-4"
@@ -141,8 +180,19 @@ export function BannerForm({
                         type="number"
                         placeholder="0"
                         {...form.register("sort_order", {
-                            valueAsNumber: true, // This helps with number conversion
+                            valueAsNumber: true,
+                            setValueAs: (value) => {
+                                // Handle various input cases
+                                if (value === "" || value === null || value === undefined) return 0;
+                                const num = Number(value);
+                                return isNaN(num) ? 0 : num;
+                            }
                         })}
+                        onChange={(e) => {
+                            // Ensure the value is always a number
+                            const numValue = e.target.value === "" ? 0 : Number(e.target.value);
+                            form.setValue("sort_order", isNaN(numValue) ? 0 : numValue);
+                        }}
                     />
                     {errorFor("sort_order") ? <p className="text-sm text-red-600">{errorFor("sort_order")}</p> : null}
                 </div>
@@ -165,9 +215,58 @@ export function BannerForm({
 
                 <div className="grid gap-2">
                     <Label>Action Value</Label>
-                    <Input placeholder="UUID / URL" {...form.register("action_value")} />
-                    {errorFor("action_value") ? <p className="text-sm text-red-600">{errorFor("action_value")}</p> : null}
-                    <p className="text-xs text-slate-500">Example: productId / categoryId / https://…</p>
+
+                    {shouldDisableActionValue ? (
+                        <>
+                            <Input placeholder="—" disabled />
+                            <p className="text-xs text-slate-500">Select an Action Type first.</p>
+                        </>
+                    ) : null}
+
+                    {shouldShowDropdown ? (
+                        <>
+                            <select
+                                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
+                                {...form.register("action_value")}
+                                disabled={isOptionsLoading || isSubmitting}
+                            >
+                                <option value="">
+                                    {isOptionsLoading ? "Loading..." : "Select..."}
+                                </option>
+                                {options.map((o) => (
+                                    <option key={o.id} value={o.id}>
+                                        {o.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {optionsError ? (
+                                <p className="text-xs text-red-600">
+                                    Failed to load options. {optionsError?.message || ""}
+                                </p>
+                            ) : null}
+
+                            <p className="text-xs text-slate-500">
+                                This will store the <span className="font-medium">ID</span> in action_value.
+                            </p>
+
+                            {errorFor("action_value") ? (
+                                <p className="text-sm text-red-600">{errorFor("action_value")}</p>
+                            ) : null}
+                        </>
+                    ) : null}
+
+                    {shouldShowTextInput ? (
+                        <>
+                            <Input placeholder={actionType === "external_url" ? "https://..." : "collection key"} {...form.register("action_value")} />
+                            {errorFor("action_value") ? <p className="text-sm text-red-600">{errorFor("action_value")}</p> : null}
+                            <p className="text-xs text-slate-500">
+                                {actionType === "external_url"
+                                    ? "Example: https://…"
+                                    : "Example: seasonal_offers / top_picks"}
+                            </p>
+                        </>
+                    ) : null}
                 </div>
             </div>
 
@@ -201,11 +300,7 @@ export function BannerForm({
 
                 <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => fileRef.current?.click()}
-                        >
+                        <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
                             {imageFile ? "Change image" : "Pick image"}
                         </Button>
                         <Button type="button" variant="secondary" onClick={clearImage} disabled={!imageFile && !preview}>
@@ -236,7 +331,6 @@ export function BannerForm({
                     ) : (
                         <p className="mt-3 text-xs text-slate-500">No image selected.</p>
                     )}
-
                 </div>
 
                 <p className="text-xs text-slate-500">
@@ -260,7 +354,6 @@ export function BannerForm({
                     {isSubmitting ? "Saving..." : mode === "create" ? "Create" : "Save"}
                 </Button>
             </div>
-
         </form>
     );
 }

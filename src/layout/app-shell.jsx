@@ -6,6 +6,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from "../components/ui/button";
 import { Menu, Moon, Sun } from "lucide-react";
 import * as React from "react";
+import Image from "../assets/logo-bg.png";
+import ImageDark from "../assets/logo-bg-dark.png";
 
 function useDarkMode() {
   const [dark, setDark] = React.useState(() => document.documentElement.classList.contains("dark"));
@@ -70,8 +72,10 @@ export function AppShell() {
         >
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <div className="text-base font-bold">FreshVeg Admin</div>
-              <div className="text-xs text-slate-500">Operations console</div>
+              <div className="text-base font-bold w-40">
+                {dark ? <img src={ImageDark} alt="FreshVeg" className="h-50" /> : <img src={Image} alt="FreshVeg" className="" />}
+              </div>
+              {/* <div className="text-xs text-slate-500">Operations console</div> */}
             </div>
 
             <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme" className="hidden lg:inline-flex">
@@ -79,7 +83,7 @@ export function AppShell() {
             </Button>
           </div>
 
-          <nav className="mt-6 space-y-1">
+          <nav className="mt-3 space-y-1 h-[68vh] overflow-y-auto [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-black/20 [&::-webkit-scrollbar-thumb:hover]:bg-black/30">
             {items.map((it) => (
               <NavLink
                 key={it.key}
