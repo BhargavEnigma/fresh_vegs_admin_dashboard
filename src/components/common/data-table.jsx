@@ -37,7 +37,7 @@ export function DataTable({
   });
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark">
       <div className="flex flex-col gap-2 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:max-w-sm">
           <Input
@@ -46,12 +46,12 @@ export function DataTable({
             placeholder={searchPlaceholder}
           />
         </div>
-        <div className="flex items-center gap-2">{toolbarRight}</div>
+        {/* <div className="flex flex-col gap-2 border-b border-slate-200/80 bg-gradient-to-r from-dailyveg-50/70 to-white p-4 dark:border-slate-800/80 dark:from-dailyveg-950/40 dark:to-slate-950 sm:flex-row sm:items-center sm:justify-between">{toolbarRight}</div> */}
       </div>
 
-      <div className="w-full">
+      <div className="w-full overflow-x-auto thin-scrollbar">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left dark:bg-slate-900/40">
+          <thead className="bg-dailyveg-50/80 text-left dark:bg-dailyveg-950/50">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
@@ -80,7 +80,7 @@ export function DataTable({
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-900 dark:hover:bg-slate-900/30">
+                <tr key={row.id} className="border-t border-slate-100 transition-colors hover:bg-dailyveg-50/70 dark:border-slate-900 dark:hover:bg-dailyveg-950/40">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="whitespace-nowrap px-4 py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

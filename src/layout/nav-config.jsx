@@ -12,6 +12,7 @@ import {
   Image,
   BadgePercent,
   IndianRupee,
+  Megaphone,
 } from "lucide-react";
 
 // Navigation is driven by backend capabilities.
@@ -86,18 +87,26 @@ export const NAV_ITEMS = [
     roles: ["admin"],
   },
   {
-    key: "adminBanners",
-    label: "Banners",
-    icon: Image,
-    to: "/admin/banners",
+    key: "promotions",
+    label: "Promotions",
+    icon: Megaphone,
     roles: ["admin"],
-  },
-  {
-    key: "adminDeals",
-    label: "Deals",
-    icon: BadgePercent,
-    to: "/admin/deals",
-    roles: ["admin"],
+    children: [
+      {
+        key: "adminBanners",
+        label: "Banners",
+        icon: Image,
+        to: "/admin/banners",
+        roles: ["admin"],
+      },
+      {
+        key: "adminDeals",
+        label: "Deals",
+        icon: BadgePercent,
+        to: "/admin/deals",
+        roles: ["admin"],
+      },
+    ],
   },
   {
     key: "adminSettings",

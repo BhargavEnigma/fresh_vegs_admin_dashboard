@@ -2,23 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-  height: 100%;
+:root {
+    --dv-primary: #4cae39;
+    --dv-primary-hover: #3f9630;
+    --dv-primary-soft: #eef9ec;
+    --dv-primary-border: #b8e4ad;
+    --dv-primary-dark: #245c1d;
+    --dv-bg: #f8fbf7;
+    --dv-card: #ffffff;
+    --dv-ring: rgba(76, 174, 57, 0.35);
+}
+
+.dark {
+    --dv-primary: #7bc96f;
+    --dv-primary-hover: #4cae39;
+    --dv-primary-soft: rgba(76, 174, 57, 0.12);
+    --dv-primary-border: rgba(123, 201, 111, 0.28);
+    --dv-primary-dark: #102a0d;
+    --dv-bg: #071106;
+    --dv-card: #0b150a;
+    --dv-ring: rgba(123, 201, 111, 0.34);
+}
+
+html,
+body {
+    height: 100%;
 }
 
 body {
-  @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50;
+    @apply text-slate-900 antialiased dark:text-slate-50;
 }
 
-a { @apply text-slate-900 dark:text-slate-50; }
+a {
+    @apply text-slate-900 dark:text-slate-50;
+}
 
-.thin-scrollbar {
+::selection {
+    background: var(--dv-primary-soft);
+    color: var(--dv-primary-dark);
+}
+
+.dark ::selection {
+    color: #f8fff7;
+}
+
+select,
+input[type="date"] {
+    color-scheme: light;
+}
+
+.dark select,
+.dark input[type="date"] {
+    color-scheme: dark;
+}
+
+select {
+    @apply rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-dailyveg-500 focus:ring-2 focus:ring-dailyveg-500/25 dark:border-slate-800 dark:bg-slate-950 dark:focus:border-dailyveg-400 dark:focus:ring-dailyveg-400/20;
+}
+
+/* .thin-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-}
+    scrollbar-color: #b8d9b0 transparent;
+} */
 
 .thin-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 3px;
+    height: 3px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-track {
@@ -26,22 +75,29 @@ a { @apply text-slate-900 dark:text-slate-50; }
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #b8d9b0;
     border-radius: 999px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    width: 3px;
+    height: 3px;
+    background: #4cae39;
 }
 
-.dark .thin-scrollbar {
-    scrollbar-color: #475569 transparent;
+.dark .thin-scrollbar .thin-scrollbar::-webkit-scrollbar{
+    scrollbar-color: #245c1d transparent;
 }
 
 .dark .thin-scrollbar::-webkit-scrollbar-thumb {
-    background: #475569;
+    background: #245c1d;
 }
 
 .dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: #4cae39;
+}
+
+.dark .thin-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
 }

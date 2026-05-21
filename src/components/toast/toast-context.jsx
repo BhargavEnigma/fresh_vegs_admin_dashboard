@@ -77,15 +77,15 @@ function ToastViewport({ toasts, onClose }) {
 function ToastCard({ toast, onClose }) {
     const border =
         toast.variant === "success"
-            ? "border-emerald-500/40"
+            ? "border-dailyveg-500/50 bg-dailyveg-50 dark:bg-dailyveg-950/70"
             : toast.variant === "error"
-            ? "border-red-500/40"
-            : toast.variant === "warning"
-            ? "border-amber-500/40"
-            : "border-slate-200 dark:border-slate-800";
+                ? "border-red-500/40 bg-red-50 dark:bg-red-950/30"
+                : toast.variant === "warning"
+                    ? "border-amber-500/40 bg-amber-50 dark:bg-amber-950/30"
+                    : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950";
 
     return (
-        <div className={`rounded-2xl border ${border} bg-white p-4 shadow-lg dark:bg-slate-950`}>
+        <div className={`rounded-2xl border ${border} p-4 shadow-xl shadow-slate-200/60 dark:shadow-black/30`}>
             <div className="flex items-start justify-between gap-3">
                 <div>
                     {toast.title ? <div className="text-sm font-semibold">{toast.title}</div> : null}
@@ -95,7 +95,7 @@ function ToastCard({ toast, onClose }) {
                 </div>
                 <button
                     onClick={onClose}
-                    className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    className="rounded-lg px-2 py-1 text-xs text-slate-500 transition hover:bg-dailyveg-100 hover:text-dailyveg-800 dark:hover:bg-dailyveg-950 dark:hover:text-dailyveg-300"
                 >
                     Close
                 </button>

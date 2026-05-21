@@ -259,7 +259,7 @@ function Filters({ value, onApply, deliveryPartners }) {
             onSubmit={form.handleSubmit(submit)}
             className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
         >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="grid gap-1.5">
                     <Label>Search</Label>
                     <Input placeholder="Order no / order id / phone" {...form.register("q")} />
@@ -338,19 +338,20 @@ function Filters({ value, onApply, deliveryPartners }) {
 function SummaryCard({ title, value, active, onClick }) {
     return (
         <button
+            size="lg"
+            className={[
+                "flex flex-col items-start justify-between rounded-2xl border p-4 transition",
+                active
+                    ? "bg-dailyveg-500 shadow-brand text-white hover:bg-dailyveg-600 dark:border-0 dark:bg-dailyveg-600"
+                    : "border-slate-200 bg-white hover:border-1 hover:border-dailyveg-300 hover:bg-dailyveg-50 hover:text-dailyveg-800 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:bg-slate-950/70 dark:hover:text-dailyveg-300 dark:shadow-brand-dark",
+            ].join(" ")}
             type="button"
             onClick={onClick}
-            className={[
-                "rounded-2xl border p-4 text-left transition",
-                active
-                    ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
-                    : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-slate-700",
-            ].join(" ")}
         >
-            <div className={`text-xs ${active ? "text-white/75 dark:text-slate-600" : "text-slate-500 dark:text-slate-400"}`}>
+            <div className={`text-sm`}>
                 {title}
             </div>
-            <div className="mt-2 text-2xl font-bold">{value}</div>
+            <div className="text-2xl font-bold">{value}</div>
         </button>
     );
 }
@@ -1104,7 +1105,7 @@ export function OpsOrdersPage() {
             <div className="mt-4">
                 <Card className="w-full overflow-hidden p-4">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                        <QueueTabs value={queue} onChange={handleQueueChange} />
+                        {/* <QueueTabs value={queue} onChange={handleQueueChange} /> */}
 
                         <div className="flex max-w-full flex-wrap items-center gap-2 overflow-hidden">
                             <PDFDownloadLink
@@ -1188,7 +1189,7 @@ export function OpsOrdersPage() {
                     <div className="mt-4 w-[1199px] overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
                         <div className="w-full overflow-x-auto thin-scrollbar">
                             <table className="w-full table-auto whitespace-nowrap text-sm">
-                                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900/40">
+                                <thead className="sticky text-left top-0 z-10 bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                                     <tr>
                                         <th className="w-10 px-4 py-3 text-left">
                                             <input type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />

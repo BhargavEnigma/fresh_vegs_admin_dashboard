@@ -3,7 +3,13 @@ import { cn } from "../../lib/utils";
 
 function Card({ className, ...props }) {
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950", className)} {...props} />
+    <div
+      className={cn(
+        "rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 transition-colors dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark",
+        className
+      )}
+      {...props}
+    />
   );
 }
 

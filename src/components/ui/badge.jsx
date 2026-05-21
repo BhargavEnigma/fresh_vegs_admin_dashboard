@@ -7,12 +7,18 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-slate-900 text-white dark:bg-slate-50 dark:text-slate-900",
-        secondary: "border-transparent bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-50",
-        outline: "text-slate-900 dark:text-slate-50",
-        success: "border-transparent bg-emerald-600 text-white",
-        warning: "border-transparent bg-amber-500 text-white",
-        danger: "border-transparent bg-red-600 text-white",
+        default:
+          "border-transparent bg-dailyveg-500 text-white dark:bg-dailyveg-600",
+        secondary:
+          "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-800 dark:border-dailyveg-800/60 dark:bg-dailyveg-950/70 dark:text-dailyveg-300",
+        outline:
+          "border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200",
+        success:
+          "border-transparent bg-dailyveg-500 text-white dark:bg-dailyveg-600",
+        warning:
+          "border-transparent bg-amber-500 text-white",
+        danger:
+          "border-transparent bg-red-600 text-white",
       },
     },
     defaultVariants: { variant: "default" },
@@ -20,7 +26,7 @@ const badgeVariants = cva(
 );
 
 function Badge({ className, variant, ...props }) {
-  return <div className={cn(badgeVariants({ variant }), className ,"truncate")} {...props} />;
+  return <div className={cn(badgeVariants({ variant }), className, "truncate")} {...props} />;
 }
 
 export { Badge, badgeVariants };
