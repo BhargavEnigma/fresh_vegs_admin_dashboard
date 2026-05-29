@@ -12,8 +12,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 
-import Image from "../../assets/logo-bg.png";
-import ImageDark from "../../assets/logo-bg-dark.png";
+import Image from "../../assets/logo-light-trans.png";
+import ImageDark from "../../assets/logo-dark-trans.png";
 
 export function LoginPage() {
     const [step, setStep] = React.useState("send"); // send | verify
