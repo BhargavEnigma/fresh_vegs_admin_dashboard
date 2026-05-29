@@ -1,8 +1,9 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createProductSchema } from "../../validations/products";
 import { createProductWithImages } from "../../api/services/products.service";
 import { listCategoriesOps } from "../../api/services/categories.service";
+import { generateProductDescription } from "../../api/services/ai.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../../components/toast/toast-context";
@@ -13,6 +14,9 @@ import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { ProductImagePicker } from "../../components/products/product-image-picker";
 import { useState } from "react";
+import { PremiumSelect } from "../../components/ui/premium-select";
+import { Textarea } from "../../components/ui/textarea";
+import { RiGeminiFill } from "react-icons/ri";
 
 function rupeesToPaise(rupees) {
   const n = Number(rupees || 0);
@@ -44,7 +48,39 @@ export function ProductCreatePage() {
       selling_price_paise: 0,
       is_out_of_stock: false,
       is_active: true,
-      tag: ""
+      tag: "",
+    },
+  });
+
+  const generateDescriptionMutation = useMutation({
+    mutationFn: (payload) => generateProductDescription(payload),
+    onSuccess: (resp) => {
+      const description = resp?.data?.data?.description;
+
+      if (description) {
+        form.setValue("description", description, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+
+        toast.push({
+          variant: "success",
+          title: "Generated",
+          description: "Product description generated successfully.",
+        });
+      }
+    },
+    onError: (e) => {
+      const msg =
+        e?.response?.data?.error?.message ||
+        e?.message ||
+        "Failed to generate description";
+
+      toast.push({
+        variant: "error",
+        title: "AI generation failed",
+        description: msg,
+      });
     },
   });
 
@@ -77,7 +113,7 @@ export function ProductCreatePage() {
       <Card>
         <CardContent className="pt-6">
           <form
-            className="grid gap-4 md:max-w-2xl md:grid-cols-2"
+            className="grid gap-4 md:max-w-full md:grid-cols-2"
             onSubmit={form.handleSubmit((v) => {
               if (!images?.length) {
                 toast.push({
@@ -107,55 +143,124 @@ export function ProductCreatePage() {
           >
             <div className="space-y-2 md:col-span-2">
               <Label>Category</Label>
-              <select
-                {...form.register("category_id")}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-              >
-                <option value="">Select category…</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {form.formState.errors.category_id ? (
-                <p className="text-xs text-red-600">{form.formState.errors.category_id.message}</p>
-              ) : null}
+              <Controller
+                control={form.control}
+                name="category_id"
+                render={({ field }) => (
+                  <div className="space-y-1.5">
+                    <PremiumSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select category…"
+                      options={[
+                        { value: "", label: "Select category…" },
+                        ...categories.map((c) => ({
+                          value: c.id,
+                          label: c.name,
+                        })),
+                      ]}
+                    />
+
+                    {form.formState.errors.category_id ? (
+                      <p className="text-xs text-red-600">
+                        {form.formState.errors.category_id.message}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              />
             </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>Name</Label>
               <Input {...form.register("name")} placeholder="Tomato" />
-              {form.formState.errors.name ? <p className="text-xs text-red-600">{form.formState.errors.name.message}</p> : null}
+              {form.formState.errors.name ? (
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.name.message}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>Tag (optional)</Label>
               <Input {...form.register("tag")} placeholder="e.g. organic, fresh, premium" />
               {form.formState.errors.tag ? (
-                <p className="text-xs text-red-600">{form.formState.errors.tag.message}</p>
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.tag.message}
+                </p>
               ) : null}
             </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>Description (optional)</Label>
-              <Input {...form.register("description")} placeholder="Fresh farm tomatoes" />
+              <Textarea
+                {...form.register("description")}
+                placeholder="Fresh farm tomatoes"
+              />
+
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  disabled={generateDescriptionMutation.isPending}
+                  onClick={() => {
+                    const name = form.getValues("name")?.trim();
+
+                    if (!name) {
+                      toast.push({
+                        variant: "error",
+                        title: "Product name required",
+                        description: "Please enter product name first.",
+                      });
+                      return;
+                    }
+
+                    generateDescriptionMutation.mutate({ name });
+                  }}
+                  className="flex items-center text-xs font-semibold text-emerald-600 transition hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-emerald-400 dark:hover:text-emerald-300"
+                >
+                  <span><RiGeminiFill className="text-lg me-1"/></span> {generateDescriptionMutation.isPending ? "Generating…" : "Generate with AI"}
+                </button>
+              </div>
+
               {form.formState.errors.description ? (
-                <p className="text-xs text-red-600">{form.formState.errors.description.message}</p>
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.description.message}
+                </p>
               ) : null}
             </div>
 
             <div className="space-y-2">
               <Label>Unit</Label>
-              <Input {...form.register("unit")} placeholder="kg / g / pc" />
-              {form.formState.errors.unit ? <p className="text-xs text-red-600">{form.formState.errors.unit.message}</p> : null}
+              <Controller
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <PremiumSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select unit"
+                    options={[
+                      { value: "kg", label: "kg" },
+                      { value: "g", label: "g" },
+                      { value: "pc", label: "pc" },
+                    ]}
+                  />
+                )}
+              />
+              {form.formState.errors.unit ? (
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.unit.message}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
               <Label>Base quantity</Label>
               <Input type="number" step="0.001" {...form.register("base_quantity", { valueAsNumber: true })} />
               {form.formState.errors.base_quantity ? (
-                <p className="text-xs text-red-600">{form.formState.errors.base_quantity.message}</p>
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.base_quantity.message}
+                </p>
               ) : null}
             </div>
 
@@ -163,7 +268,9 @@ export function ProductCreatePage() {
               <Label>MRP (₹)</Label>
               <Input type="number" step="0.01" {...form.register("mrp_paise", { valueAsNumber: true })} />
               {form.formState.errors.mrp_paise ? (
-                <p className="text-xs text-red-600">{form.formState.errors.mrp_paise.message}</p>
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.mrp_paise.message}
+                </p>
               ) : null}
             </div>
 
@@ -171,7 +278,9 @@ export function ProductCreatePage() {
               <Label>Selling price (₹)</Label>
               <Input type="number" step="0.01" {...form.register("selling_price_paise", { valueAsNumber: true })} />
               {form.formState.errors.selling_price_paise ? (
-                <p className="text-xs text-red-600">{form.formState.errors.selling_price_paise.message}</p>
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.selling_price_paise.message}
+                </p>
               ) : null}
             </div>
 
@@ -189,10 +298,14 @@ export function ProductCreatePage() {
             <div className="space-y-2 md:col-span-2">
               <Label>Product Images</Label>
               <ProductImagePicker value={images} onChange={setImages} maxFiles={10} />
-              {!images?.length ? <p className="text-xs text-slate-500">At least 1 image is required.</p> : null}
+              {!images?.length ? (
+                <p className="text-xs text-slate-500">
+                  At least 1 image is required.
+                </p>
+              ) : null}
             </div>
 
-            <div className="flex gap-2 md:col-span-2">
+            <div className="flex gap-2 md:col-span-2 justify-end">
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Creating…" : "Create"}
               </Button>
@@ -208,8 +321,10 @@ export function ProductCreatePage() {
               </Button>
             </div>
 
-            <div className="md:col-span-2 text-xs text-slate-500">
-              Note: Backend Product model requires <span className="font-mono">category_id</span> and <span className="font-mono">unit</span>.
+            <div className="md:col-span-2 text-xs text-slate-500 text-right">
+              Note: Backend Product model requires{" "}
+              <span className="font-mono">category_id</span> and{" "}
+              <span className="font-mono">unit</span>.
             </div>
           </form>
         </CardContent>

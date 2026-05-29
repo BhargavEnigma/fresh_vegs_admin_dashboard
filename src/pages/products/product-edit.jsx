@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -18,6 +18,10 @@ import { Button } from "../../components/ui/button";
 import { ProductImagePicker } from "../../components/products/product-image-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { assetUrl } from "../../lib/utils";
+import { Textarea } from "../../components/ui/textarea";
+import { PremiumSelect } from "../../components/ui/premium-select";
+import { generateProductDescription } from "../../api/services/ai.service";
+import { RiGeminiFill } from "react-icons/ri";
 
 function paiseToRupees(paise) {
     return Number(paise || 0) / 100;
@@ -219,6 +223,38 @@ export function ProductEditPage() {
         },
     });
 
+    const generateDescriptionMutation = useMutation({
+        mutationFn: (payload) => generateProductDescription(payload),
+        onSuccess: (resp) => {
+            const description = resp?.data?.data?.description;
+
+            if (description) {
+                form.setValue("description", description, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                });
+
+                toast.push({
+                    variant: "success",
+                    title: "Generated",
+                    description: "Product description generated successfully.",
+                });
+            }
+        },
+        onError: (e) => {
+            const msg =
+                e?.response?.data?.error?.message ||
+                e?.message ||
+                "Failed to generate description";
+
+            toast.push({
+                variant: "error",
+                title: "AI generation failed",
+                description: msg,
+            });
+        },
+    });
+
     function moveImage(fromIdx, toIdx) {
         setExistingImages((prev) => {
             const next = [...prev];
@@ -256,7 +292,7 @@ export function ProductEditPage() {
             <Card>
                 <CardContent className="pt-6">
                     <form
-                        className="grid gap-4 md:max-w-2xl md:grid-cols-2"
+                        className="grid gap-4 md:max-w-full md:grid-cols-2"
                         onSubmit={form.handleSubmit((v) => {
 
                             console.log("submitted values:", v);
@@ -278,17 +314,24 @@ export function ProductEditPage() {
                     >
                         <div className="space-y-2 md:col-span-2">
                             <Label>Category</Label>
-                            <select
-                                {...form.register("category_id")}
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-                            >
-                                <option value="">Select category…</option>
-                                {categories.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <Controller
+                                control={form.control}
+                                name="category_id"
+                                render={({ field }) => (
+                                    <PremiumSelect
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        placeholder="Select category…"
+                                        options={[
+                                            { value: "", label: "Select category…" },
+                                            ...categories.map((c) => ({
+                                                value: c.id,
+                                                label: c.name,
+                                            })),
+                                        ]}
+                                    />
+                                )}
+                            />
                             {form.formState.errors.category_id ? (
                                 <p className="text-xs text-red-600">{form.formState.errors.category_id.message}</p>
                             ) : null}
@@ -304,9 +347,40 @@ export function ProductEditPage() {
 
                         <div className="space-y-2 md:col-span-2">
                             <Label>Description</Label>
-                            <Input {...form.register("description")} />
+
+                            <Textarea
+                                {...form.register("description")}
+                                placeholder="Fresh farm tomatoes"
+                            />
+
+                            <div className="flex items-center justify-end">
+                                <button
+                                    type="button"
+                                    disabled={generateDescriptionMutation.isPending || isBusy}
+                                    onClick={() => {
+                                        const name = form.getValues("name")?.trim();
+
+                                        if (!name) {
+                                            toast.push({
+                                                variant: "error",
+                                                title: "Product name required",
+                                                description: "Please enter product name first.",
+                                            });
+                                            return;
+                                        }
+
+                                        generateDescriptionMutation.mutate({ name });
+                                    }}
+                                    className="flex items-center text-xs font-semibold text-emerald-600 transition hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                >
+                                    <span><RiGeminiFill className="text-lg me-1"/></span> {generateDescriptionMutation.isPending ? "Generating…" : "Generate with AI"}
+                                </button>
+                            </div>
+
                             {form.formState.errors.description ? (
-                                <p className="text-xs text-red-600">{form.formState.errors.description.message}</p>
+                                <p className="text-xs text-red-600">
+                                    {form.formState.errors.description.message}
+                                </p>
                             ) : null}
                         </div>
 
@@ -320,10 +394,22 @@ export function ProductEditPage() {
 
                         <div className="space-y-2">
                             <Label>Unit</Label>
-                            <Input {...form.register("unit")} />
-                            {form.formState.errors.unit ? (
-                                <p className="text-xs text-red-600">{form.formState.errors.unit.message}</p>
-                            ) : null}
+                            <Controller
+                                control={form.control}
+                                name="unit"
+                                render={({ field }) => (
+                                    <PremiumSelect
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        placeholder="Select unit"
+                                        options={[
+                                            { value: "kg", label: "kg" },
+                                            { value: "g", label: "g" },
+                                            { value: "pc", label: "pc" },
+                                        ]}
+                                    />
+                                )}
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -491,7 +577,7 @@ export function ProductEditPage() {
                         </div>
 
                         {/* ------------------ SAVE / RESET AT VERY BOTTOM ------------------ */}
-                        <div className="md:col-span-2 mt-8 flex gap-2">
+                        <div className="md:col-span-2 mt-8 flex gap-2 justify-end">
                             <Button type="submit" disabled={saveMut.isPending}>
                                 {saveMut.isPending ? "Saving…" : "Save"}
                             </Button>

@@ -7,6 +7,15 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { StatusBadge } from "../../../components/common/status-badge";
 
+function InfoItem({ label, value }) {
+    return (
+        <div>
+            <p className="text-xs text-slate-500">{label}</p>
+            <p className="mt-1 font-medium">{value || "—"}</p>
+        </div>
+    );
+}
+
 export function WarehouseDetailPage() {
     const { id } = useParams();
 
@@ -17,9 +26,10 @@ export function WarehouseDetailPage() {
     });
 
     const w = query.data;
+    const serviceAreas = w?.service_areas || [];
 
     return (
-        <div className="p-4 sm:p-6">
+        <div>
             <PageHeader
                 title={w?.name || "Warehouse"}
                 subtitle={w?.id}
@@ -35,43 +45,113 @@ export function WarehouseDetailPage() {
                 )}
             />
 
-            <Card className="p-4">
-                {query.isLoading ? (
+            {query.isLoading ? (
+                <Card className="p-4">
                     <p className="text-sm text-slate-500">Loading...</p>
-                ) : query.isError ? (
+                </Card>
+            ) : query.isError ? (
+                <Card className="p-4">
                     <p className="text-sm text-red-600">Failed to load warehouse.</p>
-                ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <p className="text-xs text-slate-500">Status</p>
-                            <div className="mt-1"><StatusBadge value={w?.is_active ? "Active" : "Inactive"} /></div>
+                </Card>
+            ) : (
+                <div className="grid gap-4">
+                    <Card className="p-4">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-lg font-semibold">Warehouse Details</h2>
+                                <p className="text-sm text-slate-500">Basic warehouse information.</p>
+                            </div>
+
+                            <StatusBadge value={w?.is_active ? "Active" : "Inactive"} />
                         </div>
 
-                        <div>
-                            <p className="text-xs text-slate-500">Pincode</p>
-                            <p className="mt-1 font-medium">{w?.pincode || "—"}</p>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <InfoItem label="Name" value={w?.name} />
+                            <InfoItem label="Pincode" value={w?.pincode} />
+                            <InfoItem label="City" value={w?.city} />
+                            <InfoItem label="State" value={w?.state} />
+                            <InfoItem label="Latitude" value={w?.lat} />
+                            <InfoItem label="Longitude" value={w?.lng} />
+                            <InfoItem label="Created At" value={w?.created_at} />
+                            <InfoItem label="Updated At" value={w?.updated_at} />
+
+                            <div className="sm:col-span-2 lg:col-span-3">
+                                <p className="text-xs text-slate-500">Address</p>
+                                <p className="mt-1 font-medium">{w?.address_line1 || "—"}</p>
+                                {w?.address_line2 ? (
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                        {w.address_line2}
+                                    </p>
+                                ) : null}
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card className="p-4">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-lg font-semibold">Service Areas</h2>
+                                <p className="text-sm text-slate-500">
+                                    Areas where this warehouse can provide delivery service.
+                                </p>
+                            </div>
+
+                            <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                {serviceAreas.length} Areas
+                            </div>
                         </div>
 
-                        <div>
-                            <p className="text-xs text-slate-500">Address</p>
-                            <p className="mt-1 font-medium">{w?.address_line1 || "—"}</p>
-                            {w?.address_line2 ? <p className="text-sm text-slate-600">{w.address_line2}</p> : null}
-                        </div>
+                        {serviceAreas.length === 0 ? (
+                            <p className="text-sm text-slate-500">No service areas added.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[760px] text-left text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-800">
+                                            <th className="px-3 py-3">Area</th>
+                                            <th className="px-3 py-3">City</th>
+                                            <th className="px-3 py-3">Pincode</th>
+                                            <th className="px-3 py-3">Coordinates</th>
+                                            <th className="px-3 py-3">Radius</th>
+                                            <th className="px-3 py-3">Boundary</th>
+                                            <th className="px-3 py-3">Status</th>
+                                        </tr>
+                                    </thead>
 
-                        <div>
-                            <p className="text-xs text-slate-500">City / State</p>
-                            <p className="mt-1 font-medium">{[w?.city, w?.state].filter(Boolean).join(", ") || "—"}</p>
-                        </div>
-
-                        <div>
-                            <p className="text-xs text-slate-500">Coordinates</p>
-                            <p className="mt-1 font-medium">
-                                {w?.lat != null && w?.lng != null ? `${w.lat}, ${w.lng}` : "—"}
-                            </p>
-                        </div>
-                    </div>
-                )}
-            </Card>
+                                    <tbody>
+                                        {serviceAreas.map((area) => (
+                                            <tr
+                                                key={area.id || `${area.area_name}-${area.pincode}`}
+                                                className="border-b border-slate-100 dark:border-slate-800"
+                                            >
+                                                <td className="px-3 py-3 font-medium">
+                                                    {area.area_name || "—"}
+                                                </td>
+                                                <td className="px-3 py-3">{area.city || "—"}</td>
+                                                <td className="px-3 py-3">{area.pincode || "—"}</td>
+                                                <td className="px-3 py-3">
+                                                    {area.lat != null && area.lng != null
+                                                        ? `${area.lat}, ${area.lng}`
+                                                        : "—"}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    {area.radius_km != null ? `${area.radius_km} km` : "—"}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    {area.boundary_geojson ? "Polygon Set" : "—"}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <StatusBadge value={area.is_active ? "Active" : "Inactive"} />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

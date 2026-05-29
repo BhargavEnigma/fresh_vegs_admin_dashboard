@@ -52,7 +52,7 @@ export function CategoriesListPage() {
         header: "Image",
         accessorKey: "image_url",
         cell: ({ row }) => (
-          <div className="font-medium">
+          <div className="flex min-w-[44px] items-center">
             {row.original.image_url ? (
               <img
                 src={assetUrl(row.original.image_url)}
@@ -61,7 +61,7 @@ export function CategoriesListPage() {
                 loading="lazy"
               />
             ) : (
-              <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-900" />
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-900" />
             )}
           </div>
         ),
@@ -69,12 +69,20 @@ export function CategoriesListPage() {
       {
         header: "Name",
         accessorKey: "name",
-        cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+        cell: ({ row }) => (
+          <div className="max-w-[180px] truncate font-medium sm:max-w-none">
+            {row.original.name}
+          </div>
+        ),
       },
       {
         header: "Slug",
         accessorKey: "slug",
-        cell: ({ row }) => <div className="text-slate-500">{row.original.slug || "—"}</div>,
+        cell: ({ row }) => (
+          <div className="max-w-[160px] truncate text-slate-500 sm:max-w-none">
+            {row.original.slug || "—"}
+          </div>
+        ),
       },
       {
         header: "Sort",
@@ -95,18 +103,19 @@ export function CategoriesListPage() {
           const c = row.original;
 
           return (
-            <div className="flex justify-end gap-2">
-              <Button asChild variant="outline" size="sm">
+            <div className="flex min-w-[220px] flex-wrap justify-end gap-2 sm:min-w-0">
+              <Button className="min-w-[70px]" asChild variant="outline" size="sm">
                 <Link to={`/categories/${c.id}`}>View</Link>
               </Button>
 
               {isAdmin ? (
                 <>
-                  <Button asChild variant="outline" size="sm">
+                  <Button className="min-w-[70px]" asChild variant="outline" size="sm">
                     <Link to={`/categories/${c.id}/edit`}>Edit</Link>
                   </Button>
 
                   <Button
+                    className="min-w-[78px]"
                     variant={c.is_active ? "outline" : "default"}
                     size="sm"
                     onClick={() =>
@@ -130,33 +139,39 @@ export function CategoriesListPage() {
   );
 
   return (
-    <div>
+    <div className="min-w-0 space-y-4 sm:space-y-6">
       <PageHeader
         title="Categories"
         subtitle="Ops Categories module mapped to /v1/ops/categories/*"
         actions={
           isAdmin ? (
-            <Button asChild>
+            <Button className="w-full sm:w-auto" asChild>
               <Link to="/categories/new">Create Category</Link>
             </Button>
           ) : null
         }
       />
 
-      {isLoading ? <div className="text-sm text-slate-500">Loading…</div> : null}
+      {isLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950">
+          Loading…
+        </div>
+      ) : null}
 
       {isError ? (
-        <div className="rounded-2xl border border-red-200 bg-white p-4 text-sm text-red-700 dark:border-red-900 dark:bg-slate-950">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
           {error?.response?.data?.error?.message || error?.message || "Failed to load"}
         </div>
       ) : null}
 
       {!isLoading && !isError ? (
-        <DataTable
-          columns={columns}
-          data={rows}
-          searchPlaceholder="Search category…"
-        />
+        <div className="min-w-0 overflow-x-auto thin-scrollbar rounded-2xl">
+          <DataTable
+            columns={columns}
+            data={rows}
+            searchPlaceholder="Search category…"
+          />
+        </div>
       ) : null}
 
       {isAdmin ? (

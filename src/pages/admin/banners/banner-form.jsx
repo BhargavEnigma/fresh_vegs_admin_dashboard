@@ -10,6 +10,8 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
+import { PremiumSelect } from "../../../components/ui/premium-select";
+import DatePicker from "react-datepicker";
 
 function toDatetimeLocal(value) {
     if (!value) return "";
@@ -131,7 +133,6 @@ export function BannerForm({
     return (
         <form
             onSubmit={form.handleSubmit((values) => {
-                // Ensure sort_order is always a number
                 const sortOrder = Number(values.sort_order);
                 const finalSortOrder = isNaN(sortOrder) ? 0 : sortOrder;
 
@@ -146,32 +147,36 @@ export function BannerForm({
                     action_value: values.action_value === "" ? null : values.action_value,
                 };
 
-                // Debug: Log the payload to verify sort_order type
-                console.log('Payload being sent:', payload);
-                console.log('sort_order type:', typeof payload.sort_order, 'value:', payload.sort_order);
-
                 onSubmit?.({ payload, imageFile });
             })}
-            className="grid gap-3 sm:gap-4"
+            className="space-y-5"
         >
-            <div className="grid gap-2">
-                <Label>Title</Label>
-                <Input placeholder="Fresh Offer" {...form.register("title")} />
-                {errorFor("title") ? <p className="text-sm text-red-600">{errorFor("title")}</p> : null}
-            </div>
-
-            <div className="grid gap-2">
-                <Label>Subtitle</Label>
-                <Textarea placeholder="Get 10% OFF" {...form.register("subtitle")} />
-                {errorFor("subtitle") ? <p className="text-sm text-red-600">{errorFor("subtitle")}</p> : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 items-start">
+            <div className="grid gap-4">
                 <div className="grid gap-2">
-                    <Label>Placement</Label>
+                    <Label>Title</Label>
+                    <Input placeholder="Fresh Offer" {...form.register("title")} />
+                    {errorFor("title") ? <p className="text-sm text-red-600">{errorFor("title")}</p> : null}
+                </div>
+
+                <div className="grid gap-2">
+                    <Label>Subtitle</Label>
+                    <Textarea
+                        placeholder="Get 10% OFF"
+                        className="min-h-[90px] resize-none"
+                        {...form.register("subtitle")}
+                    />
+                    {errorFor("subtitle") ? <p className="text-sm text-red-600">{errorFor("subtitle")}</p> : null}
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <div className="flex justify-between">
+                        <Label>Placement</Label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Example: home</p>
+                    </div>
                     <Input placeholder="home" {...form.register("placement")} />
                     {errorFor("placement") ? <p className="text-sm text-red-600">{errorFor("placement")}</p> : null}
-                    <p className="text-xs text-slate-500">Example: home</p>
                 </div>
 
                 <div className="grid gap-2">
@@ -182,14 +187,12 @@ export function BannerForm({
                         {...form.register("sort_order", {
                             valueAsNumber: true,
                             setValueAs: (value) => {
-                                // Handle various input cases
                                 if (value === "" || value === null || value === undefined) return 0;
                                 const num = Number(value);
                                 return isNaN(num) ? 0 : num;
-                            }
+                            },
                         })}
                         onChange={(e) => {
-                            // Ensure the value is always a number
                             const numValue = e.target.value === "" ? 0 : Number(e.target.value);
                             form.setValue("sort_order", isNaN(numValue) ? 0 : numValue);
                         }}
@@ -198,47 +201,63 @@ export function BannerForm({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label>Action Type</Label>
-                    <select
-                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
-                        {...form.register("action_type")}
-                    >
-                        <option value="none">None</option>
-                        <option value="product">Product</option>
-                        <option value="category">Category</option>
-                        <option value="collection">Collection</option>
-                        <option value="external_url">External URL</option>
-                    </select>
+                    <PremiumSelect
+                        value={form.watch("action_type")}
+                        onChange={(value) =>
+                            form.setValue("action_type", value || "", {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                            })
+                        }
+                        options={[
+                            { value: "none", label: "None" },
+                            { value: "product", label: "Product" },
+                            { value: "category", label: "Category" },
+                            { value: "collection", label: "Collection" },
+                            { value: "external_url", label: "External URL" },
+                            { value: "screen", label: "Screen" },
+                        ]}
+                        placeholder="Select action type"
+                    />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label>Action Value</Label>
-
+                    <div className="flex justify-between">
+                        <Label>Action Value</Label>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Select an Action Type first.</span>
+                    </div>
                     {shouldDisableActionValue ? (
                         <>
                             <Input placeholder="—" disabled />
-                            <p className="text-xs text-slate-500">Select an Action Type first.</p>
                         </>
                     ) : null}
 
                     {shouldShowDropdown ? (
                         <>
-                            <select
-                                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-slate-800 dark:bg-slate-950"
-                                {...form.register("action_value")}
-                                disabled={isOptionsLoading || isSubmitting}
-                            >
-                                <option value="">
-                                    {isOptionsLoading ? "Loading..." : "Select..."}
-                                </option>
-                                {options.map((o) => (
-                                    <option key={o.id} value={o.id}>
-                                        {o.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <PremiumSelect
+                                value={form.watch("action_value") || ""}
+                                onChange={(value) =>
+                                    form.setValue("action_value", value || "", {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                    })
+                                }
+                                options={[
+                                    {
+                                        value: "",
+                                        label: isOptionsLoading ? "Loading..." : "Select...",
+                                    },
+                                    ...options.map((item) => ({
+                                        value: item.id,
+                                        label: item.name,
+                                    })),
+                                ]}
+                                placeholder={isOptionsLoading ? "Loading..." : "Select action value"}
+                                isDisabled={isOptionsLoading || isSubmitting}
+                            />
 
                             {optionsError ? (
                                 <p className="text-xs text-red-600">
@@ -246,7 +265,7 @@ export function BannerForm({
                                 </p>
                             ) : null}
 
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                 This will store the <span className="font-medium">ID</span> in action_value.
                             </p>
 
@@ -258,9 +277,12 @@ export function BannerForm({
 
                     {shouldShowTextInput ? (
                         <>
-                            <Input placeholder={actionType === "external_url" ? "https://..." : "collection key"} {...form.register("action_value")} />
+                            <Input
+                                placeholder={actionType === "external_url" ? "https://..." : "collection key"}
+                                {...form.register("action_value")}
+                            />
                             {errorFor("action_value") ? <p className="text-sm text-red-600">{errorFor("action_value")}</p> : null}
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {actionType === "external_url"
                                     ? "Example: https://…"
                                     : "Example: seasonal_offers / top_picks"}
@@ -270,39 +292,73 @@ export function BannerForm({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                     <Label>Start At (optional)</Label>
-                    <Input type="datetime-local" {...form.register("start_at")} />
+                    <DatePicker
+                        selected={form.watch("start_at") ? new Date(form.watch("start_at")) : null}
+                        onChange={(selectedDate) =>
+                            form.setValue("start_at", selectedDate ? selectedDate.toISOString() : "", {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                            })
+                        }
+                        showTimeSelect
+                        timeIntervals={15}
+                        dateFormat="yyyy-MM-dd HH:mm"
+                        placeholderText="Select start date & time"
+                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-dailyveg-900 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        isClearable
+                    />
                 </div>
+
                 <div className="grid gap-2">
                     <Label>End At (optional)</Label>
-                    <Input type="datetime-local" {...form.register("end_at")} />
+                    <DatePicker
+                        selected={form.watch("end_at") ? new Date(form.watch("end_at")) : null}
+                        onChange={(selectedDate) =>
+                            form.setValue("end_at", selectedDate ? selectedDate.toISOString() : "", {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                            })
+                        }
+                        showTimeSelect
+                        timeIntervals={15}
+                        dateFormat="yyyy-MM-dd HH:mm"
+                        placeholderText="Select end date & time"
+                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-dailyveg-900 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        isClearable
+                    />
                 </div>
             </div>
 
             <div className="grid gap-2">
-                <Label>Active</Label>
-                <label className="flex items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        {...form.register("is_active", {
-                            setValueAs: (value) => value === true || value === "true" || value === "on",
-                        })}
-                        defaultChecked={form.getValues("is_active")}
-                    />
-                    Enabled
-                </label>
+                <Label>Status</Label>
+                <PremiumSelect
+                    value={String(form.watch("is_active"))}
+                    onChange={(value) =>
+                        form.setValue("is_active", value === "true", {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                        })
+                    }
+                    options={[
+                        { value: "true", label: "Active" },
+                        { value: "false", label: "Inactive" },
+                    ]}
+                    placeholder="Select status"
+                />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-3">
                 <Label>Banner Image</Label>
 
-                <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/30">
                     <div className="flex flex-wrap items-center gap-2">
                         <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
                             {imageFile ? "Change image" : "Pick image"}
                         </Button>
+
                         <Button type="button" variant="secondary" onClick={clearImage} disabled={!imageFile && !preview}>
                             Clear
                         </Button>
@@ -316,40 +372,41 @@ export function BannerForm({
                         />
                     </div>
 
-                    {preview ? (
-                        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-                            <div className="aspect-[16/6] max-h-[220px] bg-slate-50 dark:bg-slate-900">
-                                <img src={preview} alt="preview" className="h-full w-full object-cover" />
-                            </div>
-                        </div>
-                    ) : defaultValues?.image_url ? (
-                        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-                            <div className="aspect-[16/6] max-h-[220px] bg-slate-50 dark:bg-slate-900">
-                                <img src={defaultValues.image_url} alt="banner" className="h-full w-full object-cover" />
+                    {preview || defaultValues?.image_url ? (
+                        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                            <div className="aspect-[16/6] max-h-[220px]">
+                                <img
+                                    src={preview || defaultValues.image_url}
+                                    alt="banner"
+                                    className="h-full w-full object-cover"
+                                />
                             </div>
                         </div>
                     ) : (
-                        <p className="mt-3 text-xs text-slate-500">No image selected.</p>
+                        <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                            No image selected.
+                        </div>
                     )}
                 </div>
 
-                <p className="text-xs text-slate-500">
-                    Recommended: wide banner (e.g. 16:5). You can either upload an image OR provide a direct image URL.
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Recommended: wide banner, for example 16:5.
                 </p>
-
-                <div className="grid gap-2">
-                    <Label>Image URL (optional)</Label>
-                    <Input placeholder="https://..." {...form.register("image_url")} />
-                    <p className="text-xs text-slate-500">
-                        If you don’t upload a file, backend requires <span className="font-medium">image_url</span>.
-                    </p>
-                </div>
             </div>
 
-            <div className="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/90 dark:bg-slate-950/90 backdrop-blur border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+            <div className="grid gap-2">
+                <Label>Image URL (optional)</Label>
+                <Input placeholder="https://..." {...form.register("image_url")} />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    If you don’t upload a file, backend requires <span className="font-medium">image_url</span>.
+                </p>
+            </div>
+
+            <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:-mx-6 sm:px-6">
                 <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
                     Cancel
                 </Button>
+
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Saving..." : mode === "create" ? "Create" : "Save"}
                 </Button>

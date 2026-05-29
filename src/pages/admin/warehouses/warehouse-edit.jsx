@@ -31,7 +31,7 @@ export function WarehouseEditPage() {
     });
 
     return (
-        <div className="p-4 sm:p-6">
+        <div>
             <PageHeader title="Edit Warehouse" subtitle={id} />
             <Card className="p-4">
                 {query.isLoading ? (
@@ -51,6 +51,30 @@ export function WarehouseEditPage() {
                             lat: query.data?.lat ?? null,
                             lng: query.data?.lng ?? null,
                             is_active: query.data?.is_active ?? true,
+                            service_areas:
+                                query.data?.service_areas?.length > 0
+                                    ? query.data.service_areas.map((area) => ({
+                                        area_name: area.area_name ?? "",
+                                        city: area.city ?? "",
+                                        pincode: area.pincode ?? "",
+                                        lat: area.lat ?? null,
+                                        lng: area.lng ?? null,
+                                        radius_km: area.radius_km ?? null,
+                                        boundary_geojson: area.boundary_geojson ?? null,
+                                        is_active: area.is_active ?? true,
+                                    }))
+                                    : [
+                                        {
+                                            area_name: "",
+                                            city: "",
+                                            pincode: "",
+                                            lat: null,
+                                            lng: null,
+                                            radius_km: null,
+                                            boundary_geojson: null,
+                                            is_active: true,
+                                        },
+                                    ],
                         }}
                         isSubmitting={updateMut.isPending}
                         onCancel={() => nav(`/admin/warehouses/${id}`)}

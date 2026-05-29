@@ -14,6 +14,7 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { useToast } from "../../../components/toast/toast-context";
 import { Badge } from "../../../components/ui/badge";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 
 function RolePill({ value, active, onToggle }) {
     return (
@@ -54,21 +55,16 @@ function RolesPicker({ value, onChange }) {
 
 function WarehouseMultiSelect({ warehouses, value, onChange }) {
     return (
-        <select
-            multiple
+        <PremiumSelect
+            isMulti
             value={value || []}
-            onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                onChange(selected);
-            }}
-            className="min-h-[140px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
-        >
-            {warehouses.map((w) => (
-                <option key={w.id} value={w.id}>
-                    {w.name} ({w.city || "—"})
-                </option>
-            ))}
-        </select>
+            onChange={(selected) => onChange(selected || [])}
+            options={warehouses.map((warehouse) => ({
+                value: warehouse.id,
+                label: `${warehouse.name} (${warehouse.city || "—"})`,
+            }))}
+            placeholder="Select warehouses"
+        />
     );
 }
 
@@ -182,30 +178,44 @@ export function AdminUsersPage() {
 
                     <div className="grid gap-2">
                         <Label>Role</Label>
-                        <select
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        <PremiumSelect
                             value={listParams.role}
-                            onChange={(e) => setListParams((s) => ({ ...s, page: 1, role: e.target.value }))}
-                        >
-                            {/* <option value="">All</option> */}
-                            <option value="admin">admin</option>
-                            <option value="warehouse_manager">warehouse_manager</option>
-                            <option value="delivery_partner">delivery_partner</option>
-                            <option value="customer">customer</option>
-                        </select>
+                            onChange={(value) =>
+                                setListParams((s) => ({
+                                    ...s,
+                                    page: 1,
+                                    role: value || "",
+                                }))
+                            }
+                            options={[
+                                { value: "", label: "All Roles" },
+                                { value: "admin", label: "Admin" },
+                                { value: "warehouse_manager", label: "Warehouse Manager" },
+                                { value: "delivery_partner", label: "Delivery Partner" },
+                                { value: "customer", label: "Customer" },
+                            ]}
+                            placeholder="Select role"
+                        />
                     </div>
 
                     <div className="grid gap-2">
                         <Label>Status</Label>
-                        <select
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        <PremiumSelect
                             value={listParams.status}
-                            onChange={(e) => setListParams((s) => ({ ...s, page: 1, status: e.target.value }))}
-                        >
-                            <option value="">All</option>
-                            <option value="active">active</option>
-                            <option value="blocked">blocked</option>
-                        </select>
+                            onChange={(value) =>
+                                setListParams((s) => ({
+                                    ...s,
+                                    page: 1,
+                                    status: value || "",
+                                }))
+                            }
+                            options={[
+                                { value: "", label: "All Status" },
+                                { value: "active", label: "Active" },
+                                { value: "blocked", label: "Blocked" },
+                            ]}
+                            placeholder="Select status"
+                        />
                     </div>
 
                     <div className="flex gap-2">
@@ -397,14 +407,39 @@ export function AdminUsersPage() {
 
                 <Card className="p-4">
                     <h3 className="text-lg font-semibold">Set Roles</h3>
-                    <p className="mt-1 text-sm text-slate-500">Use user id (UUID). You can load a user from the list above using “Edit Roles”.</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Select a user from the list below or load a user from the table using “Edit Roles”.
+                    </p>
 
                     <form onSubmit={rolesForm.handleSubmit(submitRoles)} className="mt-4 grid gap-4">
                         <div className="grid gap-2">
-                            <Label>User ID (UUID)</Label>
-                            <Input placeholder="6c0c2f4e-...." {...rolesForm.register("user_id")} />
+                            <Label>User</Label>
+                            <PremiumSelect
+                                value={rolesForm.watch("user_id")}
+                                onChange={(userId) => {
+                                    const selectedUser = (listQuery.data?.items || []).find((u) => u.id === userId);
+
+                                    rolesForm.setValue("user_id", userId || "", { shouldValidate: true });
+
+                                    if (selectedUser) {
+                                        rolesForm.setValue("roles", selectedUser.roles || [], { shouldValidate: true });
+                                        rolesForm.setValue("warehouse_ids", selectedUser.warehouse_ids || [], {
+                                            shouldValidate: true,
+                                        });
+                                    }
+                                }}
+                                options={(listQuery.data?.items || []).map((u) => ({
+                                    value: u.id,
+                                    label: `${u.full_name || "No Name"}${u.phone ? ` (${u.phone})` : ""}`,
+                                }))}
+                                placeholder={listQuery.isLoading ? "Loading users..." : "Select user"}
+                                isDisabled={listQuery.isLoading}
+                            />
+
                             {rolesForm.formState.errors.user_id ? (
-                                <p className="text-sm text-red-600">{rolesForm.formState.errors.user_id.message}</p>
+                                <p className="text-sm text-red-600">
+                                    {rolesForm.formState.errors.user_id.message}
+                                </p>
                             ) : null}
                         </div>
 
@@ -424,7 +459,9 @@ export function AdminUsersPage() {
                             <WarehouseMultiSelect
                                 warehouses={warehousesQuery.data || []}
                                 value={rolesForm.watch("warehouse_ids")}
-                                onChange={(warehouse_ids) => rolesForm.setValue("warehouse_ids", warehouse_ids, { shouldValidate: true })}
+                                onChange={(warehouse_ids) =>
+                                    rolesForm.setValue("warehouse_ids", warehouse_ids, { shouldValidate: true })
+                                }
                             />
 
                             {rolesForm.formState.errors.warehouse_ids ? (

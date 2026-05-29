@@ -6,8 +6,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from "../components/ui/button";
 import { Menu, Moon, Sun, ChevronDown } from "lucide-react";
 import * as React from "react";
-import Image from "../assets/logo-bg.png";
-import ImageDark from "../assets/logo-bg-dark.png";
+import Image from "../assets/logo-light-trans.png";
+import ImageDark from "../assets/logo-dark-trans.png";
 
 function useDarkMode() {
   const [dark, setDark] = React.useState(() => document.documentElement.classList.contains("dark"));
@@ -67,7 +67,9 @@ export function AppShell() {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="text-sm font-semibold">FreshVeg Admin</div>
+        <div className="text-sm font-semibold w-[140px]">
+          {dark ? <img src={ImageDark} alt="FreshVeg" className="h-50" /> : <img src={Image} alt="FreshVeg" className="h-50" />}
+        </div>
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
@@ -77,18 +79,15 @@ export function AppShell() {
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 h-[100vh] w-72 border-r border-dailyveg-200/70 bg-white/95 p-4 shadow-xl shadow-dailyveg-900/5 backdrop-blur dark:border-dailyveg-900/70 dark:bg-slate-950/95 dark:shadow-black/30 lg:static lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col border-r border-dailyveg-200/70 bg-white/95 p-4 shadow-xl shadow-dailyveg-900/5 backdrop-blur dark:border-dailyveg-900/70 dark:bg-slate-950/95 dark:shadow-black/30 lg:translate-x-0",
             mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             "transition-transform"
           )}
-          style={{
-            position: "fixed"
-          }}
         >
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <div className="text-base font-bold w-40">
-                {dark ? <img src={ImageDark} alt="FreshVeg" className="h-50" /> : <img src={Image} alt="FreshVeg" className="" />}
+                {dark ? <img src={ImageDark} alt="FreshVeg" className="h-50" /> : <img src={Image} alt="FreshVeg" className="h-50" />}
               </div>
               {/* <div className="text-xs text-slate-500">Operations console</div> */}
             </div>
@@ -98,7 +97,7 @@ export function AppShell() {
             </Button>
           </div>
 
-          <nav className="mt-6 h-[68vh] space-y-1 overflow-y-auto thin-scrollbar pr-1">
+          <nav className="mt-3 min-h-0 flex-1 space-y-1 overflow-y-auto thin-scrollbar pr-1">
             {items.map((it) => {
               const hasChildren = Array.isArray(it.children) && it.children.length > 0;
               const isParentActive = hasChildren
@@ -140,7 +139,7 @@ export function AppShell() {
                       className={cn(
                         "ml-5 space-y-1 overflow-hidden border-l pl-3 pe-1 transition-all",
                         isGroupOpen
-                          ? "max-h-40 border-dailyveg-300 opacity-100 dark:border-dailyveg-800"
+                          ? "max-h-96 py-1 border-dailyveg-300 opacity-100 dark:border-dailyveg-800"
                           : "max-h-0 border-transparent opacity-0"
                       )}
                     >
@@ -187,27 +186,31 @@ export function AppShell() {
             })}
           </nav>
 
-          <div className="mt-3 rounded-2xl border border-dailyveg-200/70 bg-dailyveg-50/70 p-3 text-xs text-slate-700 dark:border-dailyveg-900/70 dark:bg-dailyveg-950/50 dark:text-slate-300">
-            <div className="font-semibold">{user?.full_name || user?.phone || "User"}</div>
-            <div className="mt-1">Roles: {roles.join(", ") || "—"}</div>
-          </div>
+          <div className="mt-3 shrink-0 border-t border-dailyveg-200/70 pt-3 dark:border-dailyveg-900/70">
+            <div className="rounded-2xl border border-dailyveg-200/70 bg-dailyveg-50/70 p-3 text-xs text-slate-700 dark:border-dailyveg-900/70 dark:bg-dailyveg-950/50 dark:text-slate-300">
+              <div className="font-semibold">{user?.full_name || user?.phone || "User"}</div>
+              <div className="mt-1">Roles: {roles.join(", ") || "—"}</div>
+            </div>
 
-          <div className="mt-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  Account
-                  <span className="text-xs text-slate-500">⋯</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-60">
-                <DropdownMenuItem onClick={toggle}>{dark ? "Switch to Light" : "Switch to Dark"}</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="mt-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    Account
+                    <span className="text-xs text-slate-500">⋯</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-60">
+                  <DropdownMenuItem onClick={toggle}>
+                    {dark ? "Switch to Light" : "Switch to Dark"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </aside>
 

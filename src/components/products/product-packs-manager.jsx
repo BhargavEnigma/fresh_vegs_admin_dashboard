@@ -15,6 +15,7 @@ import {
   setProductPackActive,
   deleteProductPack,
 } from "../../api/services/products.service";
+import { PremiumSelect } from "../ui/premium-select";
 
 function paiseToRupees(paise) {
   return Number(paise || 0) / 100;
@@ -251,7 +252,16 @@ function PackDialog({ open, onOpenChange, mode, pack, onSubmit, pending }) {
             </div>
             <div className="space-y-1">
               <Label>Unit</Label>
-              <Input value={form.base_unit} onChange={(e) => setForm((s) => ({ ...s, base_unit: e.target.value }))} placeholder="g / kg / pc" />
+              <PremiumSelect
+                value={form.base_unit}
+                onChange={(value) => setForm((s) => ({ ...s, base_unit: value }))}
+                placeholder="Select unit"
+                options={[
+                  { value: "kg", label: "kg" },
+                  { value: "g", label: "g" },
+                  { value: "pc", label: "pc" },
+                ]}
+              />
             </div>
           </div>
 

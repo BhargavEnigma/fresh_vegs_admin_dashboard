@@ -12,12 +12,16 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 
+import Image from "../../assets/logo-bg.png";
+import ImageDark from "../../assets/logo-bg-dark.png";
+
 export function LoginPage() {
     const [step, setStep] = React.useState("send"); // send | verify
     const [otpRequestId, setOtpRequestId] = React.useState(null);
     const [phone, setPhone] = React.useState("");
     const [resendTimer, setResendTimer] = React.useState(0);
 
+    const stored = localStorage.getItem("freshveg_admin_theme");
     const toast = useToast();
     const { login, isAuthed } = useAuth();
     const navigate = useNavigate();
@@ -27,6 +31,11 @@ export function LoginPage() {
     React.useEffect(() => {
         if (isAuthed) navigate("/", { replace: true });
     }, [isAuthed, navigate]);
+
+    React.useEffect(() => {
+        console.log("ppppppp");
+        
+    }, []);
 
     React.useEffect(() => {
         if (resendTimer <= 0) return;
@@ -56,6 +65,7 @@ export function LoginPage() {
     });
 
     async function onSend(values) {
+        console.log("SEND OTP CLICKED", values);
         try {
             const resp = await sendOtp(values);
             const id = resp?.data?.otp_request_id;
@@ -142,7 +152,8 @@ export function LoginPage() {
         <div className="min-h-screen bg-slate-50 px-4 py-10 dark:bg-slate-950">
             <div className="mx-auto max-w-md">
                 <div className="mb-6 text-center">
-                    <div className="text-2xl font-bold tracking-tight">FreshVeg Admin</div>
+                    {/* <div className="text-2xl font-bold tracking-tight"></div> */}
+                    {stored === "dark" ? <img src={ImageDark} alt="FreshVeg" className="w-60 m-auto" /> : <img src={Image} alt="FreshVeg" className="w-60 m-auto" />}
                     <div className="mt-1 text-sm text-slate-500">OTP login</div>
                 </div>
 
@@ -178,7 +189,8 @@ export function LoginPage() {
                                     className="w-full"
                                     disabled={sendForm.formState.isSubmitting}
                                 >
-                                    {sendForm.formState.isSubmitting ? "Sending…" : "Send OTP"}
+                                    {/* {sendForm.formState.isSubmitting ? "Sending…" : "Send OTP"} */}
+                                    Send OTP
                                 </Button>
                             </form>
                         ) : (

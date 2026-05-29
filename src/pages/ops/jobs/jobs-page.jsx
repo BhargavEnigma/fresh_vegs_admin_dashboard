@@ -9,6 +9,7 @@ import { StatusBadge } from "../../../components/common/status-badge";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { useToast } from "../../../components/toast/toast-context";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 
 // ---- helpers ----
 function getApiErrorMessage(e) {
@@ -290,18 +291,23 @@ export function OpsJobsPage() {
                         {/* Presets dropdown */}
                         <div>
                             <div className="mb-1 text-xs text-slate-500">Cron Preset</div>
-                            <select
-                                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                            <PremiumSelect
                                 value={selectedPresetKey}
-                                onChange={(e) => setSelectedPresetKey(e.target.value)}
-                            >
-                                <option value="">Custom</option>
-                                {(presetsQuery.data?.data?.presets || presetsQuery.data?.presets || []).map((p) => (
-                                    <option key={p.key} value={p.key}>
-                                        {p.label}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(value) => setSelectedPresetKey(value || "")}
+                                options={[
+                                    { value: "", label: "Custom" },
+
+                                    ...(
+                                        presetsQuery.data?.data?.presets ||
+                                        presetsQuery.data?.presets ||
+                                        []
+                                    ).map((preset) => ({
+                                        value: preset.key,
+                                        label: preset.label,
+                                    })),
+                                ]}
+                                placeholder="Select preset"
+                            />
                             <div className="mt-1 text-xs text-slate-500">
                                 {presetsQuery.isLoading
                                     ? "Loading presets…"
@@ -354,14 +360,15 @@ export function OpsJobsPage() {
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <div>
                             <div className="mb-1 text-xs text-slate-500">Scheduler Status</div>
-                            <select
-                                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                            <PremiumSelect
                                 value={enabled ? "true" : "false"}
-                                onChange={(e) => setEnabled(e.target.value === "true")}
-                            >
-                                <option value="true">Enabled</option>
-                                <option value="false">Disabled</option>
-                            </select>
+                                onChange={(value) => setEnabled(value === "true")}
+                                options={[
+                                    { value: "true", label: "Enabled" },
+                                    { value: "false", label: "Disabled" },
+                                ]}
+                                placeholder="Select status"
+                            />
                         </div>
 
                         <div>

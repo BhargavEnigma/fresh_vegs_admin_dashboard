@@ -16,6 +16,8 @@ const buttonVariants = cva(
           "text-slate-700 hover:bg-dailyveg-50 hover:text-dailyveg-800 dark:text-slate-200 dark:hover:bg-dailyveg-950/70 dark:hover:text-dailyveg-300",
         destructive:
           "bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500/35",
+        redoutline:
+          "border border-red-200 bg-white text-red-400 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-400 dark:bg-red-300/20 dark:text-red-500 dark:hover:border-red-700 dark:hover:bg-red-500/20 dark:hover:text-red-400",
       },
       size: {
         default: "h-10 px-4 py-2",

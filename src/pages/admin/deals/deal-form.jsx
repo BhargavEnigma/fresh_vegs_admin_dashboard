@@ -8,6 +8,8 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
+import DatePicker from "react-datepicker";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 
 function toDatetimeLocal(value) {
     if (!value) return "";
@@ -60,21 +62,49 @@ export function DealForm({ mode, defaultValues, isSubmitting, onSubmit, onCancel
                     {form.formState.errors.deal_date ? <div className="text-xs text-red-600">{form.formState.errors.deal_date.message}</div> : null}
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 flex flex-col">
                     <Label>Start (optional)</Label>
-                    <Input
-                        type="datetime-local"
-                        value={toDatetimeLocal(values.starts_at)}
-                        onChange={(e) => form.setValue("starts_at", e.target.value)}
+                    <DatePicker
+                        selected={values.starts_at ? new Date(values.starts_at) : null}
+                        onChange={(selectedDate) =>
+                            form.setValue(
+                                "starts_at",
+                                selectedDate ? selectedDate.toISOString() : "",
+                                {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                }
+                            )
+                        }
+                        showTimeSelect
+                        timeIntervals={15}
+                        dateFormat="yyyy-MM-dd HH:mm"
+                        placeholderText="Select start date & time"
+                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        isClearable
                     />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 flex flex-col">
                     <Label>End (optional)</Label>
-                    <Input
-                        type="datetime-local"
-                        value={toDatetimeLocal(values.ends_at)}
-                        onChange={(e) => form.setValue("ends_at", e.target.value)}
+                    <DatePicker
+                        selected={values.ends_at ? new Date(values.ends_at) : null}
+                        onChange={(selectedDate) =>
+                            form.setValue(
+                                "ends_at",
+                                selectedDate ? selectedDate.toISOString() : "",
+                                {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                }
+                            )
+                        }
+                        showTimeSelect
+                        timeIntervals={15}
+                        dateFormat="yyyy-MM-dd HH:mm"
+                        placeholderText="Select start date & time"
+                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        isClearable
                     />
                 </div>
 
@@ -85,14 +115,20 @@ export function DealForm({ mode, defaultValues, isSubmitting, onSubmit, onCancel
 
                 <div className="space-y-1">
                     <Label>Active</Label>
-                    <select
-                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                    <PremiumSelect
                         value={String(values.is_active)}
-                        onChange={(e) => form.setValue("is_active", e.target.value === "true")}
-                    >
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
+                        onChange={(value) =>
+                            form.setValue("is_active", value === "true", {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                            })
+                        }
+                        options={[
+                            { value: "true", label: "Active" },
+                            { value: "false", label: "Inactive" },
+                        ]}
+                        placeholder="Select status"
+                    />
                 </div>
             </div>
 

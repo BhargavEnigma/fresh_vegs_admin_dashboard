@@ -9,7 +9,7 @@ import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { PageHeader } from "../../../components/common/page-header";
 import { DataTable } from "../../../components/common/data-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
+// import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Button } from "../../../components/ui/button";
 
@@ -19,6 +19,25 @@ function todayISO() {
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
+}
+
+function toYyyyMmDd(date) {
+    if (!date) return "";
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseYyyyMmDd(value) {
+    if (!value) return null;
+
+    const [yyyy, mm, dd] = String(value).split("-").map(Number);
+    if (!yyyy || !mm || !dd) return null;
+
+    return new Date(yyyy, mm - 1, dd);
 }
 
 function formatCount(value) {
@@ -60,10 +79,10 @@ function addDays(dateString, days) {
 
 function SummaryStat({ title, value, subtitle }) {
     return (
-        <Card>
-            <CardHeader className="pb-3">
-                <CardDescription>{title}</CardDescription>
-                <CardTitle className="text-3xl">{value}</CardTitle>
+        <Card className="overflow-hidden">
+            <CardHeader className="pb-2 sm:pb-3">
+                <CardDescription className="text-xs sm:text-sm">{title}</CardDescription>
+                <CardTitle className="break-words text-2xl sm:text-3xl">{value}</CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
@@ -117,9 +136,9 @@ function FarmPurchaseList({ rows, date }) {
     }
 
     return (
-        <Card className="mb-6">
+        <Card className="mb-6 overflow-hidden">
             <CardHeader>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <CardTitle>Farm Purchase List</CardTitle>
                         <CardDescription>
@@ -131,6 +150,7 @@ function FarmPurchaseList({ rows, date }) {
                         variant="outline"
                         onClick={handleCopy}
                         disabled={!rows.length}
+                        className="w-full sm:w-auto"
                     >
                         Copy List
                     </Button>
@@ -143,33 +163,102 @@ function FarmPurchaseList({ rows, date }) {
                         No procurement items found for selected date.
                     </div>
                 ) : (
-                    <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <div className="grid grid-cols-[1fr_130px_120px] bg-slate-50 px-4 py-3 text-sm font-semibold dark:bg-slate-900/40">
-                            <div>Product</div>
-                            <div>Pack</div>
-                            <div className="text-right">Order Qty</div>
-                        </div>
-
-                        <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <>
+                        <div className="grid gap-3 md:hidden">
                             {rows.map((item, index) => (
                                 <div
                                     key={`${item.product_id}-${item.product_pack_id}-${index}`}
-                                    className="grid grid-cols-[1fr_130px_120px] px-4 py-3 text-sm"
+                                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
                                 >
-                                    <div className="font-medium">{item.product_name || "—"}</div>
-                                    <div className="text-slate-600 dark:text-slate-400">
+                                    <div className="font-semibold">{item.product_name || "—"}</div>
+                                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                         {item.pack_label || "—"}
                                     </div>
-                                    <div className="text-right font-semibold">
+                                    <div className="mt-3 text-lg font-bold">
                                         {formatCount(item.total_quantity)} packs
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+
+                        <div className="hidden overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 md:block">
+                            <div className="grid grid-cols-[1fr_130px_120px] bg-slate-50 px-4 py-3 text-sm font-semibold dark:bg-slate-900/40">
+                                <div>Product</div>
+                                <div>Pack</div>
+                                <div className="text-right">Order Qty</div>
+                            </div>
+
+                            <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                                {rows.map((item, index) => (
+                                    <div
+                                        key={`${item.product_id}-${item.product_pack_id}-${index}`}
+                                        className="grid grid-cols-[1fr_130px_120px] px-4 py-3 text-sm"
+                                    >
+                                        <div className="font-medium">{item.product_name || "—"}</div>
+                                        <div className="text-slate-600 dark:text-slate-400">
+                                            {item.pack_label || "—"}
+                                        </div>
+                                        <div className="text-right font-semibold">
+                                            {formatCount(item.total_quantity)} packs
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </>
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+function ProcurementMobileList({ rows }) {
+    if (!rows.length) {
+        return (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
+                No procurement items found.
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid gap-3 lg:hidden">
+            {rows.map((item, index) => (
+                <div
+                    key={`${item.product_id}-${item.product_pack_id}-${index}`}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+                >
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="font-semibold">{item.product_name || "—"}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {item.pack_label || "No pack"}
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
+                            {formatCount(item.total_quantity)} packs
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                            <div className="text-xs text-slate-500">Orders</div>
+                            <div className="mt-1 font-semibold">
+                                {formatCount(item.order_count)}
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                            <div className="text-xs text-slate-500">Sales</div>
+                            <div className="mt-1 font-semibold">
+                                {formatMoneyPaise(item.total_sales_paise)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }
 
@@ -297,7 +386,7 @@ export function ProcurementPage() {
     );
 
     const actions = (
-        <>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <Button
                 variant="outline"
                 onClick={() => {
@@ -311,11 +400,11 @@ export function ProcurementPage() {
             <Button variant="outline" asChild>
                 <Link to={`/ops/orders?delivery_date=${date}`}>Open Orders</Link>
             </Button>
-        </>
+        </div>
     );
 
     return (
-        <div>
+        <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
                 title="Procurement Planning"
                 subtitle="Farm-side quantity planning for the selected delivery date."
@@ -330,22 +419,29 @@ export function ProcurementPage() {
                     </CardDescription>
                 </CardHeader>
 
-                <CardContent className="grid gap-4 md:grid-cols-[220px_auto] md:items-end">
+                <CardContent className="grid gap-4">
                     <div className="grid gap-1.5">
                         <Label htmlFor="procurement-date">Delivery Date</Label>
                         <DatePicker
-                            selected={date ? new Date(date) : null}
-                            onChange={(selectedDate) =>
-                                setDate(selectedDate ? todayIstYyyyMmDd(selectedDate) : null)
-                            }
+                            selected={parseYyyyMmDd(date)}
+                            onChange={(selectedDate) => {
+                                const nextDate = selectedDate ? toYyyyMmDd(selectedDate) : "";
+                                setDate(nextDate);
+
+                                if (nextDate) {
+                                    setSearchParams({ delivery_date: nextDate });
+                                } else {
+                                    setSearchParams({});
+                                }
+                            }}
                             dateFormat="yyyy-MM-dd"
                             id="procurement-date"
-                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             isClearable
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                         <Button
                             variant="outline"
                             onClick={() => setSearchParams({ delivery_date: date })}
@@ -378,7 +474,7 @@ export function ProcurementPage() {
                 </CardContent>
             </Card>
 
-            <div className="mb-6 grid gap-4 lg:grid-cols-4">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <SummaryStat
                     title="Procurement Rows"
                     value={formatCount(rows.length)}
@@ -446,7 +542,7 @@ export function ProcurementPage() {
             <FarmPurchaseList rows={rows} date={date} />
 
             <div className="mb-6 grid gap-4 xl:grid-cols-3">
-                <Card className="thin-scrollbar h-[600px] overflow-y-auto xl:col-span-2">
+                <Card className="overflow-hidden xl:col-span-2 xl:h-[600px] xl:overflow-y-auto">
                     <CardHeader>
                         <CardTitle>Full Procurement Table</CardTitle>
                         <CardDescription>
@@ -455,12 +551,16 @@ export function ProcurementPage() {
                     </CardHeader>
 
                     <CardContent>
-                        <DataTable
-                            columns={columns}
-                            data={rows}
-                            searchPlaceholder="Search procurement items…"
-                            initialPageSize={20}
-                        />
+                        <ProcurementMobileList rows={rows} />
+
+                        <div className="hidden lg:block">
+                            <DataTable
+                                columns={columns}
+                                data={rows}
+                                searchPlaceholder="Search procurement items…"
+                                initialPageSize={20}
+                            />
+                        </div>
 
                         {procurementQuery.isLoading ? (
                             <p className="mt-3 text-sm text-slate-500">Loading procurement...</p>
@@ -474,7 +574,7 @@ export function ProcurementPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="thin-scrollbar h-[600px] overflow-y-auto">
+                <Card className="overflow-hidden xl:h-[600px] xl:overflow-y-auto">
                     <CardHeader>
                         <CardTitle>Top Required Items</CardTitle>
                         <CardDescription>

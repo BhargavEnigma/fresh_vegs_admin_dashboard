@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { listAdminProducts } from "../../api/services/products.service";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { listAdminProducts, setProductActive } from "../../api/services/products.service";
+import { useToast } from "../../components/toast/toast-context";
 import { listCategoriesOps } from "../../api/services/categories.service";
 import { PageHeader } from "../../components/common/page-header";
 import { Button } from "../../components/ui/button";
@@ -9,6 +10,82 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { StatusBadge } from "../../components/common/status-badge";
 import { assetUrl, cn } from "../../lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { PremiumSelect } from "../../components/ui/premium-select";
+
+
+function ProductMobileCard({ product, onToggleActive }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex gap-3">
+        {product.images?.length ? (
+          <img
+            src={assetUrl(product.images[0].image_url)}
+            alt={product.name}
+            className="h-16 w-16 rounded-2xl object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900" />
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="line-clamp-2 font-semibold">{product.name}</div>
+          <div className="mt-1 text-xs text-slate-500">
+            {product.category?.name || "—"} · {product.unit || "—"}
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <StatusBadge value={product.is_out_of_stock ? "out_of_stock" : "in_stock"} />
+            <StatusBadge value={product.is_active ? "Active" : "Inactive"} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+          <div className="text-xs text-slate-500">MRP</div>
+          <div className="font-semibold">₹{(Number(product.mrp_paise || 0) / 100).toFixed(2)}</div>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+          <div className="text-xs text-slate-500">Selling</div>
+          <div className="font-semibold">₹{(Number(product.selling_price_paise || 0) / 100).toFixed(2)}</div>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+          <div className="text-xs text-slate-500">Packs</div>
+          <div className="font-semibold">{product.packs?.length || 0}</div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/products/${product.id}`}>View</Link>
+        </Button>
+
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/products/${product.id}/edit`}>Edit</Link>
+        </Button>
+
+        <Button
+          variant={product.is_active ? "redoutline" : "outline"}
+          size="sm"
+          onClick={() => onToggleActive(product)}
+        >
+          {product.is_active ? "Deactive" : "Active"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function ProductsListPage() {
   const [params, setParams] = useSearchParams();
@@ -17,6 +94,8 @@ export function ProductsListPage() {
   const q = params.get("q") || "";
   const category_id = params.get("category_id") || "";
   const include_out_of_stock = params.get("include_out_of_stock") === "true";
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [selectedProduct, setSelectedProduct] = React.useState(null);
 
   const productsQ = useQuery({
     queryKey: ["products", { page, limit, q, category_id, include_out_of_stock }],
@@ -36,6 +115,26 @@ export function ProductsListPage() {
     queryFn: () => listCategoriesOps({ include_inactive: true }),
   });
 
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const activeMut = useMutation({
+    mutationFn: ({ productId, is_active }) => setProductActive(productId, is_active),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.is_active ? "Product activated" : "Product inactivated"
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: (error) => {
+      toast.error(
+        "Failed to update product",
+        error?.response?.data?.error?.message || error?.message || "Please try again"
+      );
+    },
+  });
+
   const products = productsQ.data?.data?.products || [];
   const total = productsQ.data?.data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -52,41 +151,48 @@ export function ProductsListPage() {
   }
 
   return (
-    <div>
+    <div className="min-w-0 space-y-4">
       <PageHeader
         title="Products"
         subtitle="List uses GET /v1/products (active products only). Create/Update uses /v1/admin/product/*"
         actions={
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link to="/products/new">Create Product</Link>
           </Button>
         }
       />
 
-      <Card className="mb-4">
+      <Card className="mb-4 overflow-hidden">
         <CardContent className="pt-6">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div>
-              <div className="text-xs text-slate-500">Search</div>
-              <Input value={q} onChange={(e) => set("q", e.target.value)} placeholder="Search products…" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="min-w-0">
+              <div className="mb-1 text-xs text-slate-500">Search</div>
+              <Input
+                value={q}
+                onChange={(e) => set("q", e.target.value)}
+                placeholder="Search products…"
+              />
             </div>
-            <div>
-              <div className="text-xs text-slate-500">Category</div>
-              <select
+
+            <div className="min-w-0">
+              <div className="mb-1 text-xs text-slate-500">Category</div>
+              <PremiumSelect
                 value={category_id}
-                onChange={(e) => set("category_id", e.target.value)}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-              >
-                <option value="">All</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => set("category_id", value)}
+                options={[
+                  { value: "", label: "All" },
+                  ...categories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                ]}
+                placeholder="All categories"
+                isClearable={false}
+              />
             </div>
-            <div className="flex items-end gap-2">
-              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+
+            <div className="flex items-end">
+              <label className="flex min-h-10 w-full items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
                 <input
                   type="checkbox"
                   checked={include_out_of_stock}
@@ -108,8 +214,27 @@ export function ProductsListPage() {
 
       {!productsQ.isLoading && !productsQ.isError ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="grid gap-3 p-3 md:hidden">
+            {products.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
+                No products
+              </div>
+            ) : (
+              products.map((p) => (
+                <ProductMobileCard
+                  key={p.id}
+                  product={p}
+                  onToggleActive={(product) => {
+                    setSelectedProduct(product);
+                    setConfirmOpen(true);
+                  }}
+                />
+              ))
+            )}
+          </div>
+
+          <div className="hidden w-full overflow-x-auto thin-scrollbar md:block">
+            <table className="min-w-[1050px] w-full text-sm">
               <thead className="text-left bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Image</th>
@@ -120,6 +245,7 @@ export function ProductsListPage() {
                   <th className="px-4 py-3 font-semibold">MRP</th>
                   <th className="px-4 py-3 font-semibold">Selling</th>
                   <th className="px-4 py-3 font-semibold">Stock</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold"></th>
                 </tr>
               </thead>
@@ -158,12 +284,25 @@ export function ProductsListPage() {
                         <StatusBadge value={p.is_out_of_stock ? "out_of_stock" : "in_stock"} />
                       </td>
                       <td className="px-4 py-3">
+                        <StatusBadge value={p.is_active ? "Active" : "Inactive"} />
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <Button asChild variant="outline" size="sm">
                             <Link to={`/products/${p.id}`}>View</Link>
                           </Button>
                           <Button asChild variant="outline" size="sm">
                             <Link to={`/products/${p.id}/edit`}>Edit</Link>
+                          </Button>
+                          <Button
+                            variant={p.is_active ? "redoutline" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProduct(p);
+                              setConfirmOpen(true);
+                            }}
+                          >
+                            {p.is_active ? "Deactive" : "Active"}
                           </Button>
                         </div>
                       </td>
@@ -174,17 +313,30 @@ export function ProductsListPage() {
             </table>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-slate-500">
+          <div className="flex flex-col gap-3 border-t border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-center text-xs text-slate-500 sm:text-left">
               Page {page} of {totalPages} • {total} total
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => set("page", Math.max(1, page - 1))} disabled={page <= 1}>
+
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => set("page", Math.max(1, page - 1))}
+                disabled={page <= 1}
+              >
                 Prev
               </Button>
-              <Button variant="outline" size="sm" onClick={() => set("page", Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => set("page", Math.min(totalPages, page + 1))}
+                disabled={page >= totalPages}
+              >
                 Next
               </Button>
+
               <select
                 value={limit}
                 onChange={(e) => set("limit", e.target.value)}
@@ -200,6 +352,67 @@ export function ProductsListPage() {
           </div>
         </div>
       ) : null}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedProduct?.is_active
+                ? "Deactivate Product"
+                : "Activate Product"}
+            </DialogTitle>
+
+            <DialogDescription>
+              {selectedProduct?.is_active
+                ? `Are you sure you want to deactivate "${selectedProduct?.name}"? Customers will not be able to purchase it.`
+                : `Are you sure you want to activate "${selectedProduct?.name}"?`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmOpen(false);
+                setSelectedProduct(null);
+              }}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant={
+                selectedProduct?.is_active
+                  ? "destructive"
+                  : "default"
+              }
+              disabled={activeMut.isPending}
+              onClick={() => {
+                if (!selectedProduct) return;
+
+                activeMut.mutate(
+                  {
+                    productId: selectedProduct.id,
+                    is_active: !selectedProduct.is_active,
+                  },
+                  {
+                    onSuccess: () => {
+                      setConfirmOpen(false);
+                      setSelectedProduct(null);
+                    },
+                  }
+                );
+              }}
+            >
+              {activeMut.isPending
+                ? "Updating..."
+                : selectedProduct?.is_active
+                  ? "Deactivate"
+                  : "Activate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

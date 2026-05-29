@@ -55,7 +55,7 @@ export function ProductDetailPage() {
             ) : null}
             {p ? (
               <Button
-                variant={p.is_active ? "outline" : "default"}
+                variant={p.is_active ? "destructive" : "default"}
                 onClick={() => setConfirm({ open: true, nextActive: !p.is_active })}
               >
                 {p.is_active ? "Deactivate" : "Activate"}

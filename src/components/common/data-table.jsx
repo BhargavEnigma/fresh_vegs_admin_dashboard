@@ -37,7 +37,7 @@ export function DataTable({
   });
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark">
       <div className="flex flex-col gap-2 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:max-w-sm">
           <Input

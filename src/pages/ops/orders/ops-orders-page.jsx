@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
@@ -26,6 +26,8 @@ import { useToast } from "../../../components/toast/toast-context";
 import { OpsOrdersListPdf } from "./ops-orders-list-pdf";
 import { exportOrdersCsv } from "./ops-orders-export";
 import { downloadBlob } from "../../../utils/download";
+import { PremiumSelect } from "../../../components/ui/premium-select";
+import { RiResetLeftFill } from "react-icons/ri";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -259,78 +261,83 @@ function Filters({ value, onApply, deliveryPartners }) {
             onSubmit={form.handleSubmit(submit)}
             className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
         >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <div className="grid gap-1.5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <div className="grid min-w-0 gap-1.5">
                     <Label>Search</Label>
-                    <Input placeholder="Order no / order id / phone" {...form.register("q")} />
+                    <Input className="h-9 sm:h-10" placeholder="Order no / order id / phone" {...form.register("q")} />
                 </div>
 
-                <div className="grid gap-1.5">
+                <div className="grid min-w-0 gap-1.5">
                     <Label>Warehouse ID</Label>
-                    <Input placeholder="uuid" {...form.register("warehouse_id")} />
+                    <Input className="h-9 sm:h-10" placeholder="uuid" {...form.register("warehouse_id")} />
                 </div>
 
-                <div className="grid gap-1.5">
+                <div className="grid min-w-0 gap-1.5">
                     <Label>Delivery Date</Label>
                     <DatePicker
                         selected={form.watch("delivery_date")}
                         onChange={(date) => form.setValue("delivery_date", date, { shouldValidate: true })}
                         dateFormat="yyyy-MM-dd"
                         placeholderText="Select delivery date"
-                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        className="flex h-9 sm:h-10 w-full rounded-md border border-slate-200 bg-white px-2.5 sm:px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                         isClearable
                     />
                 </div>
 
-                <div className="grid gap-1.5">
+                <div className="grid min-w-0 gap-1.5">
                     <Label>Page Size</Label>
-                    <Input type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true })} />
+                    <Input className="h-9 sm:h-10" type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true })} />
                 </div>
 
-                <div className="grid gap-1.5">
+                <div className="grid min-w-0 gap-1.5">
                     <Label>Delivery Partner</Label>
-                    <select
-                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
-                        {...form.register("delivery_partner_user_id")}
+                    <Controller
+                        control={form.control}
+                        name="delivery_partner_user_id"
+                        render={({ field }) => (
+                            <PremiumSelect
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="All partners"
+                                isClearable
+                                options={deliveryPartners.map((partner) => ({
+                                    value: partner.id,
+                                    label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""
+                                        }`,
+                                }))}
+                            />
+                        )}
+                    />
+                </div>
+                <div className="flex items-end justify-start gap-1">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            form.reset({
+                                warehouse_id: "",
+                                delivery_partner_user_id: "",
+                                q: "",
+                                limit: 20,
+                                delivery_date: null,
+                            });
+
+                            onApply({
+                                warehouse_id: "",
+                                delivery_partner_user_id: "",
+                                q: "",
+                                limit: 20,
+                                delivery_date: "",
+                            });
+                        }}
                     >
-                        <option value="">All partners</option>
-                        {deliveryPartners.map((partner) => (
-                            <option key={partner.id} value={partner.id}>
-                                {partner.full_name || partner.phone || partner.id}
-                                {partner.phone ? ` (${partner.phone})` : ""}
-                            </option>
-                        ))}
-                    </select>
+                        <RiResetLeftFill />
+                    </Button>
+
+                    <Button type="submit">Apply Filters</Button>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                        form.reset({
-                            warehouse_id: "",
-                            delivery_partner_user_id: "",
-                            q: "",
-                            limit: 20,
-                            delivery_date: null,
-                        });
-
-                        onApply({
-                            warehouse_id: "",
-                            delivery_partner_user_id: "",
-                            q: "",
-                            limit: 20,
-                            delivery_date: "",
-                        });
-                    }}
-                >
-                    Reset
-                </Button>
-
-                <Button type="submit">Apply Filters</Button>
-            </div>
         </form>
     );
 }
@@ -338,20 +345,23 @@ function Filters({ value, onApply, deliveryPartners }) {
 function SummaryCard({ title, value, active, onClick }) {
     return (
         <button
-            size="lg"
             className={[
-                "flex flex-col items-start justify-between rounded-2xl border p-4 transition",
+                "min-w-0 rounded-xl border p-3 text-left transition sm:rounded-2xl sm:p-4",
+                "flex flex-col items-start justify-between gap-2",
                 active
                     ? "bg-dailyveg-500 shadow-brand text-white hover:bg-dailyveg-600 dark:border-0 dark:bg-dailyveg-600"
-                    : "border-slate-200 bg-white hover:border-1 hover:border-dailyveg-300 hover:bg-dailyveg-50 hover:text-dailyveg-800 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:bg-slate-950/70 dark:hover:text-dailyveg-300 dark:shadow-brand-dark",
+                    : "border-slate-200 bg-white hover:border-dailyveg-300 hover:bg-dailyveg-50 hover:text-dailyveg-800 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:bg-slate-950/70 dark:hover:text-dailyveg-300 dark:shadow-brand-dark",
             ].join(" ")}
             type="button"
             onClick={onClick}
         >
-            <div className={`text-sm`}>
+            <div className="line-clamp-2 text-xs leading-tight sm:text-sm">
                 {title}
             </div>
-            <div className="text-2xl font-bold">{value}</div>
+
+            <div className="text-xl font-bold leading-none sm:text-2xl">
+                {value}
+            </div>
         </button>
     );
 }
@@ -528,11 +538,16 @@ function AssignDeliveryPartnerDialog({
 
                     <div className="grid gap-1.5">
                         <Label>Delivery Partner</Label>
-                        <select
-                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-slate-300"
+                        <PremiumSelect
                             value={selectedPartnerId}
-                            onChange={(e) => onChangePartner(e.target.value)}
-                            disabled={isPending}
+                            onChange={onChangePartner}
+                            placeholder="Select delivery partner"
+                            isDisabled={isPending}
+                            options={deliveryPartners.map((partner) => ({
+                                value: partner.id,
+                                label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""
+                                    }`,
+                            }))}
                         >
                             <option value="">Select delivery partner</option>
                             {deliveryPartners.map((partner) => (
@@ -541,7 +556,7 @@ function AssignDeliveryPartnerDialog({
                                     {partner.phone ? ` (${partner.phone})` : ""}
                                 </option>
                             ))}
-                        </select>
+                        </PremiumSelect>
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
@@ -555,7 +570,127 @@ function AssignDeliveryPartnerDialog({
                     </div>
                 </div>
             </DialogContent>
-        </Dialog>
+        </Dialog >
+    );
+}
+
+function MobileOrderCard({
+    order,
+    selectedIds,
+    onToggleSelect,
+    onPreview,
+    onAssign,
+    onUnassign,
+    onQuickAction,
+    isAssignPending,
+    isUnassignPending,
+    isUpdatePending,
+}) {
+    const nextActions = getNextActions(order);
+    const selected = selectedIds.includes(order.id);
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => onToggleSelect(order.id)}
+                        />
+                        <div className="truncate font-semibold">
+                            {order.order_number || "—"}
+                        </div>
+                    </div>
+
+                    <div className="mt-1 text-xs text-slate-500">
+                        {getCustomerName(order)} · {getCustomerPhone(order)}
+                    </div>
+                </div>
+
+                <StatusBadge value={order.status} />
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Delivery</div>
+                    <div className="mt-1 font-medium">{order.delivery_date || "—"}</div>
+                    <div className="text-xs text-slate-500">{getOrderArea(order)}</div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Amount</div>
+                    <div className="mt-1 font-semibold">{money(getOrderTotal(order))}</div>
+                    <div className="text-xs text-slate-500">
+                        Items: {getOrderItemsCount(order)}
+                    </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Payment</div>
+                    <div className="mt-1 font-medium">{order.payment_method || "—"}</div>
+                    <div className="text-xs text-slate-500">{order.payment_status || "—"}</div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Rider</div>
+                    <div className="mt-1 truncate font-medium">
+                        {order.delivery_partner ? getDeliveryPartnerName(order) : "Not assigned"}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                        {order.delivery_partner ? getDeliveryPartnerPhone(order) || "—" : "—"}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => onPreview(order)}>
+                    Preview
+                </Button>
+
+                <Button variant="outline" size="sm" asChild>
+                    <Link to={`/ops/orders/${order.id}`}>View</Link>
+                </Button>
+
+                {canAssignDeliveryPartner(order) ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAssign(order)}
+                        disabled={isAssignPending}
+                    >
+                        {order.delivery_partner_user_id ? "Reassign" : "Assign"}
+                    </Button>
+                ) : null}
+
+                {canUnassignDeliveryPartner(order) ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onUnassign(order)}
+                        disabled={isUnassignPending}
+                    >
+                        Unassign
+                    </Button>
+                ) : null}
+
+                {nextActions.map((action) => (
+                    <Button
+                        key={action.key}
+                        size="sm"
+                        onClick={() => onQuickAction(order.id, action.key)}
+                        disabled={isUpdatePending}
+                    >
+                        {action.label}
+                    </Button>
+                ))}
+            </div>
+
+            <div className="mt-3 text-xs text-slate-500">
+                {order.is_locked ? "Locked" : "Not locked"}
+            </div>
+        </div>
     );
 }
 
@@ -1073,7 +1208,7 @@ export function OpsOrdersPage() {
                             Before Lock: <span className="font-semibold">{summary.beforeLock}</span>
                         </div>
                         <div className="rounded-full border border-slate-200 px-3 py-1 text-sm dark:border-slate-800">
-                            Locked Queue: <span className="font-semibold">{summary.locked}</span>
+                            Locked: <span className="font-semibold">{summary.locked}</span>
                         </div>
                         <div className="rounded-full border border-slate-200 px-3 py-1 text-sm dark:border-slate-800">
                             Exceptions: <span className="font-semibold">{summary.exceptions}</span>
@@ -1086,7 +1221,7 @@ export function OpsOrdersPage() {
                 <Filters value={filters} onApply={handleApplyFilters} deliveryPartners={deliveryPartners} />
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
                 <SummaryCard title="Total Orders" value={summary.total} active={queue === "all"} onClick={() => handleQueueChange("all")} />
                 <SummaryCard title="Before Lock" value={summary.beforeLock} active={queue === "before_lock"} onClick={() => handleQueueChange("before_lock")} />
                 <SummaryCard title="To Pack" value={summary.toPack} active={queue === "to_pack"} onClick={() => handleQueueChange("to_pack")} />
@@ -1095,19 +1230,19 @@ export function OpsOrdersPage() {
                 <SummaryCard title="Delivered" value={summary.delivered} active={queue === "delivered"} onClick={() => handleQueueChange("delivered")} />
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 xl:grid-cols-4">
                 <SummaryCard title="Locked Queue" value={summary.locked} active={queue === "locked"} onClick={() => handleQueueChange("locked")} />
                 <SummaryCard title="Exceptions" value={summary.exceptions} active={queue === "exceptions"} onClick={() => handleQueueChange("exceptions")} />
                 <SummaryCard title="Assigned" value={summary.assigned} active={queue === "assigned"} onClick={() => handleQueueChange("assigned")} />
                 <SummaryCard title="Unassigned" value={summary.unassigned} active={queue === "unassigned"} onClick={() => handleQueueChange("unassigned")} />
             </div>
 
-            <div className="mt-4">
-                <Card className="w-full overflow-hidden p-4">
+            <div className="mt-4 min-w-0">
+                <Card className="w-full overflow-hidden p-3 sm:p-4">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         {/* <QueueTabs value={queue} onChange={handleQueueChange} /> */}
 
-                        <div className="flex max-w-full flex-wrap items-center gap-2 overflow-hidden">
+                        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:flex xl:w-auto xl:flex-wrap">
                             <PDFDownloadLink
                                 document={<OpsOrdersListPdf orders={visibleRows} filters={{ ...filters, queue }} />}
                                 fileName={`ops_orders_${filters.delivery_date || new Date().toISOString().slice(0, 10)}.pdf`}
@@ -1134,20 +1269,21 @@ export function OpsOrdersPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <select
-                            className="h-10 min-w-[240px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        {/* <div className="min-w-[260px]"> */}
+                        {/* <div> */}
+                        <PremiumSelect
                             value={bulkPartnerId}
-                            onChange={(e) => setBulkPartnerId(e.target.value)}
-                            disabled={bulkAssignDeliveryPartnerMut.isPending}
-                        >
-                            <option value="">Select delivery partner</option>
-                            {deliveryPartners.map((partner) => (
-                                <option key={partner.id} value={partner.id}>
-                                    {partner.full_name || partner.phone || partner.id}
-                                    {partner.phone ? ` (${partner.phone})` : ""}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={setBulkPartnerId}
+                            placeholder="Select delivery partner"
+                            isDisabled={bulkAssignDeliveryPartnerMut.isPending}
+                            isClearable
+                            options={deliveryPartners.map((partner) => ({
+                                value: partner.id,
+                                label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""
+                                    }`,
+                            }))}
+                        />
+                        {/* </div> */}
 
                         <Button
                             variant="outline"
@@ -1184,191 +1320,220 @@ export function OpsOrdersPage() {
                         <div className="text-sm text-slate-500 dark:text-slate-400">
                             Selected: {selectedIds.length}
                         </div>
-                    </div>
+                        {/* </div> */}
 
-                    <div className="mt-4 w-[1199px] overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <div className="w-full overflow-x-auto thin-scrollbar">
-                            <table className="w-full table-auto whitespace-nowrap text-sm">
-                                <thead className="sticky text-left top-0 z-10 bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
-                                    <tr>
-                                        <th className="w-10 px-4 py-3 text-left">
-                                            <input type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-semibold">Order</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Customer</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Delivery</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Area</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Items</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Amount</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Payment</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Delivery Partner</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Status</th>
-                                        <th className="px-4 py-3 text-left font-semibold">Actions</th>
-                                    </tr>
-                                </thead>
+                        <div className="mt-4 w-full">
+                            <div className="grid gap-3 lg:hidden">
+                                {listQuery.isLoading ? (
+                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                                        Loading orders...
+                                    </div>
+                                ) : visibleRows.length === 0 ? (
+                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                                        No orders found for this queue.
+                                    </div>
+                                ) : (
+                                    visibleRows.map((order) => (
+                                        <MobileOrderCard
+                                            key={order.id}
+                                            order={order}
+                                            selectedIds={selectedIds}
+                                            onToggleSelect={toggleRowSelection}
+                                            onPreview={setPreviewOrder}
+                                            onAssign={openAssignDialog}
+                                            onUnassign={handleUnassignDeliveryPartner}
+                                            onQuickAction={handleQuickAction}
+                                            isAssignPending={assignDeliveryPartnerMut.isPending}
+                                            isUnassignPending={unassignDeliveryPartnerMut.isPending}
+                                            isUpdatePending={updateStatusMut.isPending}
+                                        />
+                                    ))
+                                )}
+                            </div>
 
-                                <tbody>
-                                    {listQuery.isLoading ? (
+                            <div className="w-[1200px] hidden overflow-x-auto rounded-2xl border border-slate-200 thin-scrollbar dark:border-slate-800 lg:block">
+                                <table className="min-w-[1150px] w-full table-auto whitespace-nowrap text-sm">
+                                    <thead className="sticky text-left top-0 z-10 bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                                         <tr>
-                                            <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
-                                                Loading orders...
-                                            </td>
+                                            <th className="w-10 px-4 py-3 text-left">
+                                                <input type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
+                                            </th>
+                                            <th className="px-4 py-3 text-left font-semibold">Order</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Customer</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Delivery</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Area</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Items</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Amount</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Payment</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Delivery Partner</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                            <th className="px-4 py-3 text-left font-semibold">Actions</th>
                                         </tr>
-                                    ) : visibleRows.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
-                                                No orders found for this queue.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        visibleRows.map((order) => {
-                                            const nextActions = getNextActions(order);
+                                    </thead>
 
-                                            return (
-                                                <tr key={order.id} className="border-t border-slate-100 dark:border-slate-900">
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedIds.includes(order.id)}
-                                                            onChange={() => toggleRowSelection(order.id)}
-                                                        />
-                                                    </td>
+                                    <tbody>
+                                        {listQuery.isLoading ? (
+                                            <tr>
+                                                <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
+                                                    Loading orders...
+                                                </td>
+                                            </tr>
+                                        ) : visibleRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
+                                                    No orders found for this queue.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            visibleRows.map((order) => {
+                                                const nextActions = getNextActions(order);
 
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="font-medium">{order.order_number || "—"}</div>
-                                                        <div className="max-w-[220px] truncate text-xs text-slate-500" title={order.id}>
-                                                            {order.id}
-                                                        </div>
-                                                    </td>
+                                                return (
+                                                    <tr key={order.id} className="border-t border-slate-100 dark:border-slate-900">
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedIds.includes(order.id)}
+                                                                onChange={() => toggleRowSelection(order.id)}
+                                                            />
+                                                        </td>
 
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="font-medium">{getCustomerName(order)}</div>
-                                                        <div className="text-xs text-slate-500">{getCustomerPhone(order)}</div>
-                                                    </td>
-
-                                                    <td className="px-4 py-3 align-middle">{order.delivery_date || "—"}</td>
-                                                    <td className="px-4 py-3 align-middle">{getOrderArea(order)}</td>
-                                                    <td className="px-4 py-3 align-middle">{getOrderItemsCount(order)}</td>
-
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="font-medium">{money(getOrderTotal(order))}</div>
-                                                    </td>
-
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="font-medium">{order.payment_method || "—"}</div>
-                                                        <div className="text-xs text-slate-500">{order.payment_status || "—"}</div>
-                                                    </td>
-
-                                                    <td className="px-4 py-3 align-middle">
-                                                        {order.delivery_partner ? (
-                                                            <div>
-                                                                <div className="font-medium">{getDeliveryPartnerName(order)}</div>
-                                                                <div className="text-xs text-slate-500">
-                                                                    {getDeliveryPartnerPhone(order) || "—"}
-                                                                </div>
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="font-medium">{order.order_number || "—"}</div>
+                                                            <div className="max-w-[220px] truncate text-xs text-slate-500" title={order.id}>
+                                                                {order.id}
                                                             </div>
-                                                        ) : (
-                                                            <span className="text-slate-500">—</span>
-                                                        )}
-                                                    </td>
+                                                        </td>
 
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="flex flex-col items-start gap-1">
-                                                            <StatusBadge value={order.status} />
-                                                            <span className="text-xs text-slate-500">
-                                                                {order.is_locked ? "Locked" : "Not locked"}
-                                                            </span>
-                                                        </div>
-                                                    </td>
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="font-medium">{getCustomerName(order)}</div>
+                                                            <div className="text-xs text-slate-500">{getCustomerPhone(order)}</div>
+                                                        </td>
 
-                                                    <td className="px-4 py-3 align-middle">
-                                                        <div className="flex flex-nowrap gap-2">
-                                                            <Button variant="outline" size="sm" onClick={() => setPreviewOrder(order)}>
-                                                                Preview
-                                                            </Button>
+                                                        <td className="px-4 py-3 align-middle">{order.delivery_date || "—"}</td>
+                                                        <td className="px-4 py-3 align-middle">{getOrderArea(order)}</td>
+                                                        <td className="px-4 py-3 align-middle">{getOrderItemsCount(order)}</td>
 
-                                                            <Button variant="outline" size="sm" asChild>
-                                                                <Link to={`/ops/orders/${order.id}`}>View</Link>
-                                                            </Button>
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="font-medium">{money(getOrderTotal(order))}</div>
+                                                        </td>
 
-                                                            {canAssignDeliveryPartner(order) ? (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => openAssignDialog(order)}
-                                                                    disabled={assignDeliveryPartnerMut.isPending}
-                                                                >
-                                                                    {order.delivery_partner_user_id ? "Reassign Rider" : "Assign Rider"}
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="font-medium">{order.payment_method || "—"}</div>
+                                                            <div className="text-xs text-slate-500">{order.payment_status || "—"}</div>
+                                                        </td>
+
+                                                        <td className="px-4 py-3 align-middle">
+                                                            {order.delivery_partner ? (
+                                                                <div>
+                                                                    <div className="font-medium">{getDeliveryPartnerName(order)}</div>
+                                                                    <div className="text-xs text-slate-500">
+                                                                        {getDeliveryPartnerPhone(order) || "—"}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-slate-500">—</span>
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="flex flex-col items-start gap-1">
+                                                                <StatusBadge value={order.status} />
+                                                                <span className="text-xs text-slate-500">
+                                                                    {order.is_locked ? "Locked" : "Not locked"}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-4 py-3 align-middle">
+                                                            <div className="flex flex-nowrap gap-2">
+                                                                <Button variant="outline" size="sm" onClick={() => setPreviewOrder(order)}>
+                                                                    Preview
                                                                 </Button>
-                                                            ) : null}
 
-                                                            {canUnassignDeliveryPartner(order) ? (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handleUnassignDeliveryPartner(order)}
-                                                                    disabled={unassignDeliveryPartnerMut.isPending}
-                                                                >
-                                                                    Unassign
+                                                                <Button variant="outline" size="sm" asChild>
+                                                                    <Link to={`/ops/orders/${order.id}`}>View</Link>
                                                                 </Button>
-                                                            ) : null}
 
-                                                            {nextActions.map((action) => (
-                                                                <Button
-                                                                    key={action.key}
-                                                                    size="sm"
-                                                                    onClick={() => handleQuickAction(order.id, action.key)}
-                                                                    disabled={updateStatusMut.isPending}
-                                                                >
-                                                                    {action.label}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
+                                                                {canAssignDeliveryPartner(order) ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => openAssignDialog(order)}
+                                                                        disabled={assignDeliveryPartnerMut.isPending}
+                                                                    >
+                                                                        {order.delivery_partner_user_id ? "Reassign Rider" : "Assign Rider"}
+                                                                    </Button>
+                                                                ) : null}
+
+                                                                {canUnassignDeliveryPartner(order) ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => handleUnassignDeliveryPartner(order)}
+                                                                        disabled={unassignDeliveryPartnerMut.isPending}
+                                                                    >
+                                                                        Unassign
+                                                                    </Button>
+                                                                ) : null}
+
+                                                                {nextActions.map((action) => (
+                                                                    <Button
+                                                                        key={action.key}
+                                                                        size="sm"
+                                                                        onClick={() => handleQuickAction(order.id, action.key)}
+                                                                        disabled={updateStatusMut.isPending}
+                                                                    >
+                                                                        {action.label}
+                                                                    </Button>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Page {page} · Showing {rows.length} rows · Total {total}
-                        </p>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Page {page} · Showing {rows.length} rows · Total {total}
+                            </p>
 
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                disabled={page <= 1 || listQuery.isLoading}
-                                onClick={() =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        page: Math.max(1, Number(prev.page || 1) - 1),
-                                    }))
-                                }
-                            >
-                                Prev
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    disabled={page <= 1 || listQuery.isLoading}
+                                    onClick={() =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            page: Math.max(1, Number(prev.page || 1) - 1),
+                                        }))
+                                    }
+                                >
+                                    Prev
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                disabled={rows.length < limit || listQuery.isLoading}
-                                onClick={() =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        page: Number(prev.page || 1) + 1,
-                                    }))
-                                }
-                            >
-                                Next
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    disabled={rows.length < limit || listQuery.isLoading}
+                                    onClick={() =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            page: Number(prev.page || 1) + 1,
+                                        }))
+                                    }
+                                >
+                                    Next
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </Card>
-            </div>
+            </div >
 
             <OrderPreviewDialog
                 order={previewOrder}
@@ -1514,6 +1679,6 @@ export function OpsOrdersPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

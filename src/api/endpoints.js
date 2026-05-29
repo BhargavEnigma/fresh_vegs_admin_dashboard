@@ -138,6 +138,9 @@ export const ENDPOINTS = {
       upsertItems: (dealId) => `/v1/admin/deals/${dealId}/items`,
       removeItem: (dealId, itemId) => `/v1/admin/deals/${dealId}/items/${itemId}`,
     },
+    ai: {
+      generateProductDescription: "/v1/admin/ai/product-description",
+    }
   },
 
   ops: {

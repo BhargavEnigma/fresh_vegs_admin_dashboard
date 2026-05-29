@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DatePicker from "react-datepicker";
 
@@ -15,6 +15,7 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Badge } from "../../../components/ui/badge";
 import { useToast } from "../../../components/toast/toast-context";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 
 const CATEGORIES = [
     { value: "procurement", label: "Procurement" },
@@ -33,6 +34,144 @@ function paiseToRupees(value) {
 
 function today() {
     return new Date().toISOString().slice(0, 10);
+}
+
+function StatCard({ title, value, subtitle, highlight }) {
+    return (
+        <Card className="overflow-hidden p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {title}
+            </div>
+
+            <div
+                className={[
+                    "mt-2 break-words text-2xl font-bold sm:text-3xl",
+                    highlight ? "text-dailyveg-600 dark:text-dailyveg-300" : "",
+                ].join(" ")}
+            >
+                {value}
+            </div>
+
+            {subtitle ? (
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {subtitle}
+                </div>
+            ) : null}
+        </Card>
+    );
+}
+
+function CostMobileCard({ cost, onArchive, isArchiving }) {
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <div className="font-semibold capitalize">{cost.category}</div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {cost.cost_date}
+                    </div>
+                </div>
+
+                <Badge>{cost.status}</Badge>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Amount</div>
+                    <div className="mt-1 font-semibold">
+                        {paiseToRupees(cost.amount_paise)}
+                    </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Warehouse</div>
+                    <div className="mt-1 truncate font-medium">
+                        {cost.warehouse?.name || "—"}
+                    </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Reference</div>
+                    <div className="mt-1 truncate font-medium">
+                        {cost.reference_no || cost.reference_type || "—"}
+                    </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Created By</div>
+                    <div className="mt-1 truncate font-medium">
+                        {cost.creator?.full_name || cost.creator?.phone || "—"}
+                    </div>
+                </div>
+            </div>
+
+            {cost.status !== "archived" ? (
+                <Button
+                    className="mt-4 w-full"
+                    size="sm"
+                    variant="outline"
+                    disabled={isArchiving}
+                    onClick={() => onArchive(cost.id)}
+                >
+                    Archive
+                </Button>
+            ) : null}
+        </div>
+    );
+}
+
+function ProcurementMobileCard({ item, onChange }) {
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <div className="font-semibold">{item.product_name}</div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {item.pack_label || "Base"}
+                    </div>
+                </div>
+
+                <div className="rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
+                    {item.ordered_quantity}
+                </div>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+                <div>
+                    <Label>Unit Cost ₹</Label>
+                    <Input
+                        type="number"
+                        step="0.01"
+                        value={(Number(item.unit_cost_paise || 0) / 100).toString()}
+                        onChange={(e) =>
+                            onChange(item.key, {
+                                unit_cost_paise: rupeesToPaise(e.target.value),
+                            })
+                        }
+                    />
+                </div>
+
+                <div>
+                    <Label>Notes</Label>
+                    <Input
+                        value={item.notes}
+                        onChange={(e) =>
+                            onChange(item.key, {
+                                notes: e.target.value,
+                            })
+                        }
+                    />
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                <div className="text-xs text-slate-500">Total Cost</div>
+                <div className="mt-1 text-lg font-bold">
+                    {paiseToRupees(item.total_cost_paise)}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export function CostPage() {
@@ -222,17 +361,18 @@ export function CostPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
                 title="Cost Management"
                 subtitle="Track procurement cost, delivery expenses, packaging, miscellaneous cost and daily profitability."
             />
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                 {["overview", "costs", "procurement"].map((tab) => (
                     <Button
                         key={tab}
                         type="button"
+                        className="w-full sm:w-auto"
                         variant={activeTab === tab ? "default" : "outline"}
                         onClick={() => setActiveTab(tab)}
                     >
@@ -241,8 +381,8 @@ export function CostPage() {
                 ))}
             </div>
 
-            <Card className="p-4">
-                <div className="grid gap-4 md:grid-cols-5">
+            <Card className="overflow-hidden p-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <div className="grid gap-1.5">
                         <Label>From Date</Label>
                         <DatePicker
@@ -250,9 +390,7 @@ export function CostPage() {
                             onChange={(selectedDate) =>
                                 setFilters((p) => ({
                                     ...p,
-                                    from_date: selectedDate
-                                        ? selectedDate
-                                        : "",
+                                    from_date: selectedDate ? selectedDate.toISOString().slice(0, 10) : "",
                                 }))
                             }
                             dateFormat="yyyy-MM-dd"
@@ -269,9 +407,7 @@ export function CostPage() {
                             onChange={(selectedDate) =>
                                 setFilters((p) => ({
                                     ...p,
-                                    to_date: selectedDate
-                                        ? selectedDate
-                                        : "",
+                                    to_date: selectedDate ? selectedDate.toISOString().slice(0, 10) : "",
                                 }))
                             }
                             dateFormat="yyyy-MM-dd"
@@ -283,95 +419,98 @@ export function CostPage() {
 
                     <div className="grid gap-1.5">
                         <Label>Category</Label>
-                        <select
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        <PremiumSelect
                             value={filters.category}
-                            onChange={(e) => setFilters((p) => ({ ...p, category: e.target.value }))}
-                        >
-                            <option value="">All</option>
-                            {CATEGORIES.map((item) => (
-                                <option key={item.value} value={item.value}>
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(value) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    category: value || "",
+                                }))
+                            }
+                            options={[
+                                { value: "", label: "All Categories" },
+                                ...CATEGORIES.map((item) => ({
+                                    value: item.value,
+                                    label: item.label,
+                                })),
+                            ]}
+                            placeholder="Select category"
+                        />
                     </div>
 
                     <div className="grid gap-1.5">
                         <Label>Warehouse</Label>
-                        <select
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        <PremiumSelect
                             value={filters.warehouse_id}
-                            onChange={(e) => setFilters((p) => ({ ...p, warehouse_id: e.target.value }))}
-                        >
-                            <option value="">All</option>
-                            {warehouses.map((warehouse) => (
-                                <option key={warehouse.id} value={warehouse.id}>
-                                    {warehouse.name}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(value) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    warehouse_id: value || "",
+                                }))
+                            }
+                            options={[
+                                { value: "", label: "All Warehouses" },
+                                ...warehouses.map((warehouse) => ({
+                                    value: warehouse.id,
+                                    label: warehouse.name,
+                                })),
+                            ]}
+                            placeholder="Select warehouse"
+                        />
                     </div>
 
                     <div className="grid gap-1.5">
                         <Label>Status</Label>
-                        <select
-                            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        <PremiumSelect
                             value={filters.status}
-                            onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-                        >
-                            <option value="active">Active</option>
-                            <option value="archived">Archived</option>
-                            <option value="">All</option>
-                        </select>
+                            onChange={(value) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    status: value || "",
+                                }))
+                            }
+                            options={[
+                                { value: "active", label: "Active" },
+                                { value: "archived", label: "Archived" },
+                                { value: "", label: "All Status" },
+                            ]}
+                            placeholder="Select status"
+                        />
                     </div>
                 </div>
             </Card>
 
             {activeTab === "overview" ? (
                 <>
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Revenue</div>
-                            <div className="mt-2 text-2xl font-bold">{paiseToRupees(profit.revenue_paise)}</div>
-                        </Card>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+                        <StatCard
+                            title="Revenue"
+                            value={paiseToRupees(profit.revenue_paise)}
+                            highlight
+                        />
 
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Total Cost</div>
-                            <div className="mt-2 text-2xl font-bold">{paiseToRupees(profit.total_cost_paise)}</div>
-                        </Card>
+                        <StatCard
+                            title="Total Cost"
+                            value={paiseToRupees(profit.total_cost_paise)}
+                        />
 
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Net Profit</div>
-                            <div className="mt-2 text-2xl font-bold">{paiseToRupees(profit.profit_paise)}</div>
-                        </Card>
+                        <StatCard
+                            title="Net Profit"
+                            value={paiseToRupees(profit.profit_paise)}
+                            highlight
+                        />
 
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Margin</div>
-                            <div className="mt-2 text-2xl font-bold">{profit.margin_percent || 0}%</div>
-                        </Card>
+                        <StatCard
+                            title="Margin"
+                            value={`${profit.margin_percent || 0}%`}
+                        />
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Procurement</div>
-                            <div className="mt-2 text-xl font-semibold">{paiseToRupees(profit.procurement_paise)}</div>
-                        </Card>
-
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Delivery</div>
-                            <div className="mt-2 text-xl font-semibold">{paiseToRupees(summary.delivery_paise)}</div>
-                        </Card>
-
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Packaging</div>
-                            <div className="mt-2 text-xl font-semibold">{paiseToRupees(summary.packaging_paise)}</div>
-                        </Card>
-
-                        <Card className="p-4">
-                            <div className="text-sm text-slate-500">Miscellaneous</div>
-                            <div className="mt-2 text-xl font-semibold">{paiseToRupees(summary.misc_paise)}</div>
-                        </Card>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+                        <StatCard title="Procurement" value={paiseToRupees(profit.procurement_paise)} />
+                        <StatCard title="Delivery" value={paiseToRupees(summary.delivery_paise)} />
+                        <StatCard title="Packaging" value={paiseToRupees(summary.packaging_paise)} />
+                        <StatCard title="Miscellaneous" value={paiseToRupees(summary.misc_paise)} />
                     </div>
                 </>
             ) : null}
@@ -380,41 +519,83 @@ export function CostPage() {
                 <>
                     <Card className="p-4">
                         <form
-                            className="grid gap-4 md:grid-cols-4"
+                            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
                             onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}
                         >
-                            <div>
+                            <div className="grid gap-1.5">
                                 <Label>Date</Label>
-                                <Input type="date" {...form.register("cost_date")} />
+                                {/* <Input type="date" {...form.register("cost_date")} /> */}
+                                <DatePicker
+                                    selected={
+                                        form.watch("cost_date")
+                                            ? new Date(form.watch("cost_date"))
+                                            : null
+                                    }
+                                    onChange={(selectedDate) =>
+                                        form.setValue(
+                                            "cost_date",
+                                            selectedDate
+                                                ? selectedDate.toISOString().slice(0, 10)
+                                                : "",
+                                            {
+                                                shouldValidate: true,
+                                                shouldDirty: true,
+                                                shouldTouch: true,
+                                            }
+                                        )
+                                    }
+                                    dateFormat="yyyy-MM-dd"
+                                    placeholderText="Select cost date"
+                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                                    isClearable
+                                />
+
+                                {form.formState.errors.cost_date ? (
+                                    <p className="text-xs text-red-600">
+                                        {form.formState.errors.cost_date.message}
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div>
                                 <Label>Category</Label>
-                                <select
-                                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-                                    {...form.register("category")}
-                                >
-                                    {CATEGORIES.map((item) => (
-                                        <option key={item.value} value={item.value}>
-                                            {item.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                <PremiumSelect
+                                    value={form.watch("category")}
+                                    onChange={(value) => {
+                                        form.setValue("category", value, {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                        });
+                                    }}
+                                    options={CATEGORIES.map((item) => ({
+                                        value: item.value,
+                                        label: item.label,
+                                    }))}
+                                    placeholder="Select category"
+                                />
                             </div>
 
                             <div>
                                 <Label>Warehouse</Label>
-                                <select
-                                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
-                                    {...form.register("warehouse_id")}
-                                >
-                                    <option value="">No warehouse</option>
-                                    {warehouses.map((warehouse) => (
-                                        <option key={warehouse.id} value={warehouse.id}>
-                                            {warehouse.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <PremiumSelect
+                                    value={form.watch("warehouse_id")}
+                                    onChange={(value) => {
+                                        form.setValue("warehouse_id", value, {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                        });
+                                    }}
+                                    options={[
+                                        { value: "", label: "No warehouse" },
+                                        ...warehouses.map((warehouse) => ({
+                                            value: warehouse.id,
+                                            label: warehouse.name,
+                                        })),
+                                    ]}
+                                    placeholder="Select warehouse"
+                                />
                             </div>
 
                             <div>
@@ -432,12 +613,12 @@ export function CostPage() {
                                 <Input placeholder="Bill no / order no" {...form.register("reference_no")} />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div className="sm:col-span-2">
                                 <Label>Notes</Label>
                                 <Input placeholder="Optional notes" {...form.register("notes")} />
                             </div>
 
-                            <div className="md:col-span-4">
+                            <div className="sm:col-span-2 xl:col-span-4">
                                 <Button type="submit" disabled={createMutation.isPending}>
                                     {createMutation.isPending ? "Saving..." : "Add Cost"}
                                 </Button>
@@ -445,65 +626,84 @@ export function CostPage() {
                         </form>
                     </Card>
 
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left">Date</th>
-                                    <th className="px-4 py-3 text-left">Category</th>
-                                    <th className="px-4 py-3 text-left">Warehouse</th>
-                                    <th className="px-4 py-3 text-left">Reference</th>
-                                    <th className="px-4 py-3 text-left">Amount</th>
-                                    <th className="px-4 py-3 text-left">Created By</th>
-                                    <th className="px-4 py-3 text-left">Status</th>
-                                    <th className="px-4 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
+                    <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                        <div className="grid gap-3 p-3 lg:hidden">
+                            {costs.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
+                                    No cost entries found.
+                                </div>
+                            ) : (
+                                costs.map((cost) => (
+                                    <CostMobileCard
+                                        key={cost.id}
+                                        cost={cost}
+                                        isArchiving={archiveMutation.isPending}
+                                        onArchive={(id) => archiveMutation.mutate(id)}
+                                    />
+                                ))
+                            )}
+                        </div>
 
-                            <tbody>
-                                {costs.length === 0 ? (
+                        <div className="hidden overflow-x-auto thin-scrollbar lg:block">
+                            <table className="min-w-[1050px] w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-900/40">
                                     <tr>
-                                        <td colSpan="8" className="px-4 py-10 text-center text-slate-500">
-                                            No cost entries found.
-                                        </td>
+                                        <th className="px-4 py-3 text-left">Date</th>
+                                        <th className="px-4 py-3 text-left">Category</th>
+                                        <th className="px-4 py-3 text-left">Warehouse</th>
+                                        <th className="px-4 py-3 text-left">Reference</th>
+                                        <th className="px-4 py-3 text-left">Amount</th>
+                                        <th className="px-4 py-3 text-left">Created By</th>
+                                        <th className="px-4 py-3 text-left">Status</th>
+                                        <th className="px-4 py-3 text-right">Actions</th>
                                     </tr>
-                                ) : (
-                                    costs.map((cost) => (
-                                        <tr key={cost.id} className="border-t border-slate-100 dark:border-slate-900">
-                                            <td className="px-4 py-3">{cost.cost_date}</td>
-                                            <td className="px-4 py-3 capitalize">{cost.category}</td>
-                                            <td className="px-4 py-3">{cost.warehouse?.name || "—"}</td>
-                                            <td className="px-4 py-3">
-                                                {cost.reference_no || cost.reference_type || "—"}
-                                            </td>
-                                            <td className="px-4 py-3 font-semibold">
-                                                {paiseToRupees(cost.amount_paise)}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {cost.creator?.full_name || cost.creator?.phone || "—"}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Badge>{cost.status}</Badge>
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                {cost.status !== "archived" ? (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        disabled={archiveMutation.isPending}
-                                                        onClick={() => archiveMutation.mutate(cost.id)}
-                                                    >
-                                                        Archive
-                                                    </Button>
-                                                ) : (
-                                                    "—"
-                                                )}
+                                </thead>
+
+                                <tbody>
+                                    {costs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="8" className="px-4 py-10 text-center text-slate-500">
+                                                No cost entries found.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        costs.map((cost) => (
+                                            <tr key={cost.id} className="border-t border-slate-100 dark:border-slate-900">
+                                                <td className="px-4 py-3">{cost.cost_date}</td>
+                                                <td className="px-4 py-3 capitalize">{cost.category}</td>
+                                                <td className="px-4 py-3">{cost.warehouse?.name || "—"}</td>
+                                                <td className="px-4 py-3">
+                                                    {cost.reference_no || cost.reference_type || "—"}
+                                                </td>
+                                                <td className="px-4 py-3 font-semibold">
+                                                    {paiseToRupees(cost.amount_paise)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {cost.creator?.full_name || cost.creator?.phone || "—"}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Badge>{cost.status}</Badge>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {cost.status !== "archived" ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={archiveMutation.isPending}
+                                                            onClick={() => archiveMutation.mutate(cost.id)}
+                                                        >
+                                                            Archive
+                                                        </Button>
+                                                    ) : (
+                                                        "—"
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </>
             ) : null}
@@ -511,13 +711,22 @@ export function CostPage() {
             {activeTab === "procurement" ? (
                 <>
                     <Card className="p-4">
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <div>
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="grid gap-1.5">
                                 <Label>Delivery Date</Label>
-                                <Input
-                                    type="date"
-                                    value={procurementDate}
-                                    onChange={(e) => setProcurementDate(e.target.value)}
+                                <DatePicker
+                                    selected={procurementDate ? new Date(procurementDate) : null}
+                                    onChange={(selectedDate) =>
+                                        setProcurementDate(
+                                            selectedDate
+                                                ? selectedDate.toISOString().slice(0, 10)
+                                                : ""
+                                        )
+                                    }
+                                    dateFormat="yyyy-MM-dd"
+                                    placeholderText="Select procurement date"
+                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                                    isClearable
                                 />
                             </div>
 
@@ -540,6 +749,7 @@ export function CostPage() {
                             <div className="flex items-end">
                                 <Button
                                     type="button"
+                                    className="w-full sm:w-auto"
                                     disabled={procurementSaveMutation.isPending || procurementRows.length === 0}
                                     onClick={saveProcurement}
                                 >
@@ -549,62 +759,80 @@ export function CostPage() {
                         </div>
                     </Card>
 
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left">Product</th>
-                                    <th className="px-4 py-3 text-left">Pack</th>
-                                    <th className="px-4 py-3 text-left">Ordered Qty</th>
-                                    <th className="px-4 py-3 text-left">Unit Cost ₹</th>
-                                    <th className="px-4 py-3 text-left">Total Cost</th>
-                                    <th className="px-4 py-3 text-left">Notes</th>
-                                </tr>
-                            </thead>
+                    <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                        <div className="grid gap-3 p-3 lg:hidden">
+                            {procurementRows.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
+                                    No order items found for this delivery date.
+                                </div>
+                            ) : (
+                                procurementRows.map((item) => (
+                                    <ProcurementMobileCard
+                                        key={item.key}
+                                        item={item}
+                                        onChange={updateProcurementDraft}
+                                    />
+                                ))
+                            )}
+                        </div>
 
-                            <tbody>
-                                {procurementRows.length === 0 ? (
+                        <div className="hidden overflow-x-auto thin-scrollbar lg:block">
+                            <table className="min-w-[950px] w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-900/40">
                                     <tr>
-                                        <td colSpan="6" className="px-4 py-10 text-center text-slate-500">
-                                            No order items found for this delivery date.
-                                        </td>
+                                        <th className="px-4 py-3 text-left">Product</th>
+                                        <th className="px-4 py-3 text-left">Pack</th>
+                                        <th className="px-4 py-3 text-left">Ordered Qty</th>
+                                        <th className="px-4 py-3 text-left">Unit Cost ₹</th>
+                                        <th className="px-4 py-3 text-left">Total Cost</th>
+                                        <th className="px-4 py-3 text-left">Notes</th>
                                     </tr>
-                                ) : (
-                                    procurementRows.map((item) => (
-                                        <tr key={item.key} className="border-t border-slate-100 dark:border-slate-900">
-                                            <td className="px-4 py-3 font-medium">{item.product_name}</td>
-                                            <td className="px-4 py-3">{item.pack_label || "Base"}</td>
-                                            <td className="px-4 py-3">{item.ordered_quantity}</td>
-                                            <td className="px-4 py-3">
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={(Number(item.unit_cost_paise || 0) / 100).toString()}
-                                                    onChange={(e) =>
-                                                        updateProcurementDraft(item.key, {
-                                                            unit_cost_paise: rupeesToPaise(e.target.value),
-                                                        })
-                                                    }
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3 font-semibold">
-                                                {paiseToRupees(item.total_cost_paise)}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Input
-                                                    value={item.notes}
-                                                    onChange={(e) =>
-                                                        updateProcurementDraft(item.key, {
-                                                            notes: e.target.value,
-                                                        })
-                                                    }
-                                                />
+                                </thead>
+
+                                <tbody>
+                                    {procurementRows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-4 py-10 text-center text-slate-500">
+                                                No order items found for this delivery date.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        procurementRows.map((item) => (
+                                            <tr key={item.key} className="border-t border-slate-100 dark:border-slate-900">
+                                                <td className="px-4 py-3 font-medium">{item.product_name}</td>
+                                                <td className="px-4 py-3">{item.pack_label || "Base"}</td>
+                                                <td className="px-4 py-3">{item.ordered_quantity}</td>
+                                                <td className="px-4 py-3">
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={(Number(item.unit_cost_paise || 0) / 100).toString()}
+                                                        onChange={(e) =>
+                                                            updateProcurementDraft(item.key, {
+                                                                unit_cost_paise: rupeesToPaise(e.target.value),
+                                                            })
+                                                        }
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3 font-semibold">
+                                                    {paiseToRupees(item.total_cost_paise)}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Input
+                                                        value={item.notes}
+                                                        onChange={(e) =>
+                                                            updateProcurementDraft(item.key, {
+                                                                notes: e.target.value,
+                                                            })
+                                                        }
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </>
             ) : null}

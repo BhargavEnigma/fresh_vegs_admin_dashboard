@@ -23,7 +23,7 @@ export function WarehouseCreatePage() {
     });
 
     return (
-        <div className="p-4 sm:p-6">
+        <div>
             <PageHeader title="New Warehouse" subtitle="Add a new warehouse location." />
             <Card className="p-4">
                 <WarehouseForm
@@ -38,6 +38,18 @@ export function WarehouseCreatePage() {
                         lat: null,
                         lng: null,
                         is_active: true,
+                        service_areas: [
+                            {
+                                area_name: "",
+                                city: "",
+                                pincode: "",
+                                lat: null,
+                                lng: null,
+                                radius_km: null,
+                                boundary_geojson: null,
+                                is_active: true,
+                            },
+                        ],
                     }}
                     isSubmitting={createMut.isPending}
                     onCancel={() => nav("/admin/warehouses")}

@@ -117,13 +117,13 @@ function getExceptionOrders(orders) {
 
 function QueueCard({ title, value, subtitle }) {
     return (
-        <Card>
-            <CardHeader className="pb-3">
-                <CardDescription>{title}</CardDescription>
-                <CardTitle className="text-3xl">{formatCount(value)}</CardTitle>
+        <Card className="min-w-0">
+            <CardHeader className="pb-2 sm:pb-3">
+                <CardDescription className="line-clamp-2 text-xs sm:text-sm">{title}</CardDescription>
+                <CardTitle className="text-2xl sm:text-3xl">{formatCount(value)}</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+                <p className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
             </CardContent>
         </Card>
     );
@@ -137,7 +137,7 @@ function QuickLinkCard({ title, subtitle, to, buttonLabel }) {
                 <CardDescription>{subtitle}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-                <Button variant="outline" asChild>
+                <Button className="w-full sm:w-auto" variant="outline" asChild>
                     <Link to={to}>{buttonLabel}</Link>
                 </Button>
             </CardContent>
@@ -248,8 +248,9 @@ export function DashboardPage() {
         (isAdmin && runsQuery.isError);
 
     const actions = (
-        <>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button
+                className="w-full sm:w-auto"
                 variant="outline"
                 onClick={() => {
                     kpisQuery.refetch();
@@ -273,24 +274,25 @@ export function DashboardPage() {
 
             {isAdmin ? (
                 <Button
+                    className="w-full sm:w-auto"
                     onClick={() => lockOrdersMut.mutate()}
                     disabled={lockOrdersMut.isPending || !selectedDate}
                 >
                     {lockOrdersMut.isPending ? "Locking..." : "Run Lock Orders"}
                 </Button>
             ) : null}
-        </>
+        </div>
     );
 
     return (
-        <div>
+        <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
                 title="Operations Dashboard"
                 subtitle="Cutoff, lock, procurement, queue, and exception view for the selected operational date."
                 actions={actions}
             />
 
-            <Card className="mb-6">
+            <Card className="mb-4 sm:mb-6">
                 <CardHeader>
                     <CardTitle className="text-base">Operational Date Control</CardTitle>
                     <CardDescription>
@@ -298,7 +300,7 @@ export function DashboardPage() {
                     </CardDescription>
                 </CardHeader>
 
-                <CardContent className="grid gap-4 md:grid-cols-[220px_auto] md:items-end">
+                <CardContent className="grid gap-4 sm:grid-cols-[220px_1fr] sm:items-end">
                     <div className="grid gap-1.5">
                         <Label htmlFor="dashboard-date">Selected Date</Label>
                         <DatePicker
@@ -314,14 +316,15 @@ export function DashboardPage() {
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" onClick={() => setSelectedDate(todayIstYyyyMmDd())}>
+                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                        <Button variant="outline" onClick={() => setSelectedDate(todayIstYyyyMmDd())} className="w-full sm:w-auto">
                             Today
                         </Button>
 
                         <Button
                             variant="outline"
                             onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), 1))}
+                            className="w-full sm:w-auto"
                         >
                             Tomorrow
                         </Button>
@@ -329,6 +332,7 @@ export function DashboardPage() {
                         <Button
                             variant="outline"
                             onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), -1))}
+                            className="w-full sm:w-auto"
                         >
                             Yesterday
                         </Button>
@@ -342,14 +346,14 @@ export function DashboardPage() {
                 </div>
             ) : null}
 
-            <div className="mb-6 grid gap-4 xl:grid-cols-3">
+            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-3">
                 <Card className="xl:col-span-2">
                     <CardHeader>
                         <CardTitle>Daily Ops Summary</CardTitle>
                         <CardDescription>Main counters for {formatDateLabel(selectedDate)}.</CardDescription>
                     </CardHeader>
 
-                    <CardContent className="grid gap-4 md:grid-cols-3">
+                    <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                         <QueueCard
                             title="Orders For Delivery or Delivered"
                             value={kpis?.orders_for_delivery}
@@ -478,11 +482,11 @@ export function DashboardPage() {
                 )}
             </div>
 
-            <div className="mb-6 grid gap-4 lg:grid-cols-5">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
                 <Card>
                     <CardHeader className="pb-3">
                         <CardDescription>Revenue (Paid)</CardDescription>
-                        <CardTitle className="text-2xl">
+                        <CardTitle className="break-words text-xl sm:text-2xl">
                             {formatCurrencyFromPaise(kpis?.revenue_paid_paise)}
                         </CardTitle>
                     </CardHeader>
@@ -496,7 +500,7 @@ export function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardDescription>Total Revenue</CardDescription>
-                        <CardTitle className="text-2xl">
+                        <CardTitle className="break-words text-xl sm:text-2xl">
                             {formatCurrencyFromPaise(kpis?.total_delivered_revenue_paid_paise)}
                         </CardTitle>
                     </CardHeader>
@@ -510,7 +514,7 @@ export function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardDescription>Procurement SKUs</CardDescription>
-                        <CardTitle className="text-2xl">{formatCount(procurementItems.length)}</CardTitle>
+                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(procurementItems.length)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -522,7 +526,7 @@ export function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardDescription>Total Procurement Qty</CardDescription>
-                        <CardTitle className="text-2xl">{formatCount(totalProcurementQty)}</CardTitle>
+                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(totalProcurementQty)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -534,7 +538,7 @@ export function DashboardPage() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardDescription>Exceptions</CardDescription>
-                        <CardTitle className="text-2xl">{formatCount(exceptionOrders.length)}</CardTitle>
+                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(exceptionOrders.length)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -544,14 +548,14 @@ export function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="mb-6 grid gap-4 xl:grid-cols-3 xl:items-start">
-                <Card className="xl:col-span-2 h-[520px] overflow-hidden">
+            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-3 xl:items-start">
+                <Card className="h-auto overflow-hidden xl:col-span-2 xl:h-[520px]">
                     <CardHeader>
                         <CardTitle>Latest Orders For Selected Date</CardTitle>
                         <CardDescription>Quick operational queue preview.</CardDescription>
                     </CardHeader>
 
-                    <CardContent className="h-[410px] overflow-y-auto pr-2 thin-scrollbar">
+                    <CardContent className="max-h-[420px] overflow-y-auto pr-1 sm:pr-2 thin-scrollbar xl:h-[410px]">
                         {ordersQuery.isLoading ? (
                             <div className="text-sm text-slate-500 dark:text-slate-400">Loading orders...</div>
                         ) : latestOrders.length === 0 ? (
@@ -589,13 +593,13 @@ export function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="h-[520px] overflow-hidden">
+                <Card className="h-auto overflow-hidden xl:h-[520px]">
                     <CardHeader>
                         <CardTitle>Latest Procurement Rows</CardTitle>
                         <CardDescription>Top procurement lines for the selected date.</CardDescription>
                     </CardHeader>
 
-                    <CardContent className="h-[410px] overflow-y-auto pr-2 thin-scrollbar">
+                    <CardContent className="max-h-[420px] overflow-y-auto pr-1 sm:pr-2 thin-scrollbar xl:h-[410px]">
                         {procurementQuery.isLoading ? (
                             <div className="text-sm text-slate-500 dark:text-slate-400">Loading procurement...</div>
                         ) : latestProcurementItems.length === 0 ? (
@@ -607,15 +611,17 @@ export function DashboardPage() {
                                 {latestProcurementItems.map((item, index) => (
                                     <div
                                         key={item.product_pack_id || item.product_id || index}
-                                        className="rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+                                        className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"
                                     >
-                                        <div className="font-medium">
-                                            {item.product_name || "Unknown Product"}
+                                        <div className="flex flex-col min-w-0">
+                                            <div className="font-medium">
+                                                {item.product_name || "Unknown Product"}
+                                            </div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                {item.pack_name || item.pack_label || "—"}
+                                            </div>
                                         </div>
-                                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                            {item.pack_name || item.pack_label || "—"}
-                                        </div>
-                                        <div className="mt-2 text-sm">
+                                        <div className="shrink-0 text-sm">
                                             Qty: <span className="font-semibold">{formatCount(item.total_quantity)}</span>
                                         </div>
                                     </div>
@@ -626,7 +632,7 @@ export function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="mb-6 grid gap-4 xl:grid-cols-2">
+            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Exception Orders</CardTitle>
@@ -671,6 +677,7 @@ export function DashboardPage() {
                     />
 
                     <QuickLinkCard
+                        className="w-full sm:w-auto" variant="outline" asChild
                         title="Procurement Summary"
                         subtitle="Check farm / packing quantity summary for selected date."
                         to={`/ops/procurement?delivery_date=${selectedDate}`}
