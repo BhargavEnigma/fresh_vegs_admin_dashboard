@@ -166,7 +166,7 @@ export function AdminUsersPage() {
             />
 
             <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4 md:items-end md:justify-between">
                     <div className="grid gap-2">
                         <Label>Search</Label>
                         <Input

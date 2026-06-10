@@ -480,7 +480,14 @@ function OrderPreviewDialog({
                         ) : null}
 
                         {canUnassignDeliveryPartner(order) ? (
-                            <Button variant="outline" onClick={() => onUnassignClick(order)} disabled={isUnassignPending}>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    onOpenChange(false);
+                                    onUnassignClick(order);
+                                }}
+                                disabled={isUnassignPending}
+                            >
                                 {isUnassignPending ? "Removing..." : "Unassign"}
                             </Button>
                         ) : null}
@@ -508,6 +515,11 @@ function AssignDeliveryPartnerDialog({
     isPending,
 }) {
     if (!order) return null;
+
+    const partnerOptions = deliveryPartners.map((partner) => ({
+        value: partner.id,
+        label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""}`,
+    }));
 
     return (
         <Dialog
@@ -539,24 +551,17 @@ function AssignDeliveryPartnerDialog({
                     <div className="grid gap-1.5">
                         <Label>Delivery Partner</Label>
                         <PremiumSelect
-                            value={selectedPartnerId}
+                            key={order.id}
+                            value={selectedPartnerId || ""}
                             onChange={onChangePartner}
                             placeholder="Select delivery partner"
                             isDisabled={isPending}
+                            isClearable
                             options={deliveryPartners.map((partner) => ({
                                 value: partner.id,
-                                label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""
-                                    }`,
+                                label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""}`,
                             }))}
-                        >
-                            <option value="">Select delivery partner</option>
-                            {deliveryPartners.map((partner) => (
-                                <option key={partner.id} value={partner.id}>
-                                    {partner.full_name || partner.phone || partner.id}
-                                    {partner.phone ? ` (${partner.phone})` : ""}
-                                </option>
-                            ))}
-                        </PremiumSelect>
+                        />
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
@@ -908,6 +913,7 @@ export function OpsOrdersPage() {
 
     const disableBulkUnassign =
         !hasSelectedOrders ||
+        !bulkPartnerId ||
         bulkUnassignDeliveryPartnerMut.isPending ||
         selectedOrders.some((order) => !canUnassignDeliveryPartner(order));
 
@@ -1072,6 +1078,11 @@ export function OpsOrdersPage() {
     }
 
     async function handleUnassignDeliveryPartner(order) {
+        if (!order?.id) {
+            toast.error("Order not found");
+            return;
+        }
+
         setConfirmDialog({
             open: true,
             title: "Unassign Delivery Partner",
@@ -1081,7 +1092,10 @@ export function OpsOrdersPage() {
             onConfirm: () => {
                 unassignDeliveryPartnerMut.mutate({
                     orderId: order.id,
-                    payload: {},
+                    payload: {
+                        order_id: [order.id],
+                        note: "Delivery partner unassigned from order",
+                    },
                 });
 
                 setConfirmDialog((prev) => ({
@@ -1093,7 +1107,9 @@ export function OpsOrdersPage() {
     }
 
     function handleBulkAssignDeliveryPartner() {
-        if (!selectedIds.length) {
+        const orderIds = selectedOrders.map((order) => order.id);
+
+        if (!orderIds.length) {
             toast.warning("Please select at least one order");
             return;
         }
@@ -1106,14 +1122,14 @@ export function OpsOrdersPage() {
         setConfirmDialog({
             open: true,
             title: "Assign Delivery Partner",
-            description: `Assign ${selectedIds.length} selected orders to this delivery partner?`,
+            description: `Assign ${orderIds.length} selected orders to this delivery partner?`,
             confirmText: "Assign",
             loading: bulkAssignDeliveryPartnerMut.isPending,
             onConfirm: () => {
                 bulkAssignDeliveryPartnerMut.mutate({
-                    order_ids: selectedIds,
+                    order_ids: orderIds,
                     delivery_partner_user_id: bulkPartnerId,
-                    note: `Orders assigned to delivery partner ${bulkPartnerId}`,
+                    note: "Orders assigned to delivery partner",
                 });
 
                 setConfirmDialog((prev) => ({
@@ -1125,7 +1141,9 @@ export function OpsOrdersPage() {
     }
 
     function handleBulkUnassignDeliveryPartner() {
-        if (!selectedIds.length) {
+        const orderIds = selectedOrders.map((order) => order.id);
+
+        if (!orderIds.length) {
             toast.warning("Please select at least one order");
             return;
         }
@@ -1138,14 +1156,14 @@ export function OpsOrdersPage() {
         setConfirmDialog({
             open: true,
             title: "Unassign Delivery Partner",
-            description: `Unassign ${selectedIds.length} selected orders to this delivery partner?`,
+            description: `Unassign ${orderIds.length} selected orders from this delivery partner?`,
             confirmText: "Unassign",
             loading: bulkUnassignDeliveryPartnerMut.isPending,
             onConfirm: () => {
                 bulkUnassignDeliveryPartnerMut.mutate({
-                    order_ids: selectedIds,
+                    order_ids: orderIds,
                     delivery_partner_user_id: bulkPartnerId,
-                    note: `Orders unassigned from delivery partner ${bulkPartnerId}`,
+                    note: "Orders unassigned from delivery partner",
                 });
 
                 setConfirmDialog((prev) => ({

@@ -3,7 +3,7 @@ import { Badge } from "../ui/badge";
 export function StatusBadge({ value }) {
   const v = String(value || "").toLowerCase();
 
-  console.log("V : ", v);
+  // console.log("V : ", v);
   
   let variant = "secondary";
   if (v === "active" || v === "true" || v === 'in_stock') variant = "secondary";

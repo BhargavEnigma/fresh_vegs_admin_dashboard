@@ -221,7 +221,7 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
                             <div className="text-xs text-slate-500">{items.length} items</div>
                         </div>
 
-                        <div className="mt-3 max-h-[420px] space-y-3 overflow-auto pr-1">
+                        <div className="mt-3 max-h-[420px] space-y-3 overflow-auto thin-scrollbar pr-1">
                             {isFetching ? <div className="text-sm text-slate-500">Loading…</div> : null}
 
                             {items.length === 0 ? (
