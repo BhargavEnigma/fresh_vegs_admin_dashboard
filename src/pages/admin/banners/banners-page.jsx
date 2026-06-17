@@ -249,8 +249,8 @@ export function AdminBannersPage() {
                 cell: ({ row }) => {
                     const b = row.original;
                     return (
-                        <div className="flex min-w-[260px] items-center gap-3">
-                            <div className="h-12 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="flex min-w-[220px] items-center gap-3">
+                            <div className="h-12 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
                                 {b.image_url ? (
                                     <img
                                         src={b.image_url}
@@ -259,9 +259,9 @@ export function AdminBannersPage() {
                                     />
                                 ) : null}
                             </div>
-                            <div>
-                                <div className="font-medium">{b.title || "(No title)"}</div>
-                                <div className="text-xs text-slate-500">{b.subtitle || "—"}</div>
+                            <div className="min-w-0">
+                                <div className="truncate font-medium">{b.title || "(No title)"}</div>
+                                <div className="truncate text-xs text-slate-500">{b.subtitle || "—"}</div>
                             </div>
                         </div>
                     );
@@ -293,7 +293,7 @@ export function AdminBannersPage() {
                 cell: ({ row }) => {
                     const b = row.original;
                     return (
-                        <div className="min-w-[180px] text-xs text-slate-600 dark:text-slate-300">
+                        <div className="min-w-[160px] text-xs text-slate-600 dark:text-slate-300">
                             <div>Start: {formatDate(b.start_at)}</div>
                             <div>End: {formatDate(b.end_at)}</div>
                         </div>
@@ -316,7 +316,7 @@ export function AdminBannersPage() {
                 cell: ({ row }) => {
                     const b = row.original;
                     return (
-                        <div className="flex min-w-[360px] justify-end gap-2">
+                        <div className="flex min-w-[320px] justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={() => moveRow(b.id, "up")} disabled={reorderMut.isPending}>
                                 Up
                             </Button>
@@ -356,7 +356,7 @@ export function AdminBannersPage() {
     );
 
     return (
-        <div className="space-y-4 sm:space-y-5">
+        <div className="min-w-0 space-y-4 sm:space-y-5">
             <PageHeader
                 title="Banners"
                 subtitle="Manage home banners (offers / ads). Backend: /v1/admin/banners"
@@ -428,9 +428,9 @@ export function AdminBannersPage() {
                     </div>
 
                     {/* Desktop / large landscape table */}
-                    <Card className="hidden p-4 lg:block">
-                        <div className="w-full overflow-x-auto">
-                            <div className="min-w-[1100px]">
+                    <Card className="hidden min-w-0 overflow-hidden p-4 lg:block">
+                        <div className="w-full max-w-full overflow-x-auto">
+                            <div className="min-w-[960px] max-w-full">
                                 <DataTable
                                     columns={columns}
                                     data={rows}

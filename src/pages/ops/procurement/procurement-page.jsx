@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
+import {
+    AlertTriangle,
+    CalendarCheck,
+    CheckCircle2,
+    ClipboardList,
+    PackageCheck,
+    Printer,
+    RefreshCw,
+    ShoppingBasket,
+} from "lucide-react";
 
 import { OpsReportsService } from "../../../api/services/ops-reports.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
@@ -12,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 // import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Button } from "../../../components/ui/button";
+import { cn } from "../../../lib/utils";
 
 function todayISO() {
     const d = new Date();
@@ -77,15 +88,75 @@ function addDays(dateString, days) {
     return `${yy}-${mm}-${dd}`;
 }
 
-function SummaryStat({ title, value, subtitle }) {
+function SummaryStat({ title, value, subtitle, icon: Icon, tone = "default" }) {
     return (
-        <Card className="overflow-hidden">
+        <Card
+            className={cn(
+                "overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950",
+                tone === "success" && "border-dailyveg-200 bg-dailyveg-50/50 dark:border-dailyveg-900 dark:bg-dailyveg-950/20",
+                tone === "warning" && "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/20"
+            )}
+        >
             <CardHeader className="pb-2 sm:pb-3">
-                <CardDescription className="text-xs sm:text-sm">{title}</CardDescription>
-                <CardTitle className="break-words text-2xl sm:text-3xl">{value}</CardTitle>
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <CardDescription className="text-xs sm:text-sm">{title}</CardDescription>
+                        <CardTitle className="mt-1 break-words text-2xl sm:text-3xl">{value}</CardTitle>
+                    </div>
+                    {Icon ? (
+                        <div className="rounded-2xl bg-white/80 p-2 text-dailyveg-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-950/80 dark:text-dailyveg-300 dark:ring-slate-800">
+                            <Icon className="h-5 w-5" />
+                        </div>
+                    ) : null}
+                </div>
             </CardHeader>
             <CardContent>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+function ReadinessBanner({ isLocked, ignoredOrders, date }) {
+    return (
+        <Card
+            className={cn(
+                "overflow-hidden border shadow-sm",
+                isLocked
+                    ? "border-dailyveg-200 bg-dailyveg-50 dark:border-dailyveg-900 dark:bg-dailyveg-950/25"
+                    : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25"
+            )}
+        >
+            <CardContent className="p-4 sm:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex gap-3">
+                        <div
+                            className={cn(
+                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                                isLocked ? "bg-dailyveg-500 text-white" : "bg-amber-500 text-white"
+                            )}
+                        >
+                            {isLocked ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                        </div>
+                        <div>
+                            <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                                {isLocked ? "Ready to prepare purchase list" : "Review before final purchase"}
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                {isLocked
+                                    ? `Orders for ${formatDateLabel(date)} are locked, so this list is safe for farm/market planning.`
+                                    : `Orders for ${formatDateLabel(date)} may still change. Use this as a draft until orders are locked.`}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                        <div className="text-xs font-medium uppercase text-slate-500">Needs attention</div>
+                        <div className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
+                            {formatCount(ignoredOrders)} ignored orders
+                        </div>
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
@@ -131,36 +202,48 @@ function FarmPurchaseList({ rows, date }) {
         if (!purchaseText) return;
 
         await navigator.clipboard.writeText(
-            `Farm Purchase List - ${formatDateLabel(date)}\n\n${purchaseText}`
+            `Daily Purchase List - ${formatDateLabel(date)}\n\n${purchaseText}`
         );
     }
 
     return (
-        <Card className="mb-6 overflow-hidden">
+        <Card className="mb-6 overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <CardHeader>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <CardTitle>Farm Purchase List</CardTitle>
+                        <CardTitle>Daily Purchase List</CardTitle>
                         <CardDescription>
-                            Final product-pack list to order from farm for {formatDateLabel(date)}.
+                            Simple list for farm, market, or warehouse preparation for {formatDateLabel(date)}.
                         </CardDescription>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        onClick={handleCopy}
-                        disabled={!rows.length}
-                        className="w-full sm:w-auto"
-                    >
-                        Copy List
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                        <Button
+                            variant="outline"
+                            onClick={handleCopy}
+                            disabled={!rows.length}
+                            className="w-full sm:w-auto"
+                        >
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            Copy List
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => window.print()}
+                            disabled={!rows.length}
+                            className="w-full sm:w-auto"
+                        >
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
 
             <CardContent>
                 {rows.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No procurement items found for selected date.
+                        No items need to be prepared for the selected date.
                     </div>
                 ) : (
                     <>
@@ -175,7 +258,7 @@ function FarmPurchaseList({ rows, date }) {
                                         {item.pack_label || "—"}
                                     </div>
                                     <div className="mt-3 text-lg font-bold">
-                                        {formatCount(item.total_quantity)} packs
+                                        Prepare {formatCount(item.total_quantity)} packs
                                     </div>
                                 </div>
                             ))}
@@ -183,9 +266,9 @@ function FarmPurchaseList({ rows, date }) {
 
                         <div className="hidden overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 md:block">
                             <div className="grid grid-cols-[1fr_130px_120px] bg-slate-50 px-4 py-3 text-sm font-semibold dark:bg-slate-900/40">
-                                <div>Product</div>
-                                <div>Pack</div>
-                                <div className="text-right">Order Qty</div>
+                                <div>Product to prepare</div>
+                                <div>Pack size</div>
+                                <div className="text-right">Need</div>
                             </div>
 
                             <div className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -212,11 +295,55 @@ function FarmPurchaseList({ rows, date }) {
     );
 }
 
+function RequirementCard({ item, index }) {
+    return (
+        <div
+            key={`${item.product_id}-${item.product_pack_id}-${index}`}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-dailyveg-300 hover:shadow-lg hover:shadow-dailyveg-900/10 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800"
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <div className="line-clamp-2 font-semibold text-slate-950 dark:text-slate-50">
+                        {item.product_name || "—"}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Pack: {item.pack_label || "No pack"}
+                    </div>
+                </div>
+
+                <div className="shrink-0 rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
+                    {formatCount(item.total_quantity)} packs
+                </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Customer Orders</div>
+                    <div className="mt-1 font-semibold">
+                        {formatCount(item.order_count)}
+                    </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                    <div className="text-xs text-slate-500">Sales Value</div>
+                    <div className="mt-1 font-semibold">
+                        {formatMoneyPaise(item.total_sales_paise)}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-800">
+                Prepare this quantity before packing starts.
+            </div>
+        </div>
+    );
+}
+
 function ProcurementMobileList({ rows }) {
     if (!rows.length) {
         return (
             <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
-                No procurement items found.
+                No items need to be prepared.
             </div>
         );
     }
@@ -224,39 +351,11 @@ function ProcurementMobileList({ rows }) {
     return (
         <div className="grid gap-3 lg:hidden">
             {rows.map((item, index) => (
-                <div
+                <RequirementCard
                     key={`${item.product_id}-${item.product_pack_id}-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-                >
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <div className="font-semibold">{item.product_name || "—"}</div>
-                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                {item.pack_label || "No pack"}
-                            </div>
-                        </div>
-
-                        <div className="shrink-0 rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
-                            {formatCount(item.total_quantity)} packs
-                        </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                            <div className="text-xs text-slate-500">Orders</div>
-                            <div className="mt-1 font-semibold">
-                                {formatCount(item.order_count)}
-                            </div>
-                        </div>
-
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                            <div className="text-xs text-slate-500">Sales</div>
-                            <div className="mt-1 font-semibold">
-                                {formatMoneyPaise(item.total_sales_paise)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    item={item}
+                    index={index}
+                />
             ))}
         </div>
     );
@@ -359,26 +458,26 @@ export function ProcurementPage() {
         () => [
             {
                 accessorKey: "product_name",
-                header: "Product",
+                header: "Product to Prepare",
             },
             {
                 accessorKey: "pack_label",
-                header: "Pack",
+                header: "Pack Size",
                 cell: ({ row }) => row.original?.pack_label || "—",
             },
             {
                 accessorKey: "total_quantity",
-                header: "Total Packs",
+                header: "Need to Prepare",
                 cell: ({ row }) => formatCount(row.original?.total_quantity),
             },
             {
                 accessorKey: "order_count",
-                header: "Orders",
+                header: "Customer Orders",
                 cell: ({ row }) => formatCount(row.original?.order_count),
             },
             {
                 accessorKey: "total_sales_paise",
-                header: "Sales Value",
+                header: "Order Value",
                 cell: ({ row }) => formatMoneyPaise(row.original?.total_sales_paise),
             },
         ],
@@ -394,11 +493,12 @@ export function ProcurementPage() {
                 }}
                 disabled={procurementQuery.isFetching}
             >
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
             </Button>
 
             <Button variant="outline" asChild>
-                <Link to={`/ops/orders?delivery_date=${date}`}>Open Orders</Link>
+                <Link to={`/ops/orders?delivery_date=${date}`}>View Orders</Link>
             </Button>
         </div>
     );
@@ -406,16 +506,19 @@ export function ProcurementPage() {
     return (
         <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
-                title="Procurement Planning"
-                subtitle="Farm-side quantity planning for the selected delivery date."
+                title="Daily Procurement"
+                subtitle="Simple preparation list: what products to buy, collect, or prepare for the selected delivery date."
                 actions={actions}
             />
 
-            <Card className="mb-6">
+            <Card className="mb-6 overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
                 <CardHeader>
-                    <CardTitle className="text-base">Delivery Date</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <CalendarCheck className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
+                        Select Delivery Date
+                    </CardTitle>
                     <CardDescription>
-                        Choose the operational date for procurement planning.
+                        Choose the day you want to prepare products for.
                     </CardDescription>
                 </CardHeader>
 
@@ -474,63 +577,78 @@ export function ProcurementPage() {
                 </CardContent>
             </Card>
 
+            <ReadinessBanner
+                isLocked={isLocked}
+                ignoredOrders={ignoredOrders}
+                date={date}
+            />
+
             <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <SummaryStat
-                    title="Procurement Rows"
+                    title="Items to Prepare"
                     value={formatCount(rows.length)}
-                    subtitle="Distinct product-pack rows."
+                    subtitle="Product-pack lines in today’s list."
+                    icon={ShoppingBasket}
                 />
 
                 <SummaryStat
-                    title="Unique Products"
+                    title="Different Products"
                     value={formatCount(uniqueProducts)}
-                    subtitle="Distinct products in procurement."
+                    subtitle="Unique products needed for orders."
+                    icon={PackageCheck}
                 />
 
                 <SummaryStat
-                    title="Total Packs"
+                    title="Total Packs Needed"
                     value={formatCount(totalQty)}
-                    subtitle="Total packs/units to procure."
+                    subtitle="Total quantity to buy or prepare."
+                    icon={ClipboardList}
                 />
 
                 <SummaryStat
-                    title="Valid Procurement Orders"
+                    title="Orders Included"
                     value={formatCount(orderSummary.validProcurementOrders)}
-                    subtitle="Locked COD or paid online orders."
+                    subtitle="Orders used to calculate this list."
+                    icon={CheckCircle2}
+                    tone="success"
                 />
             </div>
 
             <div className="mb-6 grid gap-4 lg:grid-cols-4">
                 <SummaryStat
-                    title="Order Lock Status"
-                    value={isLocked ? "Locked" : "Not Locked"}
-                    subtitle={isLocked ? "Safe for farm ordering." : "Do not finalize farm order yet."}
+                    title="Order Readiness"
+                    value={isLocked ? "Locked" : "Draft"}
+                    subtitle={isLocked ? "Safe to finalize purchase." : "Wait before final purchase."}
+                    icon={isLocked ? CheckCircle2 : AlertTriangle}
+                    tone={isLocked ? "success" : "warning"}
                 />
 
                 <SummaryStat
-                    title="Ignored Orders"
+                    title="Orders Not Included"
                     value={formatCount(ignoredOrders)}
-                    subtitle="Not included due to payment/status issue."
+                    subtitle="Payment or status needs review."
+                    icon={AlertTriangle}
+                    tone={ignoredOrders > 0 ? "warning" : "default"}
                 />
 
                 <SummaryStat
                     title="COD Orders"
                     value={formatCount(orderSummary.codOrders)}
-                    subtitle="Cash collection expected."
+                    subtitle="Cash collection on delivery."
                 />
 
                 <SummaryStat
-                    title="Unassigned Delivery"
+                    title="Delivery Not Assigned"
                     value={formatCount(orderSummary.unassignedDeliveryOrders)}
-                    subtitle="Orders without delivery partner."
+                    subtitle="Assign riders before dispatch."
                 />
             </div>
 
             <div className="mb-6 grid gap-4 lg:grid-cols-2">
-                <MiniBreakdown title="Payment Breakdown" items={paymentBreakdown} />
+                <MiniBreakdown title="Payment Summary" items={paymentBreakdown} />
 
                 <MiniBreakdown
-                    title="Order Status Breakdown"
+                    title="Order Status Summary"
                     items={
                         statusBreakdown.length > 0
                             ? statusBreakdown
@@ -542,11 +660,11 @@ export function ProcurementPage() {
             <FarmPurchaseList rows={rows} date={date} />
 
             <div className="mb-6 grid gap-4 xl:grid-cols-3">
-                <Card className="overflow-hidden xl:col-span-2 xl:h-[600px] xl:overflow-y-auto">
+                <Card className="overflow-hidden xl:col-span-2 xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
                     <CardHeader>
-                        <CardTitle>Full Procurement Table</CardTitle>
+                        <CardTitle>Product Preparation Checklist</CardTitle>
                         <CardDescription>
-                            Delivery date: {formatDateLabel(date)}
+                            Buy or prepare these quantities for {formatDateLabel(date)}.
                         </CardDescription>
                     </CardHeader>
 
@@ -557,28 +675,28 @@ export function ProcurementPage() {
                             <DataTable
                                 columns={columns}
                                 data={rows}
-                                searchPlaceholder="Search procurement items…"
+                                searchPlaceholder="Search product to prepare…"
                                 initialPageSize={20}
                             />
                         </div>
 
                         {procurementQuery.isLoading ? (
-                            <p className="mt-3 text-sm text-slate-500">Loading procurement...</p>
+                            <p className="mt-3 text-sm text-slate-500">Loading preparation list...</p>
                         ) : null}
 
                         {procurementQuery.isError ? (
                             <p className="mt-3 text-sm text-red-600">
-                                Failed to load procurement. Check selected date and backend response.
+                                Failed to load preparation list. Check selected date and backend response.
                             </p>
                         ) : null}
                     </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden xl:h-[600px] xl:overflow-y-auto">
+                <Card className="overflow-hidden xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
                     <CardHeader>
-                        <CardTitle>Top Required Items</CardTitle>
+                        <CardTitle>Highest Quantity Items</CardTitle>
                         <CardDescription>
-                            Highest quantity rows for faster farm planning.
+                            Start with these products first when buying or preparing.
                         </CardDescription>
                     </CardHeader>
 
@@ -586,7 +704,7 @@ export function ProcurementPage() {
                         {procurementQuery.isLoading ? (
                             <div className="text-sm text-slate-500">Loading top items...</div>
                         ) : topItems.length === 0 ? (
-                            <div className="text-sm text-slate-500">No procurement items found.</div>
+                            <div className="text-sm text-slate-500">No items need preparation.</div>
                         ) : (
                             <div className="space-y-3">
                                 {topItems.map((item, index) => (
@@ -605,7 +723,7 @@ export function ProcurementPage() {
                                             <div className="text-lg font-semibold">
                                                 {formatCount(item.total_quantity)}
                                             </div>
-                                            <div className="text-xs text-slate-500 dark:text-slate-400">packs</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">{formatCount(item.total_quantity) > 1 ? "Packs" : "Pack"}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -614,11 +732,11 @@ export function ProcurementPage() {
 
                         <div className="mt-4 flex flex-wrap gap-2">
                             <Button variant="outline" asChild>
-                                <Link to={`/ops/orders?delivery_date=${date}`}>Order Queue</Link>
+                                <Link to={`/ops/orders?delivery_date=${date}`}>View Orders</Link>
                             </Button>
 
                             <Button variant="outline" asChild>
-                                <Link to="/ops/jobs">Ops Jobs</Link>
+                                <Link to="/ops/jobs">Lock Jobs</Link>
                             </Button>
                         </div>
                     </CardContent>

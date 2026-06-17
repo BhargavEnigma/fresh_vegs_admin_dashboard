@@ -10,6 +10,7 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { StatusBadge } from "../../components/common/status-badge";
 import { assetUrl, cn } from "../../lib/utils";
+import { Eye, LayoutGrid, Pencil, Power, Table2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,25 @@ import {
 } from "../../components/ui/dialog";
 import { PremiumSelect } from "../../components/ui/premium-select";
 
+const VIEW_MODES = {
+  table: "table",
+  grid: "grid",
+};
+const PRODUCTS_VIEW_MODE_KEY = "freshveg_admin_products_view_mode";
+
+function getSavedViewMode(storageKey) {
+  if (typeof window === "undefined") return VIEW_MODES.table;
+  const saved = window.localStorage.getItem(storageKey);
+  return Object.values(VIEW_MODES).includes(saved) ? saved : VIEW_MODES.table;
+}
+
+function formatRupees(paise) {
+  return `₹${(Number(paise || 0) / 100).toFixed(2)}`;
+}
+
+function getProductImage(product) {
+  return product.images?.length ? assetUrl(product.images[0].image_url) : "";
+}
 
 function ProductMobileCard({ product, onToggleActive }) {
   return (
@@ -87,6 +107,113 @@ function ProductMobileCard({ product, onToggleActive }) {
   );
 }
 
+function ProductGridCard({ product, onToggleActive }) {
+  const imageUrl = getProductImage(product);
+  const isActive = Boolean(product.is_active);
+  const discount = Number(product.mrp_paise || 0) - Number(product.selling_price_paise || 0);
+  const discountPercent =
+    discount > 0 && Number(product.mrp_paise) > 0
+      ? Math.round((discount / Number(product.mrp_paise)) * 100)
+      : 0;
+
+  return (
+    <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-xl hover:shadow-dailyveg-900/10 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:shadow-black/30">
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-900">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-dailyveg-50 text-sm font-medium text-dailyveg-700 dark:bg-dailyveg-950/40 dark:text-dailyveg-300">
+            No Image
+          </div>
+        )}
+
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+          <StatusBadge value={product.is_out_of_stock ? "out_of_stock" : "in_stock"} />
+          <StatusBadge value={isActive ? "Active" : "Inactive"} />
+        </div>
+
+        {discountPercent > 0 ? (
+          <div className="absolute bottom-3 right-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-dailyveg-700 shadow-sm ring-1 ring-dailyveg-100 dark:bg-slate-950/95 dark:text-dailyveg-300 dark:ring-dailyveg-900">
+            {discountPercent}% off
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="min-w-0">
+          <div className="line-clamp-2 text-base font-semibold leading-snug text-slate-950 dark:text-slate-50">
+            {product.name}
+          </div>
+          <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-slate-500">
+            <span className="truncate">{product.category?.name || "No category"}</span>
+            <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span className="shrink-0">{product.base_quantity ?? "—"} {product.unit || ""}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+            <div className="text-[11px] font-medium uppercase text-slate-500">Selling</div>
+            <div className="mt-1 text-sm font-bold text-slate-950 dark:text-slate-50">
+              {formatRupees(product.selling_price_paise)}
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+            <div className="text-[11px] font-medium uppercase text-slate-500">MRP</div>
+            <div className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {formatRupees(product.mrp_paise)}
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+            <div className="text-[11px] font-medium uppercase text-slate-500">Packs</div>
+            <div className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {product.packs?.length || 0}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-4 dark:border-slate-900">
+          <div className="min-w-0 text-xs text-slate-500">
+            Unit: <span className="font-medium text-slate-700 dark:text-slate-200">{product.unit || "—"}</span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button asChild variant="outline" size="icon" className="h-9 w-9" title="View product">
+              <Link to={`/products/${product.id}`} aria-label={`View ${product.name}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" size="icon" className="h-9 w-9" title="Edit product">
+              <Link to={`/products/${product.id}/edit`} aria-label={`Edit ${product.name}`}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+
+            <Button
+              variant={isActive ? "redoutline" : "outline"}
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => onToggleActive(product)}
+              title={isActive ? "Deactivate product" : "Activate product"}
+              aria-label={isActive ? `Deactivate ${product.name}` : `Activate ${product.name}`}
+            >
+              <Power className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function ProductsListPage() {
   const [params, setParams] = useSearchParams();
   const page = Number(params.get("page") || 1);
@@ -96,6 +223,12 @@ export function ProductsListPage() {
   const include_out_of_stock = params.get("include_out_of_stock") === "true";
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState(null);
+  const [viewMode, setViewMode] = React.useState(() => getSavedViewMode(PRODUCTS_VIEW_MODE_KEY));
+
+  function updateViewMode(nextViewMode) {
+    setViewMode(nextViewMode);
+    window.localStorage.setItem(PRODUCTS_VIEW_MODE_KEY, nextViewMode);
+  }
 
   const productsQ = useQuery({
     queryKey: ["products", { page, limit, q, category_id, include_out_of_stock }],
@@ -140,8 +273,6 @@ export function ProductsListPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const categories = catsQ.data?.data?.categories || [];
 
-  console.log("products : : ", products);
-
   function set(key, value) {
     const next = new URLSearchParams(params);
     if (!value) next.delete(key);
@@ -164,7 +295,7 @@ export function ProductsListPage() {
 
       <Card className="mb-4 overflow-hidden">
         <CardContent className="pt-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(220px,0.7fr)_auto]">
             <div className="min-w-0">
               <div className="mb-1 text-xs text-slate-500">Search</div>
               <Input
@@ -201,6 +332,40 @@ export function ProductsListPage() {
                 Include out of stock
               </label>
             </div>
+
+            <div className="flex items-end">
+              <div className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/70 xl:w-[112px]">
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                    viewMode === VIEW_MODES.table &&
+                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                  )}
+                  onClick={() => updateViewMode(VIEW_MODES.table)}
+                  title="Table view"
+                  aria-label="Table view"
+                  aria-pressed={viewMode === VIEW_MODES.table}
+                >
+                  <Table2 className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                    viewMode === VIEW_MODES.grid &&
+                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                  )}
+                  onClick={() => updateViewMode(VIEW_MODES.grid)}
+                  title="Grid view"
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === VIEW_MODES.grid}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -214,26 +379,37 @@ export function ProductsListPage() {
 
       {!productsQ.isLoading && !productsQ.isError ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="grid gap-3 p-3 md:hidden">
+          <div className={cn("grid gap-3 p-3", viewMode === VIEW_MODES.table ? "md:hidden" : "sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4")}>
             {products.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
                 No products
               </div>
             ) : (
-              products.map((p) => (
-                <ProductMobileCard
-                  key={p.id}
-                  product={p}
-                  onToggleActive={(product) => {
-                    setSelectedProduct(product);
-                    setConfirmOpen(true);
-                  }}
-                />
-              ))
+              products.map((p) =>
+                viewMode === VIEW_MODES.grid ? (
+                  <ProductGridCard
+                    key={p.id}
+                    product={p}
+                    onToggleActive={(product) => {
+                      setSelectedProduct(product);
+                      setConfirmOpen(true);
+                    }}
+                  />
+                ) : (
+                  <ProductMobileCard
+                    key={p.id}
+                    product={p}
+                    onToggleActive={(product) => {
+                      setSelectedProduct(product);
+                      setConfirmOpen(true);
+                    }}
+                  />
+                )
+              )
             )}
           </div>
 
-          <div className="hidden w-full overflow-x-auto thin-scrollbar md:block">
+          <div className={cn("w-full overflow-x-auto thin-scrollbar", viewMode === VIEW_MODES.table ? "hidden md:block" : "hidden")}>
             <table className="min-w-[1050px] w-full text-sm">
               <thead className="text-left bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                 <tr>

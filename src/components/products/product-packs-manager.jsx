@@ -256,6 +256,7 @@ function PackDialog({ open, onOpenChange, mode, pack, onSubmit, pending }) {
                 value={form.base_unit}
                 onChange={(value) => setForm((s) => ({ ...s, base_unit: value }))}
                 placeholder="Select unit"
+                menuPortalTarget={null}
                 options={[
                   { value: "kg", label: "kg" },
                   { value: "g", label: "g" },

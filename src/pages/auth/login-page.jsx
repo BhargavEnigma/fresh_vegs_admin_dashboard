@@ -15,13 +15,47 @@ import { Label } from "../../components/ui/label";
 import Image from "../../assets/logo-light-trans.png";
 import ImageDark from "../../assets/logo-dark-trans.png";
 
+function useActiveThemeLogo() {
+    const [isDark, setIsDark] = React.useState(() => {
+        if (typeof document === "undefined") return false;
+        return document.documentElement.classList.contains("dark");
+    });
+
+    React.useEffect(() => {
+        const root = document.documentElement;
+        const syncTheme = () => {
+            const storedTheme = localStorage.getItem("freshveg_admin_theme");
+
+            if (storedTheme === "dark") {
+                root.classList.add("dark");
+            } else if (storedTheme === "light") {
+                root.classList.remove("dark");
+            }
+
+            setIsDark(root.classList.contains("dark"));
+        };
+
+        syncTheme();
+
+        const observer = new MutationObserver(syncTheme);
+        observer.observe(root, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+
+        return () => observer.disconnect();
+    }, []);
+
+    return isDark ? ImageDark : Image;
+}
+
 export function LoginPage() {
     const [step, setStep] = React.useState("send"); // send | verify
     const [otpRequestId, setOtpRequestId] = React.useState(null);
     const [phone, setPhone] = React.useState("");
     const [resendTimer, setResendTimer] = React.useState(0);
 
-    const stored = localStorage.getItem("freshveg_admin_theme");
+    const logoSrc = useActiveThemeLogo();
     const toast = useToast();
     const { login, isAuthed } = useAuth();
     const navigate = useNavigate();
@@ -31,11 +65,6 @@ export function LoginPage() {
     React.useEffect(() => {
         if (isAuthed) navigate("/", { replace: true });
     }, [isAuthed, navigate]);
-
-    React.useEffect(() => {
-        console.log("ppppppp");
-        
-    }, []);
 
     React.useEffect(() => {
         if (resendTimer <= 0) return;
@@ -65,7 +94,6 @@ export function LoginPage() {
     });
 
     async function onSend(values) {
-        console.log("SEND OTP CLICKED", values);
         try {
             const resp = await sendOtp(values);
             const id = resp?.data?.otp_request_id;
@@ -152,8 +180,7 @@ export function LoginPage() {
         <div className="min-h-screen bg-slate-50 px-4 py-10 dark:bg-slate-950">
             <div className="mx-auto max-w-md">
                 <div className="mb-6 text-center">
-                    {/* <div className="text-2xl font-bold tracking-tight"></div> */}
-                    {stored === "dark" ? <img src={ImageDark} alt="FreshVeg" className="w-60 m-auto" /> : <img src={Image} alt="FreshVeg" className="w-60 m-auto" />}
+                    <img src={logoSrc} alt="FreshVeg" className="m-auto w-60" />
                     <div className="mt-1 text-sm text-slate-500">OTP login</div>
                 </div>
 

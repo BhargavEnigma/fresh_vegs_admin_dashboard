@@ -6,6 +6,7 @@ import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
 import { Link, useNavigate } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { Eye, LayoutGrid, Table2, Truck, UserPlus } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -28,6 +29,19 @@ import { exportOrdersCsv } from "./ops-orders-export";
 import { downloadBlob } from "../../../utils/download";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { RiResetLeftFill } from "react-icons/ri";
+import { cn } from "../../../lib/utils";
+
+const VIEW_MODES = {
+    table: "table",
+    grid: "grid",
+};
+const OPS_ORDERS_VIEW_MODE_KEY = "freshveg_admin_ops_orders_view_mode";
+
+function getSavedViewMode(storageKey) {
+    if (typeof window === "undefined") return VIEW_MODES.table;
+    const saved = window.localStorage.getItem(storageKey);
+    return Object.values(VIEW_MODES).includes(saved) ? saved : VIEW_MODES.table;
+}
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -516,11 +530,6 @@ function AssignDeliveryPartnerDialog({
 }) {
     if (!order) return null;
 
-    const partnerOptions = deliveryPartners.map((partner) => ({
-        value: partner.id,
-        label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""}`,
-    }));
-
     return (
         <Dialog
             open={open}
@@ -551,12 +560,13 @@ function AssignDeliveryPartnerDialog({
                     <div className="grid gap-1.5">
                         <Label>Delivery Partner</Label>
                         <PremiumSelect
-                            key={order.id}
                             value={selectedPartnerId || ""}
                             onChange={onChangePartner}
                             placeholder="Select delivery partner"
                             isDisabled={isPending}
                             isClearable
+                            menuPortalTarget={null}
+                            menuPosition="absolute"
                             options={deliveryPartners.map((partner) => ({
                                 value: partner.id,
                                 label: `${partner.full_name || partner.phone || partner.id}${partner.phone ? ` (${partner.phone})` : ""}`,
@@ -699,6 +709,159 @@ function MobileOrderCard({
     );
 }
 
+function OrderGridCard({
+    order,
+    selectedIds,
+    onToggleSelect,
+    onPreview,
+    onAssign,
+    onUnassign,
+    onQuickAction,
+    isAssignPending,
+    isUnassignPending,
+    isUpdatePending,
+}) {
+    const nextActions = getNextActions(order);
+    const selected = selectedIds.includes(order.id);
+    const deliveryPartner = order.delivery_partner ? getDeliveryPartnerName(order) : "Not assigned";
+    const deliveryPartnerPhone = order.delivery_partner ? getDeliveryPartnerPhone(order) || "—" : "—";
+
+    return (
+        <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-xl hover:shadow-dailyveg-900/10 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:shadow-black/30">
+            <div className="border-b border-slate-100 bg-dailyveg-50/70 p-4 dark:border-slate-900 dark:bg-dailyveg-950/30">
+                <div className="flex items-start justify-between gap-3">
+                    <label className="flex min-w-0 items-start gap-3">
+                        <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => onToggleSelect(order.id)}
+                            className="mt-1"
+                            aria-label={`Select order ${order.order_number || order.id}`}
+                        />
+                        <span className="min-w-0">
+                            <span className="block truncate text-base font-semibold text-slate-950 dark:text-slate-50">
+                                {order.order_number || "—"}
+                            </span>
+                            <span className="mt-1 block max-w-full truncate text-xs text-slate-500" title={order.id}>
+                                {order.id}
+                            </span>
+                        </span>
+                    </label>
+
+                    <div className="shrink-0">
+                        <StatusBadge value={order.status} />
+                    </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {getCustomerName(order)}
+                        </div>
+                        <div className="text-xs text-slate-500">{getCustomerPhone(order)}</div>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                        <div className="text-lg font-bold text-slate-950 dark:text-slate-50">
+                            {money(getOrderTotal(order))}
+                        </div>
+                        <div className="text-xs text-slate-500">{getOrderItemsCount(order)} items</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-1 flex-col p-4">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+                        <div className="text-[11px] font-medium uppercase text-slate-500">Delivery</div>
+                        <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">
+                            {order.delivery_date || "—"}
+                        </div>
+                        <div className="truncate text-xs text-slate-500">{getOrderArea(order)}</div>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+                        <div className="text-[11px] font-medium uppercase text-slate-500">Payment</div>
+                        <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">
+                            {order.payment_method || "—"}
+                        </div>
+                        <div className="truncate text-xs text-slate-500">{order.payment_status || "—"}</div>
+                    </div>
+
+                    <div className="col-span-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
+                        <div className="flex items-start gap-2">
+                            <Truck className="mt-0.5 h-4 w-4 shrink-0 text-dailyveg-600 dark:text-dailyveg-300" />
+                            <div className="min-w-0">
+                                <div className="text-[11px] font-medium uppercase text-slate-500">Delivery Partner</div>
+                                <div className="mt-1 truncate font-semibold text-slate-900 dark:text-slate-100">
+                                    {deliveryPartner}
+                                </div>
+                                <div className="text-xs text-slate-500">{deliveryPartnerPhone}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:text-slate-300">
+                        {order.is_locked ? "Locked" : "Not locked"}
+                    </span>
+                    {selected ? (
+                        <span className="rounded-full bg-dailyveg-100 px-3 py-1 text-xs font-semibold text-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300">
+                            Selected
+                        </span>
+                    ) : null}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-900">
+                    <Button variant="outline" size="sm" onClick={() => onPreview(order)}>
+                        <Eye className="mr-1.5 h-4 w-4" />
+                        Preview
+                    </Button>
+
+                    <Button variant="outline" size="sm" asChild>
+                        <Link to={`/ops/orders/${order.id}`}>View</Link>
+                    </Button>
+
+                    {canAssignDeliveryPartner(order) ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAssign(order)}
+                            disabled={isAssignPending}
+                        >
+                            <UserPlus className="mr-1.5 h-4 w-4" />
+                            {order.delivery_partner_user_id ? "Reassign" : "Assign"}
+                        </Button>
+                    ) : null}
+
+                    {canUnassignDeliveryPartner(order) ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onUnassign(order)}
+                            disabled={isUnassignPending}
+                        >
+                            Unassign
+                        </Button>
+                    ) : null}
+
+                    {nextActions.map((action) => (
+                        <Button
+                            key={action.key}
+                            size="sm"
+                            onClick={() => onQuickAction(order.id, action.key)}
+                            disabled={isUpdatePending}
+                        >
+                            {action.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        </article>
+    );
+}
+
 export function OpsOrdersPage() {
     const toast = useToast();
     const qc = useQueryClient();
@@ -714,6 +877,7 @@ export function OpsOrdersPage() {
     const [assignOrder, setAssignOrder] = useState(null);
     const [selectedPartnerId, setSelectedPartnerId] = useState("");
     const [bulkPartnerId, setBulkPartnerId] = useState("");
+    const [viewMode, setViewMode] = useState(() => getSavedViewMode(OPS_ORDERS_VIEW_MODE_KEY));
 
     const [filters, setFilters] = useState({
         page: 1,
@@ -737,6 +901,11 @@ export function OpsOrdersPage() {
         onConfirm: null,
         loading: false,
     });
+
+    function updateViewMode(nextViewMode) {
+        setViewMode(nextViewMode);
+        window.localStorage.setItem(OPS_ORDERS_VIEW_MODE_KEY, nextViewMode);
+    }
 
     const listQuery = useQuery({
         queryKey: ["opsOrders", filters, queue],
@@ -1176,7 +1345,7 @@ export function OpsOrdersPage() {
 
 
     return (
-        <div>
+        <div className="min-w-0">
             <PageHeader
                 title="Orders (Ops)"
                 subtitle="Daily delivery operations workspace for admin and warehouse team."
@@ -1284,9 +1453,41 @@ export function OpsOrdersPage() {
                                 Export All CSV
                             </Button>
                         </div>
+
+                        <div className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/70 sm:w-[112px]">
+                            <button
+                                type="button"
+                                className={cn(
+                                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                                    viewMode === VIEW_MODES.table &&
+                                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                                )}
+                                onClick={() => updateViewMode(VIEW_MODES.table)}
+                                title="Table view"
+                                aria-label="Table view"
+                                aria-pressed={viewMode === VIEW_MODES.table}
+                            >
+                                <Table2 className="h-4 w-4" />
+                            </button>
+
+                            <button
+                                type="button"
+                                className={cn(
+                                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                                    viewMode === VIEW_MODES.grid &&
+                                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                                )}
+                                onClick={() => updateViewMode(VIEW_MODES.grid)}
+                                title="Grid view"
+                                aria-label="Grid view"
+                                aria-pressed={viewMode === VIEW_MODES.grid}
+                            >
+                                <LayoutGrid className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <div className="mt-4 flex min-w-0 max-w-full flex-wrap items-center gap-2 overflow-hidden">
                         {/* <div className="min-w-[260px]"> */}
                         {/* <div> */}
                         <PremiumSelect
@@ -1340,37 +1541,53 @@ export function OpsOrdersPage() {
                         </div>
                         {/* </div> */}
 
-                        <div className="mt-4 w-full">
-                            <div className="grid gap-3 lg:hidden">
+                        <div className="mt-4 min-w-0 w-full">
+                            <div className={cn("grid gap-3", viewMode === VIEW_MODES.table ? "lg:hidden" : "sm:grid-cols-2 xl:grid-cols-3")}>
                                 {listQuery.isLoading ? (
-                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
                                         Loading orders...
                                     </div>
                                 ) : visibleRows.length === 0 ? (
-                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
                                         No orders found for this queue.
                                     </div>
                                 ) : (
-                                    visibleRows.map((order) => (
-                                        <MobileOrderCard
-                                            key={order.id}
-                                            order={order}
-                                            selectedIds={selectedIds}
-                                            onToggleSelect={toggleRowSelection}
-                                            onPreview={setPreviewOrder}
-                                            onAssign={openAssignDialog}
-                                            onUnassign={handleUnassignDeliveryPartner}
-                                            onQuickAction={handleQuickAction}
-                                            isAssignPending={assignDeliveryPartnerMut.isPending}
-                                            isUnassignPending={unassignDeliveryPartnerMut.isPending}
-                                            isUpdatePending={updateStatusMut.isPending}
-                                        />
-                                    ))
+                                    visibleRows.map((order) =>
+                                        viewMode === VIEW_MODES.grid ? (
+                                            <OrderGridCard
+                                                key={order.id}
+                                                order={order}
+                                                selectedIds={selectedIds}
+                                                onToggleSelect={toggleRowSelection}
+                                                onPreview={setPreviewOrder}
+                                                onAssign={openAssignDialog}
+                                                onUnassign={handleUnassignDeliveryPartner}
+                                                onQuickAction={handleQuickAction}
+                                                isAssignPending={assignDeliveryPartnerMut.isPending}
+                                                isUnassignPending={unassignDeliveryPartnerMut.isPending}
+                                                isUpdatePending={updateStatusMut.isPending}
+                                            />
+                                        ) : (
+                                            <MobileOrderCard
+                                                key={order.id}
+                                                order={order}
+                                                selectedIds={selectedIds}
+                                                onToggleSelect={toggleRowSelection}
+                                                onPreview={setPreviewOrder}
+                                                onAssign={openAssignDialog}
+                                                onUnassign={handleUnassignDeliveryPartner}
+                                                onQuickAction={handleQuickAction}
+                                                isAssignPending={assignDeliveryPartnerMut.isPending}
+                                                isUnassignPending={unassignDeliveryPartnerMut.isPending}
+                                                isUpdatePending={updateStatusMut.isPending}
+                                            />
+                                        )
+                                    )
                                 )}
                             </div>
 
-                            <div className="w-[1200px] hidden overflow-x-auto rounded-2xl border border-slate-200 thin-scrollbar dark:border-slate-800 lg:block">
-                                <table className="min-w-[1150px] w-full table-auto whitespace-nowrap text-sm">
+                            <div className={cn("w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200 thin-scrollbar dark:border-slate-800", viewMode === VIEW_MODES.table ? "hidden lg:block" : "hidden")}>
+                                <table className="w-full min-w-[1150px] table-auto whitespace-nowrap text-sm">
                                     <thead className="sticky text-left top-0 z-10 bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                                         <tr>
                                             <th className="w-10 px-4 py-3 text-left">

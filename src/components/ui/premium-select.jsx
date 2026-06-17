@@ -29,21 +29,31 @@ export function PremiumSelect({
     placeholder = "Select...",
     isDisabled = false,
     isClearable = false,
+    menuPortalTarget,
+    menuPosition,
 }) {
     const dark = useDarkMode();
+    const resolvedMenuPortalTarget =
+        menuPortalTarget === undefined
+            ? typeof document !== "undefined"
+                ? document.body
+                : undefined
+            : menuPortalTarget;
+    const selectedOption =
+        options.find((opt) => String(opt.value) === String(value ?? "")) || null;
 
     return (
         <Select
-            value={options.find((opt) => opt.value === value) || null}
-            onChange={(option) => onChange(option?.value || "")}
+            value={selectedOption}
+            onChange={(option) => onChange(option?.value ?? "")}
             options={options}
             placeholder={placeholder}
             isDisabled={isDisabled}
             isClearable={isClearable}
             classNamePrefix="premium-select"
 
-            menuPortalTarget={document.body}
-            menuPosition="fixed"
+            menuPortalTarget={resolvedMenuPortalTarget}
+            menuPosition={menuPosition || (resolvedMenuPortalTarget ? "fixed" : "absolute")}
             menuPlacement="auto"
             menuShouldScrollIntoView={false}
             styles={{

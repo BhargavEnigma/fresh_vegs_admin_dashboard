@@ -2,6 +2,21 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DatePicker from "react-datepicker";
+import {
+    AlertTriangle,
+    ArrowRight,
+    CalendarDays,
+    CheckCircle2,
+    ClipboardList,
+    Clock3,
+    IndianRupee,
+    LockKeyhole,
+    PackageCheck,
+    RefreshCw,
+    Settings2,
+    ShoppingBasket,
+    Truck,
+} from "lucide-react";
 
 import { AdminDashboardService } from "../../api/services/admin-dashboard.service";
 import { OpsOrdersService } from "../../api/services/ops-orders.service";
@@ -12,10 +27,10 @@ import { PageHeader } from "../../components/common/page-header";
 import { StatusBadge } from "../../components/common/status-badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useToast } from "../../components/toast/toast-context";
 import { useAuth } from "../../auth/auth-context";
+import { cn } from "../../lib/utils";
 
 function formatCurrencyFromPaise(paise) {
     const value = Number(paise || 0) / 100;
@@ -115,11 +130,26 @@ function getExceptionOrders(orders) {
     });
 }
 
-function QueueCard({ title, value, subtitle }) {
+function QueueCard({ title, value, subtitle, icon: Icon, tone = "slate" }) {
+    const toneClass = {
+        green: "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/50 dark:text-dailyveg-300",
+        amber: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300",
+        blue: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300",
+        rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300",
+        slate: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300",
+    }[tone];
+
     return (
-        <Card className="min-w-0">
+        <Card className="min-w-0 overflow-hidden border-slate-200/80 bg-white/95 dark:border-slate-800/80 dark:bg-slate-950">
             <CardHeader className="pb-2 sm:pb-3">
-                <CardDescription className="line-clamp-2 text-xs sm:text-sm">{title}</CardDescription>
+                <div className="flex items-start justify-between gap-3">
+                    <CardDescription className="line-clamp-2 text-xs font-medium sm:text-sm">{title}</CardDescription>
+                    {Icon ? (
+                        <div className={cn("rounded-xl border p-2", toneClass)}>
+                            <Icon className="h-4 w-4" />
+                        </div>
+                    ) : null}
+                </div>
                 <CardTitle className="text-2xl sm:text-3xl">{formatCount(value)}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -129,18 +159,91 @@ function QueueCard({ title, value, subtitle }) {
     );
 }
 
-function QuickLinkCard({ title, subtitle, to, buttonLabel }) {
+function StatCard({ title, value, subtitle, icon: Icon, tone = "slate" }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">{title}</CardTitle>
-                <CardDescription>{subtitle}</CardDescription>
+        <Card className="min-w-0 overflow-hidden">
+            <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                    <CardDescription className="text-xs font-medium">{title}</CardDescription>
+                    {Icon ? (
+                        <div
+                            className={cn(
+                                "rounded-xl border p-2",
+                                tone === "green" &&
+                                "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/50 dark:text-dailyveg-300",
+                                tone === "amber" &&
+                                "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300",
+                                tone === "rose" &&
+                                "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300",
+                                tone === "slate" &&
+                                "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300"
+                            )}
+                        >
+                            <Icon className="h-4 w-4" />
+                        </div>
+                    ) : null}
+                </div>
+                <CardTitle className="break-words text-xl sm:text-2xl">{value}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+function QuickLinkCard({ title, subtitle, to, buttonLabel, icon: Icon }) {
+    return (
+        <Card className="transition hover:-translate-y-0.5 hover:border-dailyveg-200 hover:shadow-md hover:shadow-dailyveg-900/5 dark:hover:border-dailyveg-800">
+            <CardHeader className="pb-4">
+                <div className="flex items-start gap-3">
+                    {Icon ? (
+                        <div className="rounded-xl border border-dailyveg-200 bg-dailyveg-50 p-2 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/50 dark:text-dailyveg-300">
+                            <Icon className="h-4 w-4" />
+                        </div>
+                    ) : null}
+                    <div className="min-w-0">
+                        <CardTitle className="text-base leading-5">{title}</CardTitle>
+                        <CardDescription className="mt-1">{subtitle}</CardDescription>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="pt-0">
-                <Button className="w-full sm:w-auto" variant="outline" asChild>
-                    <Link to={to}>{buttonLabel}</Link>
+                <Button className="w-full justify-between sm:w-auto" variant="outline" asChild>
+                    <Link to={to}>
+                        {buttonLabel}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                 </Button>
             </CardContent>
+        </Card>
+    );
+}
+
+function SimpleEmptyState({ title, subtitle }) {
+    return (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-5 text-sm dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="font-medium text-slate-700 dark:text-slate-200">{title}</div>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+        </div>
+    );
+}
+
+function GuidanceCard({ title, subtitle, icon: Icon, children }) {
+    return (
+        <Card className="overflow-hidden border-dailyveg-200/80 bg-gradient-to-br from-white to-dailyveg-50/70 dark:border-dailyveg-900/80 dark:from-slate-950 dark:to-dailyveg-950/30">
+            <CardHeader className="pb-4">
+                <div className="flex items-start gap-3">
+                    <div className="rounded-xl border border-dailyveg-200 bg-white p-2 text-dailyveg-700 shadow-sm dark:border-dailyveg-800 dark:bg-slate-950 dark:text-dailyveg-300">
+                        <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <CardTitle className="text-base leading-5">{title}</CardTitle>
+                        <CardDescription className="mt-1">{subtitle}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>{children}</CardContent>
         </Card>
     );
 }
@@ -217,7 +320,6 @@ export function DashboardPage() {
     });
 
     const kpis = kpisQuery.data || null;
-    console.log("kpis : ", kpis);
 
     const procurementItems = procurementQuery.data?.items || [];
     const orders = ordersQuery.data?.orders || [];
@@ -269,6 +371,7 @@ export function DashboardPage() {
                     (isAdmin && runsQuery.isFetching)
                 }
             >
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
             </Button>
 
@@ -278,7 +381,8 @@ export function DashboardPage() {
                     onClick={() => lockOrdersMut.mutate()}
                     disabled={lockOrdersMut.isPending || !selectedDate}
                 >
-                    {lockOrdersMut.isPending ? "Locking..." : "Run Lock Orders"}
+                    <LockKeyhole className="mr-2 h-4 w-4" />
+                    {lockOrdersMut.isPending ? "Locking..." : "Lock Orders"}
                 </Button>
             ) : null}
         </div>
@@ -287,22 +391,28 @@ export function DashboardPage() {
     return (
         <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
-                title="Operations Dashboard"
-                subtitle="Cutoff, lock, procurement, queue, and exception view for the selected operational date."
+                title="Today at a Glance"
+                subtitle={`Simple overview for ${formatDateLabel(selectedDate)}. Start with anything marked attention, then continue with orders and procurement.`}
                 actions={actions}
             />
 
-            <Card className="mb-4 sm:mb-6">
-                <CardHeader>
-                    <CardTitle className="text-base">Operational Date Control</CardTitle>
-                    <CardDescription>
-                        Select the delivery / operations date you want to monitor.
-                    </CardDescription>
-                </CardHeader>
+            {hasAnyError ? (
+                <div className="mb-6 flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                        <div className="font-semibold">Some information could not load.</div>
+                        <p className="mt-1 text-xs">Please refresh once. If it still fails, check the backend response.</p>
+                    </div>
+                </div>
+            ) : null}
 
-                <CardContent className="grid gap-4 sm:grid-cols-[220px_1fr] sm:items-end">
+            <Card className="overflow-hidden border-dailyveg-200/80 bg-gradient-to-br from-white via-white to-dailyveg-50/80 dark:border-dailyveg-900/80 dark:from-slate-950 dark:via-slate-950 dark:to-dailyveg-950/30">
+                <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(220px,280px)_1fr] sm:items-end sm:p-5">
                     <div className="grid gap-1.5">
-                        <Label htmlFor="dashboard-date">Selected Date</Label>
+                        <Label htmlFor="dashboard-date" className="flex items-center gap-2 text-sm font-semibold">
+                            <CalendarDays className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
+                            Delivery Date
+                        </Label>
                         <DatePicker
                             selected={selectedDate ? new Date(selectedDate) : null}
                             onChange={(date) =>
@@ -311,78 +421,155 @@ export function DashboardPage() {
                             dateFormat="yyyy-MM-dd"
                             placeholderText="Select date"
                             id="dashboard-date"
-                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                            className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500/35 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400"
                             isClearable
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-                        <Button variant="outline" onClick={() => setSelectedDate(todayIstYyyyMmDd())} className="w-full sm:w-auto">
-                            Today
-                        </Button>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                            All numbers below are for <span className="font-semibold text-slate-900 dark:text-slate-50">{formatDateLabel(selectedDate)}</span>.
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                            <Button variant="outline" onClick={() => setSelectedDate(todayIstYyyyMmDd())} className="w-full sm:w-auto">
+                                Today
+                            </Button>
 
-                        <Button
-                            variant="outline"
-                            onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), 1))}
-                            className="w-full sm:w-auto"
-                        >
-                            Tomorrow
-                        </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), 1))}
+                                className="w-full sm:w-auto"
+                            >
+                                Tomorrow
+                            </Button>
 
-                        <Button
-                            variant="outline"
-                            onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), -1))}
-                            className="w-full sm:w-auto"
-                        >
-                            Yesterday
-                        </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), -1))}
+                                className="w-full sm:w-auto"
+                            >
+                                Yesterday
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {hasAnyError ? (
-                <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
-                    One or more dashboard sections failed to load. Check backend response and try refresh.
-                </div>
-            ) : null}
+            <div className="grid gap-4 xl:grid-cols-3">
+                <GuidanceCard
+                    title={exceptionOrders.length ? "Needs Attention" : "Everything Looks Clear"}
+                    subtitle={
+                        exceptionOrders.length
+                            ? "Review these before packing or delivery starts."
+                            : "No payment or cancelled-paid issues found for this date."
+                    }
+                    icon={exceptionOrders.length ? AlertTriangle : CheckCircle2}
+                >
+                    <div className="space-y-3">
+                        <div className="flex items-end justify-between gap-4">
+                            <div>
+                                <div className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
+                                    {formatCount(exceptionOrders.length)}
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">orders need manual checking</p>
+                            </div>
+                            <Button variant={exceptionOrders.length ? "default" : "outline"} asChild>
+                                <Link to={`/ops/orders?delivery_date=${selectedDate}`}>
+                                    Open Orders
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                        <p className="rounded-2xl border border-white/80 bg-white/70 p-3 text-xs text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
+                            Check failed payments, pending verification, refunds, and cancelled orders that were already paid.
+                        </p>
+                    </div>
+                </GuidanceCard>
 
-            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-3">
+                <GuidanceCard
+                    title="Orders to Handle"
+                    subtitle="Use this to understand today's workload."
+                    icon={ClipboardList}
+                >
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                            <div className="text-2xl font-bold">{formatCount(kpis?.orders_for_delivery)}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">total orders</div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                            <div className="text-2xl font-bold">{formatCount(kpis?.packing_queue)}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">ready for packing</div>
+                        </div>
+                    </div>
+                </GuidanceCard>
+
+                <GuidanceCard
+                    title="Procurement Work"
+                    subtitle="What buying or packing teams need to prepare."
+                    icon={ShoppingBasket}
+                >
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                            <div className="text-2xl font-bold">{formatCount(procurementItems.length)}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">items</div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                            <div className="text-2xl font-bold">{formatCount(totalProcurementQty)}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">total quantity</div>
+                        </div>
+                    </div>
+                </GuidanceCard>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
                 <Card className="xl:col-span-2">
                     <CardHeader>
-                        <CardTitle>Daily Ops Summary</CardTitle>
-                        <CardDescription>Main counters for {formatDateLabel(selectedDate)}.</CardDescription>
+                        <CardTitle>Order Progress</CardTitle>
+                        <CardDescription>Plain view of where today's orders currently stand.</CardDescription>
                     </CardHeader>
 
                     <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                         <QueueCard
-                            title="Orders For Delivery or Delivered"
+                            title="Total Delivery Orders"
                             value={kpis?.orders_for_delivery}
-                            subtitle="Orders scheduled on selected date."
+                            subtitle="All orders planned for this delivery date."
+                            icon={Truck}
+                            tone="blue"
                         />
                         <QueueCard
-                            title="Packing Queue"
+                            title="Ready for Packing"
                             value={kpis?.packing_queue}
-                            subtitle="Locked / accepted / packed orders."
+                            subtitle="Orders that can move through packing."
+                            icon={PackageCheck}
+                            tone="green"
                         />
                         <QueueCard
-                            title="Payment Pending"
+                            title="Payment Issues"
                             value={kpis?.payment_pending}
-                            subtitle="Online payment issues or pending verification."
+                            subtitle="Payments pending, failed, or waiting for check."
+                            icon={AlertTriangle}
+                            tone="amber"
                         />
                         <QueueCard
                             title="Locked"
                             value={orderStatusMap.locked}
-                            subtitle="Ready and locked for operational flow."
+                            subtitle="Orders frozen for the delivery workflow."
+                            icon={LockKeyhole}
+                            tone="slate"
                         />
                         <QueueCard
                             title="Accepted"
                             value={orderStatusMap.accepted}
-                            subtitle="Acknowledged by ops / warehouse."
+                            subtitle="Accepted by operations or warehouse."
+                            icon={CheckCircle2}
+                            tone="green"
                         />
                         <QueueCard
                             title="Packed"
                             value={orderStatusMap.packed}
-                            subtitle="Ready for dispatch or next stage."
+                            subtitle="Packed and ready for the next step."
+                            icon={PackageCheck}
+                            tone="blue"
                         />
                     </CardContent>
                 </Card>
@@ -390,18 +577,18 @@ export function DashboardPage() {
                 {isAdmin ? (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Cutoff / Scheduler</CardTitle>
-                            <CardDescription>Main lock-orders control summary.</CardDescription>
+                            <CardTitle>Order Lock Control</CardTitle>
+                            <CardDescription>Admin-only controls for closing orders for the day.</CardDescription>
                         </CardHeader>
 
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-slate-500 dark:text-slate-400">Selected Date</span>
+                                <span className="text-slate-500 dark:text-slate-400">Delivery Date</span>
                                 <span className="font-medium">{formatDateLabel(selectedDate)}</span>
                             </div>
 
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-slate-500 dark:text-slate-400">Scheduler</span>
+                                <span className="text-slate-500 dark:text-slate-400">Auto Lock</span>
                                 <StatusBadge value={schedule?.is_enabled ? "active" : "inactive"} />
                             </div>
 
@@ -411,7 +598,7 @@ export function DashboardPage() {
                             </div>
 
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-slate-500 dark:text-slate-400">Cron</span>
+                                <span className="text-slate-500 dark:text-slate-400">Schedule Rule</span>
                                 <span className="font-medium">{schedule?.cron_expr || "—"}</span>
                             </div>
 
@@ -420,9 +607,10 @@ export function DashboardPage() {
                                 <span className="font-medium">{schedule?.days_ahead ?? "—"}</span>
                             </div>
 
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
-                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    Latest Run
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+                                <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                                    <Clock3 className="h-3.5 w-3.5" />
+                                    Last Lock Run
                                 </div>
                                 <div className="mt-2 flex items-center justify-between gap-3">
                                     <span className="text-slate-500 dark:text-slate-400">Status</span>
@@ -437,7 +625,7 @@ export function DashboardPage() {
 
                             <div className="flex flex-wrap gap-2 pt-1">
                                 <Button variant="outline" asChild>
-                                    <Link to="/ops/jobs">Open Jobs</Link>
+                                    <Link to="/ops/jobs">Job History</Link>
                                 </Button>
                                 <Button variant="outline" asChild>
                                     <Link to={`/ops/orders?delivery_date=${selectedDate}`}>Open Orders</Link>
@@ -448,24 +636,23 @@ export function DashboardPage() {
                 ) : (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Operational Shortcuts</CardTitle>
-                            <CardDescription>
-                                Quick actions available to warehouse operations.
-                            </CardDescription>
+                            <CardTitle>What You Can Open</CardTitle>
+                            <CardDescription>Quick paths for daily warehouse work.</CardDescription>
                         </CardHeader>
 
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-center justify-between gap-3">
-                                <span className="text-slate-500 dark:text-slate-400">Selected Date</span>
+                                <span className="text-slate-500 dark:text-slate-400">Delivery Date</span>
                                 <span className="font-medium">{formatDateLabel(selectedDate)}</span>
                             </div>
 
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
-                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    Access Scope
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+                                <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+                                    <Settings2 className="h-3.5 w-3.5" />
+                                    Access
                                 </div>
                                 <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                    Scheduler, manual lock, and job history are admin-only.
+                                    Order locking and job history are available only for admin users.
                                 </div>
                             </div>
 
@@ -482,92 +669,62 @@ export function DashboardPage() {
                 )}
             </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:mb-6 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardDescription>Revenue (Paid)</CardDescription>
-                        <CardTitle className="break-words text-xl sm:text-2xl">
-                            {formatCurrencyFromPaise(kpis?.revenue_paid_paise)}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Paid order value for selected delivery date.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardDescription>Total Revenue</CardDescription>
-                        <CardTitle className="break-words text-xl sm:text-2xl">
-                            {formatCurrencyFromPaise(kpis?.total_delivered_revenue_paid_paise)}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            All-time revenue from paid and delivered orders.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardDescription>Procurement SKUs</CardDescription>
-                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(procurementItems.length)}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Distinct product-pack rows for procurement.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardDescription>Total Procurement Qty</CardDescription>
-                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(totalProcurementQty)}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Total summed quantity from locked operational orders.
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardDescription>Exceptions</CardDescription>
-                        <CardTitle className="break-words text-xl sm:text-2xl">{formatCount(exceptionOrders.length)}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Orders needing manual attention.
-                        </p>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
+                <StatCard
+                    title="Today's Paid Sales"
+                    value={formatCurrencyFromPaise(kpis?.revenue_paid_paise)}
+                    subtitle="Money collected for this delivery date."
+                    icon={IndianRupee}
+                    tone="green"
+                />
+                <StatCard
+                    title="All Delivered Sales"
+                    value={formatCurrencyFromPaise(kpis?.total_delivered_revenue_paid_paise)}
+                    subtitle="Lifetime paid revenue from delivered orders."
+                    icon={IndianRupee}
+                    tone="slate"
+                />
+                <StatCard
+                    title="Procurement Items"
+                    value={formatCount(procurementItems.length)}
+                    subtitle="Unique product rows to prepare."
+                    icon={ShoppingBasket}
+                    tone="green"
+                />
+                <StatCard
+                    title="Total Quantity"
+                    value={formatCount(totalProcurementQty)}
+                    subtitle="Combined quantity across procurement."
+                    icon={PackageCheck}
+                    tone="slate"
+                />
+                <StatCard
+                    title="Attention Orders"
+                    value={formatCount(exceptionOrders.length)}
+                    subtitle="Orders that need a human review."
+                    icon={AlertTriangle}
+                    tone={exceptionOrders.length ? "rose" : "green"}
+                />
             </div>
 
-            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-3 xl:items-start">
+            <div className="grid gap-4 xl:grid-cols-3 xl:items-start">
                 <Card className="h-auto overflow-hidden xl:col-span-2 xl:h-[520px]">
                     <CardHeader>
-                        <CardTitle>Latest Orders For Selected Date</CardTitle>
-                        <CardDescription>Quick operational queue preview.</CardDescription>
+                        <CardTitle>Recent Orders</CardTitle>
+                        <CardDescription>Latest orders for the selected delivery date.</CardDescription>
                     </CardHeader>
 
                     <CardContent className="max-h-[420px] overflow-y-auto pr-1 sm:pr-2 thin-scrollbar xl:h-[410px]">
                         {ordersQuery.isLoading ? (
                             <div className="text-sm text-slate-500 dark:text-slate-400">Loading orders...</div>
                         ) : latestOrders.length === 0 ? (
-                            <div className="text-sm text-slate-500 dark:text-slate-400">
-                                No orders found for this date.
-                            </div>
+                            <SimpleEmptyState title="No orders yet" subtitle="Nothing is scheduled for this delivery date." />
                         ) : (
                             <div className="space-y-3">
                                 {latestOrders.map((order) => (
                                     <div
                                         key={order.id}
-                                        className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800 md:flex-row md:items-center md:justify-between"
+                                        className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/60 md:flex-row md:items-center md:justify-between"
                                     >
                                         <div className="min-w-0">
                                             <div className="font-medium">{order.order_number || order.id}</div>
@@ -595,23 +752,21 @@ export function DashboardPage() {
 
                 <Card className="h-auto overflow-hidden xl:h-[520px]">
                     <CardHeader>
-                        <CardTitle>Latest Procurement Rows</CardTitle>
-                        <CardDescription>Top procurement lines for the selected date.</CardDescription>
+                        <CardTitle>Top Procurement Items</CardTitle>
+                        <CardDescription>Items the team should prepare first.</CardDescription>
                     </CardHeader>
 
                     <CardContent className="max-h-[420px] overflow-y-auto pr-1 sm:pr-2 thin-scrollbar xl:h-[410px]">
                         {procurementQuery.isLoading ? (
                             <div className="text-sm text-slate-500 dark:text-slate-400">Loading procurement...</div>
                         ) : latestProcurementItems.length === 0 ? (
-                            <div className="text-sm text-slate-500 dark:text-slate-400">
-                                No procurement items found for this date.
-                            </div>
+                            <SimpleEmptyState title="No procurement items" subtitle="There are no locked items to prepare for this date." />
                         ) : (
                             <div className="space-y-3">
                                 {latestProcurementItems.map((item, index) => (
                                     <div
                                         key={item.product_pack_id || item.product_id || index}
-                                        className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"
+                                        className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/60 sm:flex-row sm:items-center sm:justify-between"
                                     >
                                         <div className="flex flex-col min-w-0">
                                             <div className="font-medium">
@@ -632,24 +787,22 @@ export function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="mb-4 grid gap-4 sm:mb-6 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Exception Orders</CardTitle>
-                        <CardDescription>Orders that may need manual operational review.</CardDescription>
+                        <CardTitle>Orders Needing Attention</CardTitle>
+                        <CardDescription>Review these before the day moves forward.</CardDescription>
                     </CardHeader>
 
                     <CardContent>
                         {exceptionOrders.length === 0 ? (
-                            <div className="text-sm text-slate-500 dark:text-slate-400">
-                                No exception orders found.
-                            </div>
+                            <SimpleEmptyState title="No attention orders" subtitle="No payment or refund issues found for this date." />
                         ) : (
                             <div className="space-y-3">
                                 {exceptionOrders.map((order) => (
                                     <div
                                         key={order.id}
-                                        className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800 md:flex-row md:items-center md:justify-between"
+                                        className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/60 p-3 dark:border-rose-900/60 dark:bg-rose-950/20 md:flex-row md:items-center md:justify-between"
                                     >
                                         <div>
                                             <div className="font-medium">{order.order_number || order.id}</div>
@@ -671,17 +824,18 @@ export function DashboardPage() {
                 <div className="grid gap-4">
                     <QuickLinkCard
                         title="Orders Queue"
-                        subtitle="Inspect the day-wise operational order queue."
+                        subtitle="Open the full list to check customers, payments, and order status."
                         to={`/ops/orders?delivery_date=${selectedDate}`}
                         buttonLabel="Open Orders"
+                        icon={ClipboardList}
                     />
 
                     <QuickLinkCard
-                        className="w-full sm:w-auto" variant="outline" asChild
                         title="Procurement Summary"
-                        subtitle="Check farm / packing quantity summary for selected date."
+                        subtitle="Open the item-wise quantity list for buying and packing."
                         to={`/ops/procurement?delivery_date=${selectedDate}`}
                         buttonLabel="Open Procurement"
+                        icon={ShoppingBasket}
                     />
                 </div>
             </div>

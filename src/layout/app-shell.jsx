@@ -215,7 +215,7 @@ export function AppShell() {
         </aside>
 
         {/* Main */}
-        <main className={`w-full flex-1 p-4 lg:p-8 lg:ms-72`}>
+        <main className="min-w-0 w-full flex-1 p-4 lg:ms-72 lg:w-[calc(100%-18rem)] lg:p-8">
           <Outlet />
         </main>
       </div>
