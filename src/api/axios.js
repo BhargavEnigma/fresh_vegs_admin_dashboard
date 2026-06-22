@@ -1,15 +1,15 @@
 import axios from "axios";
 import { ENDPOINTS } from "./endpoints";
-import { getAuth, setAuth, clearAuth } from "../lib/storage";
+import { getAccessToken, getAuth, setAuth, clearAuth } from "../lib/storage";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   // timeout: 30000,
+  withCredentials: true, // allow sending cookies if backend uses httpOnly cookies
 });
 
 api.interceptors.request.use((config) => {
-  const auth = getAuth();
-  const token = auth?.tokens?.access_token;
+  const token = getAccessToken();
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;

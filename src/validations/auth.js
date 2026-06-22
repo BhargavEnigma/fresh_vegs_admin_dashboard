@@ -16,3 +16,8 @@ export const verifyOtpSchema = z.object({
   phone: phoneSchema,
   otp: z.string().min(4).max(8),
 });
+
+export const usernamePasswordLoginSchema = z.object({
+    username: z.string().trim().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
+});

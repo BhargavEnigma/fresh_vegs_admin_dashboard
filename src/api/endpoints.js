@@ -3,11 +3,13 @@ export const ENDPOINTS = {
   health: "/v1/health",
 
   auth: {
+    consoleAccess: "/v1/auth/console-access",
     sendOtp: "/v1/auth/otp/send",
     verifyOtp: "/v1/auth/otp/verify",
     refresh: "/v1/auth/token/refresh",
     logout: "/v1/auth/logout",
     me: "/v1/auth/me",
+    loginWithPassword: "/v1/auth/login",
   },
 
   user: {
