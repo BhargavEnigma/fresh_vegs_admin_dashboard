@@ -1,25 +1,23 @@
 import axios from "axios";
 import { ENDPOINTS } from "./endpoints";
-import { getAccessToken, getAuth, setAuth, clearAuth } from "../lib/storage";
+import { clearAuth, getAccessToken, getAuth, setAuth } from "../lib/storage";
+import { getDeviceId } from "../auth/device";
+import {
+  AUTH_UPDATED_EVENT,
+  SESSION_EXPIRED_EVENT,
+  dispatchAuthEvent,
+} from "../auth/auth-events";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  // timeout: 30000,
-  withCredentials: true, // allow sending cookies if backend uses httpOnly cookies
 });
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
   config.headers = config.headers || {};
 
-  // ✅ IMPORTANT FIX:
-  // If sending FormData, do NOT force JSON content-type.
-  // Browser/Axios will automatically set multipart/form-data with boundary.
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+
   const isFormData =
     typeof FormData !== "undefined" && config.data instanceof FormData;
 
@@ -33,77 +31,90 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-let isRefreshing = false;
-let queue = [];
+let refreshPromise = null;
 
-function resolveQueue(error, token = null) {
-  queue.forEach((prom) => {
-    if (error) prom.reject(error);
-    else prom.resolve(token);
-  });
-  queue = [];
+export function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise;
+
+  const auth = getAuth();
+  const refreshToken = auth?.tokens?.refresh_token;
+
+  if (!refreshToken) {
+    clearAuth();
+    dispatchAuthEvent(SESSION_EXPIRED_EVENT);
+    return Promise.reject(new Error("No refresh token available"));
+  }
+
+  refreshPromise = axios
+    .post(
+      `${import.meta.env.VITE_API_BASE_URL}${ENDPOINTS.auth.refresh}`,
+      {
+        refresh_token: refreshToken,
+        device_id: getDeviceId(),
+      },
+      { headers: { "Content-Type": "application/json" } }
+    )
+    .then((response) => {
+      const data = response?.data?.data;
+      const accessToken = data?.access_token;
+
+      if (!accessToken) throw new Error("Refresh response did not include an access token");
+
+      const nextAuth = {
+        ...auth,
+        tokens: {
+          ...auth.tokens,
+          access_token: accessToken,
+          access_expires_in_seconds: data?.access_expires_in_seconds,
+        },
+      };
+
+      setAuth(nextAuth);
+      dispatchAuthEvent(AUTH_UPDATED_EVENT);
+      return accessToken;
+    })
+    .catch((error) => {
+      clearAuth();
+      dispatchAuthEvent(SESSION_EXPIRED_EVENT);
+      throw error;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
 }
 
+const NO_REFRESH_ENDPOINTS = [
+  ENDPOINTS.auth.consoleAccess,
+  ENDPOINTS.auth.sendOtp,
+  ENDPOINTS.auth.verifyOtp,
+  ENDPOINTS.auth.refresh,
+  ENDPOINTS.auth.logout,
+];
+
 api.interceptors.response.use(
-  (res) => res,
+  (response) => response,
   async (error) => {
-    const original = error.config;
+    const original = error?.config;
+    const canRefresh =
+      error?.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !NO_REFRESH_ENDPOINTS.some((endpoint) => original.url?.includes(endpoint));
 
-    const status = error?.response?.status;
-    const code = error?.response?.data?.error?.code;
+    if (!canRefresh) return Promise.reject(error);
 
-    // Only try refresh for 401s on non-auth endpoints
-    const isAuthEndpoint = original?.url?.includes("/v1/auth/");
-    if (status === 401 && !isAuthEndpoint && !original._retry) {
-      const auth = getAuth();
-      const refresh_token = auth?.tokens?.refresh_token;
+    original._retry = true;
 
-      if (!refresh_token) {
-        clearAuth();
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          queue.push({ resolve, reject });
-        }).then((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return api(original);
-        });
-      }
-
-      original._retry = true;
-      isRefreshing = true;
-
-      try {
-        const resp = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}${ENDPOINTS.auth.refresh}`,
-          { refresh_token, device_id: "web" },
-          { headers: { "Content-Type": "application/json" } }
-        );
-
-        const newAccess = resp?.data?.data?.access_token;
-        const expires = resp?.data?.data?.access_expires_in_seconds;
-
-        if (!newAccess) throw new Error("No access token in refresh response");
-
-        const nextAuth = { ...auth, tokens: { ...auth.tokens, access_token: newAccess, access_expires_in_seconds: expires } };
-        setAuth(nextAuth);
-
-        resolveQueue(null, newAccess);
-
-        original.headers.Authorization = `Bearer ${newAccess}`;
-        return api(original);
-      } catch (e) {
-        resolveQueue(e, null);
-        clearAuth();
-        return Promise.reject(e);
-      } finally {
-        isRefreshing = false;
-      }
+    try {
+      const accessToken = await refreshAccessToken();
+      original.headers = original.headers || {};
+      original.headers.Authorization = `Bearer ${accessToken}`;
+      return api(original);
+    } catch (refreshError) {
+      return Promise.reject(refreshError);
     }
-
-    return Promise.reject(error);
   }
 );
 

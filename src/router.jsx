@@ -3,6 +3,7 @@ import { RequireAuth, RequireRole } from "./auth/role-guard";
 import { AppShell } from "./layout/app-shell";
 
 import { LoginPage } from "./pages/auth/login-page";
+import { AccessDeniedPage } from "./pages/auth/access-denied-page";
 import { DashboardPage } from "./pages/dashboard/dashboard-page";
 
 import { CategoriesListPage } from "./pages/categories/categories-list";
@@ -37,11 +38,11 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/access-denied" element={<AccessDeniedPage />} />
 
       <Route element={<RequireAuth />}>
-        <Route element={<AppShell />}>
-          {/* Shared: admin + warehouse_manager */}
-          <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>
+        <Route element={<RequireRole allowed={["admin"]} />}>
+          <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
 
             <Route path="categories" element={<CategoriesListPage />} />
@@ -50,10 +51,6 @@ export function AppRouter() {
             <Route path="ops/orders" element={<OpsOrdersPage />} />
             <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />
-          </Route>
-
-          {/* Admin only */}
-          <Route element={<RequireRole allowed={["admin"]} />}>
             <Route path="categories/new" element={<CategoryCreatePage />} />
             <Route path="categories/:id/edit" element={<CategoryEditPage />} />
 
@@ -76,9 +73,9 @@ export function AppRouter() {
             <Route path="admin/banners" element={<AdminBannersPage />} />
             <Route path="admin/deals" element={<AdminDealsPage />} />
             <Route path="ops/jobs" element={<OpsJobsPage />} />
-          </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>

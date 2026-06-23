@@ -29,6 +29,7 @@ export function PremiumSelect({
     placeholder = "Select...",
     isDisabled = false,
     isClearable = false,
+    isMulti = false,
     menuPortalTarget,
     menuPosition,
 }) {
@@ -39,17 +40,29 @@ export function PremiumSelect({
                 ? document.body
                 : undefined
             : menuPortalTarget;
-    const selectedOption =
-        options.find((opt) => String(opt.value) === String(value ?? "")) || null;
+    const selectedOption = isMulti
+        ? options.filter((option) =>
+            (Array.isArray(value) ? value : []).some(
+                (selectedValue) => String(option.value) === String(selectedValue)
+            )
+        )
+        : options.find((option) => String(option.value) === String(value ?? "")) || null;
 
     return (
         <Select
             value={selectedOption}
-            onChange={(option) => onChange(option?.value ?? "")}
+            onChange={(selection) =>
+                onChange(
+                    isMulti
+                        ? (selection || []).map((option) => option.value)
+                        : selection?.value ?? ""
+                )
+            }
             options={options}
             placeholder={placeholder}
             isDisabled={isDisabled}
             isClearable={isClearable}
+            isMulti={isMulti}
             classNamePrefix="premium-select"
 
             menuPortalTarget={resolvedMenuPortalTarget}
@@ -72,6 +85,27 @@ export function PremiumSelect({
                 singleValue: (base) => ({
                     ...base,
                     color: dark ? "#f8fafc" : "#0f172a",
+                }),
+
+                multiValue: (base) => ({
+                    ...base,
+                    borderRadius: "9999px",
+                    backgroundColor: dark ? "#14532d" : "#f0fdf4",
+                }),
+
+                multiValueLabel: (base) => ({
+                    ...base,
+                    color: dark ? "#dcfce7" : "#166534",
+                }),
+
+                multiValueRemove: (base) => ({
+                    ...base,
+                    borderRadius: "9999px",
+                    color: dark ? "#bbf7d0" : "#15803d",
+                    ":hover": {
+                        backgroundColor: dark ? "#166534" : "#dcfce7",
+                        color: dark ? "#ffffff" : "#14532d",
+                    },
                 }),
 
                 input: (base) => ({

@@ -9,7 +9,6 @@ export const ENDPOINTS = {
     refresh: "/v1/auth/token/refresh",
     logout: "/v1/auth/logout",
     me: "/v1/auth/me",
-    loginWithPassword: "/v1/auth/login",
   },
 
   user: {

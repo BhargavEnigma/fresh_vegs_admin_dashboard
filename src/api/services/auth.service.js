@@ -1,36 +1,30 @@
 import api from "../axios";
 import { ENDPOINTS } from "../endpoints";
+import { getDeviceId, getDeviceName } from "../../auth/device";
 
-const CONSOLE_ACCESS_ROLES = ["admin", "warehouse_manager"];
+const ADMIN_ROLE = "admin";
+const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
 
 export class AccessDeniedError extends Error {
-  constructor(message = "This account does not have admin or warehouse access.") {
-    super(message);
+  constructor() {
+    super(ACCESS_DENIED_MESSAGE);
     this.name = "AccessDeniedError";
     this.code = "ACCESS_DENIED";
   }
-}
-
-export async function loginWithPassword(payload) {
-
-  return api.post(ENDPOINTS.auth.loginWithPassword, payload);
-
 }
 
 export async function checkConsoleAccess({ phone }) {
   try {
     const res = await api.post(ENDPOINTS.auth.consoleAccess, {
       phone,
-      roles: CONSOLE_ACCESS_ROLES,
+      roles: [ADMIN_ROLE],
     });
 
     return res.data;
   } catch (e) {
     const code = e?.response?.data?.error?.code;
-    const message = e?.response?.data?.error?.message;
-
     if (e?.response?.status === 403 || code === "ACCESS_DENIED") {
-      throw new AccessDeniedError(message);
+      throw new AccessDeniedError();
     }
 
     throw e;
@@ -40,9 +34,9 @@ export async function checkConsoleAccess({ phone }) {
 export async function sendOtp({ phone }) {
   const accessResp = await checkConsoleAccess({ phone });
   const roles = accessResp?.data?.roles || [];
-  const hasAccess = accessResp?.data?.has_access ?? roles.some((role) => CONSOLE_ACCESS_ROLES.includes(role));
+  const hasAccess = accessResp?.data?.has_access === true;
 
-  if (!hasAccess) {
+  if (!hasAccess || !roles.includes(ADMIN_ROLE)) {
     throw new AccessDeniedError();
   }
 
@@ -52,15 +46,14 @@ export async function sendOtp({ phone }) {
 
 export async function verifyOtp({ otp_request_id, phone, otp }) {
   const device = {
-    device_id: "web",
-    device_name: navigator.userAgent,
+    device_id: getDeviceId(),
+    device_name: getDeviceName(),
   };
   const res = await api.post(ENDPOINTS.auth.verifyOtp, {
     otp_request_id,
     phone,
     otp,
     device,
-    fcm_token: null,
   });
   return res.data;
 }

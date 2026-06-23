@@ -65,13 +65,13 @@ export const NAV_ITEMS = [
     roles: ["admin"],
   },
 
-  {
-    key: "adminDeliverySlots",
-    label: "Delivery Slots",
-    icon: Clock,
-    to: "/admin/delivery-slots",
-    roles: ["admin"],
-  },
+  // {
+  //   key: "adminDeliverySlots",
+  //   label: "Delivery Slots",
+  //   icon: Clock,
+  //   to: "/admin/delivery-slots",
+  //   roles: ["admin"],
+  // },
   {
     key: "adminWarehouses",
     label: "Warehouses",

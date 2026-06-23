@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,38 +16,50 @@ import { useToast } from "../../../components/toast/toast-context";
 import { Badge } from "../../../components/ui/badge";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 
-function RolePill({ value, active, onToggle }) {
+function RoleRadio({ value, active, name, onSelect }) {
+    const id = `${name}-${value}`;
+
     return (
-        <button
-            type="button"
-            onClick={() => onToggle(value)}
-            className={
-                "rounded-full border px-3 py-1 text-sm transition " +
-                (active
-                    ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200")
-            }
-        >
-            {value}
-        </button>
+        <span>
+            <input
+                id={id}
+                type="radio"
+                name={name}
+                value={value}
+                checked={active}
+                onChange={() => onSelect(value)}
+                className="peer sr-only"
+            />
+            <label
+                htmlFor={id}
+                className={
+                    "inline-flex cursor-pointer rounded-full border px-3 py-1 text-sm transition peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-dailyveg-500/35 " +
+                    (active
+                        ? "border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200")
+                }
+            >
+                {value}
+            </label>
+        </span>
     );
 }
 
 function RolesPicker({ value, onChange }) {
     const all = ["admin", "warehouse_manager", "customer", "delivery_partner"];
-    const set = new Set(value || []);
-
-    const toggle = (role) => {
-        const next = new Set(set);
-        if (next.has(role)) next.delete(role);
-        else next.add(role);
-        onChange(Array.from(next));
-    };
+    const name = `role-${useId().replace(/:/g, "")}`;
+    const selectedRole = Array.isArray(value) ? value[0] : value;
 
     return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Role">
             {all.map((r) => (
-                <RolePill key={r} value={r} active={set.has(r)} onToggle={toggle} />
+                <RoleRadio
+                    key={r}
+                    value={r}
+                    name={name}
+                    active={selectedRole === r}
+                    onSelect={(role) => onChange([role])}
+                />
             ))}
         </div>
     );
@@ -296,7 +308,7 @@ export function AdminUsersPage() {
                                             variant="outline"
                                             onClick={() => {
                                                 rolesForm.setValue("user_id", u.id, { shouldValidate: true });
-                                                rolesForm.setValue("roles", u.roles || [], { shouldValidate: true });
+                                                rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true });
                                                 rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true });
                                                 toast.success("Loaded user into role editor");
                                             }}
@@ -422,7 +434,11 @@ export function AdminUsersPage() {
                                     rolesForm.setValue("user_id", userId || "", { shouldValidate: true });
 
                                     if (selectedUser) {
-                                        rolesForm.setValue("roles", selectedUser.roles || [], { shouldValidate: true });
+                                        rolesForm.setValue(
+                                            "roles",
+                                            selectedUser.roles?.length ? [selectedUser.roles[0]] : [],
+                                            { shouldValidate: true }
+                                        );
                                         rolesForm.setValue("warehouse_ids", selectedUser.warehouse_ids || [], {
                                             shouldValidate: true,
                                         });

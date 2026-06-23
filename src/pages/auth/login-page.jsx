@@ -1,562 +1,315 @@
-// import * as React from "react";
-// import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import { sendOtpSchema, verifyOtpSchema } from "../../validations/auth";
-// import { AccessDeniedError, sendOtp, verifyOtp } from "../../api/services/auth.service";
-// import { useToast } from "../../components/toast/toast-context";
-// import { useAuth } from "../../auth/auth-context";
-// import { useNavigate } from "react-router-dom";
-
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-// import { Button } from "../../components/ui/button";
-// import { Input } from "../../components/ui/input";
-// import { Label } from "../../components/ui/label";
-
-// import Image from "../../assets/logo-light-trans.png";
-// import ImageDark from "../../assets/logo-dark-trans.png";
-
-// function useActiveThemeLogo() {
-//     const [isDark, setIsDark] = React.useState(() => {
-//         if (typeof document === "undefined") return false;
-//         return document.documentElement.classList.contains("dark");
-//     });
-
-//     React.useEffect(() => {
-//         const root = document.documentElement;
-//         const syncTheme = () => {
-//             const storedTheme = localStorage.getItem("freshveg_admin_theme");
-
-//             if (storedTheme === "dark") {
-//                 root.classList.add("dark");
-//             } else if (storedTheme === "light") {
-//                 root.classList.remove("dark");
-//             }
-
-//             setIsDark(root.classList.contains("dark"));
-//         };
-
-//         syncTheme();
-
-//         const observer = new MutationObserver(syncTheme);
-//         observer.observe(root, {
-//             attributes: true,
-//             attributeFilter: ["class"],
-//         });
-
-//         return () => observer.disconnect();
-//     }, []);
-
-//     return isDark ? ImageDark : Image;
-// }
-
-// export function LoginPage() {
-//     const [step, setStep] = React.useState("send"); // send | verify
-//     const [otpRequestId, setOtpRequestId] = React.useState(null);
-//     const [phone, setPhone] = React.useState("");
-//     const [resendTimer, setResendTimer] = React.useState(0);
-
-//     const logoSrc = useActiveThemeLogo();
-//     const toast = useToast();
-//     const { login, isAuthed } = useAuth();
-//     const navigate = useNavigate();
-
-//     const CONSOLE_ROLES = ["admin", "warehouse_manager"];
-
-//     React.useEffect(() => {
-//         if (isAuthed) navigate("/", { replace: true });
-//     }, [isAuthed, navigate]);
-
-//     React.useEffect(() => {
-//         if (resendTimer <= 0) return;
-
-//         const interval = setInterval(() => {
-//             setResendTimer((prev) => Math.max(prev - 1, 0));
-//         }, 1000);
-
-//         return () => clearInterval(interval);
-//     }, [resendTimer]);
-
-//     const formattedResendTimer = React.useMemo(() => {
-//         const minutes = Math.floor(resendTimer / 60);
-//         const seconds = resendTimer % 60;
-
-//         return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-//     }, [resendTimer]);
-
-//     const sendForm = useForm({
-//         resolver: zodResolver(sendOtpSchema),
-//         defaultValues: { phone: "" },
-//     });
-
-//     const verifyForm = useForm({
-//         resolver: zodResolver(verifyOtpSchema),
-//         defaultValues: { otp_request_id: "", phone: "", otp: "" },
-//     });
-
-//     async function onSend(values) {
-//         try {
-//             const resp = await sendOtp(values);
-//             const id = resp?.data?.otp_request_id;
-
-//             if (!id) throw new Error("otp_request_id missing in response");
-
-//             setOtpRequestId(id);
-//             setPhone(values.phone);
-
-//             verifyForm.setValue("otp_request_id", id);
-//             verifyForm.setValue("phone", values.phone);
-//             verifyForm.setValue("otp", "");
-
-//             setStep("verify");
-//             setResendTimer(60);
-
-//             toast.push({
-//                 variant: "success",
-//                 title: "OTP sent",
-//                 description: "Check your phone for OTP.",
-//             });
-//         } catch (e) {
-//             const msg = e?.response?.data?.error?.message || e?.message || "Failed to send OTP";
-
-//             toast.push({
-//                 variant: "error",
-//                 title: e instanceof AccessDeniedError ? "Access Denied Error" : "Send OTP failed",
-//                 description: msg,
-//             });
-//         }
-//     }
-
-//     async function onVerify(values) {
-//         try {
-//             const resp = await verifyOtp(values);
-//             const roles = resp?.data?.user?.roles || [];
-//             const canAccessConsole = roles.some((role) => CONSOLE_ROLES.includes(role));
-
-//             if (!canAccessConsole) {
-//                 toast.push({
-//                     variant: "error",
-//                     title: "Access denied",
-//                     description: "This account does not have admin or warehouse access.",
-//                 });
-//                 return;
-//             }
-
-//             login(resp);
-
-//             toast.push({
-//                 variant: "success",
-//                 title: "Logged in",
-//                 description: "Welcome back.",
-//             });
-
-//             navigate("/", { replace: true });
-//         } catch (e) {
-//             const msg = e?.response?.data?.error?.message || e?.message || "OTP verification failed";
-
-//             toast.push({
-//                 variant: "error",
-//                 title: "Verify failed",
-//                 description: msg,
-//             });
-//         }
-//     }
-
-//     function handleBackToSend() {
-//         setStep("send");
-//         setOtpRequestId(null);
-//         setPhone("");
-//         setResendTimer(0);
-//         sendForm.reset();
-//         verifyForm.reset();
-//     }
-
-//     function handleResendOtp() {
-//         if (!phone || resendTimer > 0) return;
-
-//         onSend({ phone });
-//     }
-
-//     return (
-//         <div className="min-h-screen bg-slate-50 px-4 py-10 dark:bg-slate-950">
-//             <div className="mx-auto max-w-md">
-//                 <div className="mb-6 text-center">
-//                     <img src={logoSrc} alt="FreshVeg" className="m-auto w-60" />
-//                     <div className="mt-1 text-sm text-slate-500">OTP login</div>
-//                 </div>
-
-//                 <Card>
-//                     <CardHeader>
-//                         <CardTitle>{step === "send" ? "Send OTP" : "Verify OTP"}</CardTitle>
-//                         <CardDescription>
-//                             {step === "send"
-//                                 ? "Enter your phone number to receive an OTP."
-//                                 : "Enter the OTP you received. Only admins / ops roles can access the console."}
-//                         </CardDescription>
-//                     </CardHeader>
-
-//                     <CardContent>
-//                         {step === "send" ? (
-//                             <form onSubmit={sendForm.handleSubmit(onSend)} className="space-y-4">
-//                                 <div className="space-y-2">
-//                                     <Label>Phone</Label>
-//                                     <Input
-//                                         placeholder="91XXXXXXXXXX or XXXXXXXXXX"
-//                                         {...sendForm.register("phone")}
-//                                     />
-
-//                                     {sendForm.formState.errors.phone ? (
-//                                         <p className="text-xs text-red-600">
-//                                             {sendForm.formState.errors.phone.message}
-//                                         </p>
-//                                     ) : null}
-//                                 </div>
-
-//                                 <Button
-//                                     type="submit"
-//                                     className="w-full"
-//                                     disabled={sendForm.formState.isSubmitting}
-//                                 >
-//                                     {/* {sendForm.formState.isSubmitting ? "Sending…" : "Send OTP"} */}
-//                                     Send OTP
-//                                 </Button>
-//                             </form>
-//                         ) : (
-//                             <form onSubmit={verifyForm.handleSubmit(onVerify)} className="space-y-4">
-//                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900/30">
-//                                     OTP request:{" "}
-//                                     <span className="font-mono text-xs">{otpRequestId}</span>
-//                                     <div className="mt-1 text-xs text-slate-500">
-//                                         Phone: {phone}
-//                                     </div>
-//                                 </div>
-
-//                                 <input type="hidden" {...verifyForm.register("otp_request_id")} />
-//                                 <input type="hidden" {...verifyForm.register("phone")} />
-
-//                                 <div className="space-y-2">
-//                                     <Label>OTP</Label>
-//                                     <Input
-//                                         placeholder="Enter OTP"
-//                                         {...verifyForm.register("otp")}
-//                                     />
-
-//                                     {verifyForm.formState.errors.otp ? (
-//                                         <p className="text-xs text-red-600">
-//                                             {verifyForm.formState.errors.otp.message}
-//                                         </p>
-//                                     ) : null}
-//                                 </div>
-
-//                                 <div className="text-center text-sm">
-//                                     {resendTimer > 0 ? (
-//                                         <span className="text-slate-500">
-//                                             Resend OTP in {formattedResendTimer}
-//                                         </span>
-//                                     ) : (
-//                                         <button
-//                                             type="button"
-//                                             className="font-medium text-slate-900 hover:underline dark:text-slate-100"
-//                                             onClick={handleResendOtp}
-//                                             disabled={sendForm.formState.isSubmitting}
-//                                         >
-//                                             {sendForm.formState.isSubmitting ? "Sending…" : "Resend OTP"}
-//                                         </button>
-//                                     )}
-//                                 </div>
-
-//                                 <div className="flex gap-2">
-//                                     <Button
-//                                         type="button"
-//                                         variant="outline"
-//                                         className="w-full"
-//                                         onClick={handleBackToSend}
-//                                         disabled={verifyForm.formState.isSubmitting}
-//                                     >
-//                                         Back
-//                                     </Button>
-
-//                                     <Button
-//                                         type="submit"
-//                                         className="w-full"
-//                                         disabled={verifyForm.formState.isSubmitting}
-//                                     >
-//                                         {verifyForm.formState.isSubmitting
-//                                             ? "Verifying…"
-//                                             : "Verify & Login"}
-//                                     </Button>
-//                                 </div>
-//                             </form>
-//                         )}
-//                     </CardContent>
-//                 </Card>
-
-//                 <div className="mt-6 text-center text-xs text-slate-500">
-//                     Tip: In non-production, OTP bypass may be enabled in backend env.
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
-
-
-
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { usernamePasswordLoginSchema } from "../../validations/auth";
-import { AccessDeniedError, loginWithPassword } from "../../api/services/auth.service";
-import { useToast } from "../../components/toast/toast-context";
+import { useLocation, useNavigate } from "react-router-dom";
+import { AccessDeniedError, sendOtp, verifyOtp } from "../../api/services/auth.service";
 import { useAuth } from "../../auth/auth-context";
-import { useNavigate } from "react-router-dom";
-
+import { sendOtpSchema, verifyOtpSchema } from "../../validations/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-
 import Image from "../../assets/logo-light-trans.png";
 import ImageDark from "../../assets/logo-dark-trans.png";
-import { Eye, EyeOff } from "lucide-react";
+
+const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
 
 function useActiveThemeLogo() {
-    const [isDark, setIsDark] = React.useState(() => {
-        if (typeof document === "undefined") return false;
-        return document.documentElement.classList.contains("dark");
-    });
+  const [isDark, setIsDark] = React.useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
 
-    React.useEffect(() => {
-        const root = document.documentElement;
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => {
+      const storedTheme = localStorage.getItem("freshveg_admin_theme");
+      if (storedTheme === "dark") root.classList.add("dark");
+      if (storedTheme === "light") root.classList.remove("dark");
+      setIsDark(root.classList.contains("dark"));
+    };
 
-        const syncTheme = () => {
-            const storedTheme = localStorage.getItem("freshveg_admin_theme");
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
-            if (storedTheme === "dark") root.classList.add("dark");
-            else if (storedTheme === "light") root.classList.remove("dark");
+  return isDark ? ImageDark : Image;
+}
 
-            setIsDark(root.classList.contains("dark"));
-        };
+function maskPhone(phone) {
+  const nationalNumber = phone.startsWith("91") && phone.length === 12 ? phone.slice(2) : phone;
+  return `+91 ••••••${nationalNumber.slice(-4)}`;
+}
 
-        syncTheme();
+function formatCountdown(seconds) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
 
-        const observer = new MutationObserver(syncTheme);
-        observer.observe(root, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
+export function getAuthErrorMessage(error, phase) {
+  if (error instanceof AccessDeniedError || error?.code === "ACCESS_DENIED") {
+    return ACCESS_DENIED_MESSAGE;
+  }
 
-        return () => observer.disconnect();
-    }, []);
+  const status = error?.response?.status;
+  if (phase === "send" && [401, 403, 404].includes(status)) return ACCESS_DENIED_MESSAGE;
+  if (status === 403) return ACCESS_DENIED_MESSAGE;
+  if (status === 429) return "Too many attempts. Please wait before trying again.";
+  if (status >= 500) return "The login service is temporarily unavailable. Please try again.";
 
-    return isDark ? ImageDark : Image;
+  if (phase === "verify" && (status === 400 || status === 401)) {
+    return "The code is invalid or has expired. Request a new code and try again.";
+  }
+
+  if (status === 400) return "Check the phone number and try again.";
+  return phase === "verify"
+    ? "We could not verify the code. Please try again."
+    : "We could not send a code. Please try again.";
 }
 
 export function LoginPage() {
-    const logoSrc = useActiveThemeLogo();
-    const toast = useToast();
-    const { login, isAuthed } = useAuth();
-    const navigate = useNavigate();
-    const [showPassword, setShowPassword] = React.useState(false);
-    const [isBlocked, setIsBlocked] = React.useState(false);
-    const [blockUntil, setBlockUntil] = React.useState(0);
+  const logoSrc = useActiveThemeLogo();
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const otpInputRef = React.useRef(null);
+  const [step, setStep] = React.useState("phone");
+  const [phone, setPhone] = React.useState("");
+  const [otpRequestId, setOtpRequestId] = React.useState(null);
+  const [expiresAt, setExpiresAt] = React.useState(0);
+  const [resendAvailableAt, setResendAvailableAt] = React.useState(0);
+  const [now, setNow] = React.useState(Date.now());
+  const [requestError, setRequestError] = React.useState("");
+  const [isResending, setIsResending] = React.useState(false);
 
-    const CONSOLE_ROLES = ["admin", "warehouse_manager"];
+  const requestedDestination = location.state?.from;
+  const destination =
+    typeof requestedDestination === "string" && requestedDestination.startsWith("/")
+      ? requestedDestination
+      : "/";
 
-    React.useEffect(() => {
-        if (isAuthed) navigate("/", { replace: true });
-    }, [isAuthed, navigate]);
+  const phoneForm = useForm({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { phone: "" },
+  });
+  const otpForm = useForm({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: { otp_request_id: "", phone: "", otp: "" },
+  });
 
-    const loginForm = useForm({
-        resolver: zodResolver(usernamePasswordLoginSchema),
-        defaultValues: {
-            username: "",
-            password: "",
-        },
-    });
+  React.useEffect(() => {
+    if (isAuthenticated) navigate(destination, { replace: true });
+  }, [destination, isAuthenticated, navigate]);
 
-    // login attempt throttling state stored per-session
-    React.useEffect(() => {
-        try {
-            const raw = sessionStorage.getItem("login_failed_v1");
-            if (!raw) return;
-            const obj = JSON.parse(raw);
-            const until = obj?.blockUntil || 0;
-            if (until > Date.now()) {
-                setIsBlocked(true);
-                setBlockUntil(until);
-            }
-        } catch {
-            // ignore
-        }
-    }, []);
+  React.useEffect(() => {
+    if (step !== "otp") return undefined;
 
-    const [remainingMs, setRemainingMs] = React.useState(() => Math.max(0, blockUntil - Date.now()));
+    otpInputRef.current?.focus();
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [step]);
 
-    React.useEffect(() => {
-        if (!isBlocked) return;
-        setRemainingMs(Math.max(0, blockUntil - Date.now()));
-        const t = setInterval(() => {
-            const rem = Math.max(0, blockUntil - Date.now());
-            setRemainingMs(rem);
-            if (rem <= 0) {
-                setIsBlocked(false);
-                sessionStorage.removeItem("login_failed_v1");
-                clearInterval(t);
-            }
-        }, 1000);
+  const expirySeconds = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+  const resendSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
+  const otpRegistration = otpForm.register("otp");
 
-        return () => clearInterval(t);
-    }, [isBlocked, blockUntil]);
+  function applyOtpResponse(response, submittedPhone) {
+    const data = response?.data;
+    const requestId = data?.otp_request_id;
+    const expiresInSeconds = Number(data?.expires_in_seconds);
 
-    async function onLogin(values) {
-        try {
-            const resp = await loginWithPassword(values);
-
-            const payload = resp?.data?.data;
-            const roles = payload?.user?.roles || [];
-
-            const canAccessConsole = roles.some((role) =>
-                CONSOLE_ROLES.includes(String(role).toLowerCase())
-            );
-
-            if (!canAccessConsole) {
-                toast.push({
-                    variant: "error",
-                    title: "Access denied",
-                    description: "This account does not have admin or warehouse access.",
-                });
-                return;
-            }
-
-            login({
-                data: payload,
-            });
-
-            toast.push({
-                variant: "success",
-                title: "Logged in",
-                description: "Welcome back.",
-            });
-
-            navigate("/", { replace: true });
-        } catch (e) {
-            // Increase failed attempt counter and apply exponential backoff per-session
-            try {
-                const raw = sessionStorage.getItem("login_failed_v1");
-                const obj = raw ? JSON.parse(raw) : { attempts: 0 };
-                obj.attempts = (obj.attempts || 0) + 1;
-
-                const baseDelay = 2000; // 2 seconds
-                const maxDelay = 5 * 60 * 1000; // 5 minutes
-                const delay = Math.min(Math.pow(2, Math.min(obj.attempts, 6)) * baseDelay, maxDelay);
-                const until = Date.now() + delay;
-                obj.blockUntil = until;
-                sessionStorage.setItem("login_failed_v1", JSON.stringify(obj));
-                setIsBlocked(true);
-                setBlockUntil(until);
-            } catch {
-                // ignore storage errors
-            }
-
-            // For security, avoid echoing server error details that enable username enumeration.
-            if (e instanceof AccessDeniedError) {
-                toast.push({ variant: "error", title: "Access denied", description: e.message });
-            } else if (e?.response?.status === 401) {
-                toast.push({ variant: "error", title: "Login failed", description: "Invalid username or password." });
-            } else {
-                toast.push({ variant: "error", title: "Login failed", description: "Login failed, please try again later." });
-            }
-        }
+    if (!requestId || !Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) {
+      throw new Error("Invalid OTP response");
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50 px-4 py-10 dark:bg-slate-950">
-            <div className="mx-auto max-w-md">
-                <div className="mb-6 text-center">
-                    <img src={logoSrc} alt="DailyVeg" className="m-auto w-60" />
-                    <div className="mt-1 text-sm text-slate-500">
-                        Admin login
-                    </div>
-                </div>
+    const timestamp = Date.now();
+    setPhone(submittedPhone);
+    setOtpRequestId(requestId);
+    setExpiresAt(timestamp + expiresInSeconds * 1000);
+    setResendAvailableAt(timestamp + Math.min(60, expiresInSeconds) * 1000);
+    setNow(timestamp);
+    otpForm.reset({ otp_request_id: requestId, phone: submittedPhone, otp: "" });
+    setRequestError("");
+    setStep("otp");
+  }
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Login</CardTitle>
-                        <CardDescription>
-                            Enter your username and password. Only admins / ops roles can access the console.
-                        </CardDescription>
-                    </CardHeader>
+  async function handleContinue(values) {
+    setRequestError("");
 
-                    <CardContent>
-                        <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Username</Label>
-                                <Input
-                                    placeholder="Enter username"
-                                    autoComplete="username"
-                                    {...loginForm.register("username")}
-                                />
+    try {
+      const response = await sendOtp(values);
+      applyOtpResponse(response, values.phone);
+    } catch (error) {
+      setRequestError(getAuthErrorMessage(error, "send"));
+    }
+  }
 
-                                {loginForm.formState.errors.username ? (
-                                    <p className="text-xs text-red-600">
-                                        {loginForm.formState.errors.username.message}
-                                    </p>
-                                ) : null}
-                            </div>
+  async function handleVerify(values) {
+    setRequestError("");
 
-                            <div className="space-y-2">
-                                <Label>Password</Label>
+    try {
+      const response = await verifyOtp(values);
+      login(response);
+      navigate(destination, { replace: true });
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 400 || status === 401) {
+        otpForm.setValue("otp", "", { shouldValidate: false });
+        window.requestAnimationFrame(() => otpInputRef.current?.focus());
+      }
+      setRequestError(getAuthErrorMessage(error, "verify"));
+    }
+  }
 
-                                <div className="relative">
-                                    <Input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Enter password"
-                                        autoComplete="current-password"
-                                        className="pr-10"
-                                        {...loginForm.register("password")}
-                                    />
+  async function handleResend() {
+    if (!phone || resendSeconds > 0 || isResending) return;
+    setIsResending(true);
+    setRequestError("");
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword((prev) => !prev)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-900 dark:hover:text-slate-100"
-                                        tabIndex={-1}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
-                                            <Eye className="h-4 w-4" />
-                                        )}
-                                    </button>
-                                </div>
+    try {
+      const response = await sendOtp({ phone });
+      applyOtpResponse(response, phone);
+    } catch (error) {
+      setRequestError(getAuthErrorMessage(error, "send"));
+    } finally {
+      setIsResending(false);
+    }
+  }
 
-                                {loginForm.formState.errors.password ? (
-                                    <p className="text-xs text-red-600">
-                                        {loginForm.formState.errors.password.message}
-                                    </p>
-                                ) : null}
-                            </div>
+  function handleChangePhone() {
+    setStep("phone");
+    setOtpRequestId(null);
+    setExpiresAt(0);
+    setResendAvailableAt(0);
+    setRequestError("");
+    otpForm.reset();
+    window.requestAnimationFrame(() => phoneForm.setFocus("phone"));
+  }
 
-                            <Button
-                                type="submit"
-                                className="w-full"
-                                disabled={loginForm.formState.isSubmitting || isBlocked}
-                            >
-                                {loginForm.formState.isSubmitting ? "Logging in…" : "Login"}
-                            </Button>
-
-                            {isBlocked ? (
-                                <p className="mt-2 text-center text-xs text-red-600">
-                                    Too many failed attempts. Try again in {new Date(remainingMs).toISOString().substr(14, 5)}.
-                                </p>
-                            ) : null}
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <div className="mt-6 text-center text-xs text-slate-500">
-                    Use your admin username and password to access the console.
-                </div>
-            </div>
+  return (
+    <main className="flex min-h-screen items-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
+      <div className="mx-auto w-full max-w-md">
+        <div className="mb-6 text-center">
+          <img src={logoSrc} alt="FreshVeg" className="m-auto w-60" />
+          <p className="mt-1 text-sm text-slate-500">Admin panel</p>
         </div>
-    );
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{step === "phone" ? "Sign in" : "Enter your code"}</CardTitle>
+            <CardDescription>
+              {step === "phone"
+                ? "Use the Indian mobile number linked to your admin account."
+                : `We sent an SMS code to ${maskPhone(phone)}.`}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div aria-live="polite" aria-atomic="true">
+              {requestError ? (
+                <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                  {requestError}
+                </div>
+              ) : null}
+            </div>
+
+            {step === "phone" ? (
+              <form onSubmit={phoneForm.handleSubmit(handleContinue)} className="space-y-4" noValidate>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Indian mobile number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder="9876543210"
+                    maxLength={12}
+                    aria-invalid={Boolean(phoneForm.formState.errors.phone)}
+                    aria-describedby={phoneForm.formState.errors.phone ? "phone-error" : "phone-help"}
+                    {...phoneForm.register("phone")}
+                  />
+                  <p id="phone-help" className="text-xs text-slate-500">Enter 10 digits, or 12 digits beginning with 91.</p>
+                  {phoneForm.formState.errors.phone ? (
+                    <p id="phone-error" role="alert" className="text-xs text-red-600">
+                      {phoneForm.formState.errors.phone.message}
+                    </p>
+                  ) : null}
+                </div>
+
+                <Button type="submit" className="w-full" disabled={phoneForm.formState.isSubmitting}>
+                  {phoneForm.formState.isSubmitting ? "Checking access…" : "Continue"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={otpForm.handleSubmit(handleVerify)} className="space-y-4" noValidate>
+                <input type="hidden" {...otpForm.register("otp_request_id")} />
+                <input type="hidden" {...otpForm.register("phone")} />
+
+                <div className="space-y-2">
+                  <Label htmlFor="otp">OTP or admin access code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]*"
+                    maxLength={8}
+                    placeholder="Enter 4–8 digits"
+                    aria-invalid={Boolean(otpForm.formState.errors.otp)}
+                    aria-describedby="otp-status otp-error"
+                    {...otpRegistration}
+                    ref={(element) => {
+                      otpRegistration.ref(element);
+                      otpInputRef.current = element;
+                    }}
+                  />
+                  {otpForm.formState.errors.otp ? (
+                    <p id="otp-error" role="alert" className="text-xs text-red-600">
+                      {otpForm.formState.errors.otp.message}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div id="otp-status" className="flex items-center justify-between text-xs text-slate-500">
+                  <span>{expirySeconds > 0 ? `Code expires in ${formatCountdown(expirySeconds)}` : "Code expired"}</span>
+                  <button
+                    type="button"
+                    className="font-semibold text-dailyveg-700 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline dark:text-dailyveg-300"
+                    onClick={handleResend}
+                    disabled={resendSeconds > 0 || isResending || otpForm.formState.isSubmitting}
+                  >
+                    {isResending
+                      ? "Sending…"
+                      : resendSeconds > 0
+                        ? `Resend in ${formatCountdown(resendSeconds)}`
+                        : "Resend OTP"}
+                  </button>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={otpForm.formState.isSubmitting || isResending}>
+                  {otpForm.formState.isSubmitting ? "Verifying…" : "Verify and Login"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleChangePhone}
+                  disabled={otpForm.formState.isSubmitting || isResending}
+                >
+                  Change Phone
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Access is restricted to authorized FreshVeg administrators.
+        </p>
+      </div>
+    </main>
+  );
 }

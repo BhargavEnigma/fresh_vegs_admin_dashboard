@@ -1,8 +1,9 @@
+import * as React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./auth-context";
 
 export function RequireAuth() {
-  const { isAuthed, booting } = useAuth();
+  const { isAuthenticated, booting, accessDenied } = useAuth();
   const location = useLocation();
 
   if (booting) {
@@ -13,28 +14,26 @@ export function RequireAuth() {
     );
   }
 
-  if (!isAuthed) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!isAuthenticated) {
+    if (accessDenied) return <Navigate to="/access-denied" replace />;
+
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/login" replace state={{ from }} />;
   }
 
   return <Outlet />;
 }
 
 export function RequireRole({ allowed = [] }) {
-  const { roles } = useAuth();
+  const { roles, clearSession } = useAuth();
   const ok = allowed.length === 0 || roles.some((r) => allowed.includes(r));
 
+  React.useEffect(() => {
+    if (!ok) clearSession({ denied: true });
+  }, [clearSession, ok]);
+
   if (!ok) {
-    return (
-      <div className="mx-auto max-w-2xl p-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="text-lg font-semibold">Access denied</div>
-          <div className="mt-2 text-sm text-slate-500">
-            Your account doesn’t have permission to view this module.
-          </div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/access-denied" replace />;
   }
 
   return <Outlet />;

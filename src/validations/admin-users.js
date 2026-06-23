@@ -20,12 +20,12 @@ export const adminUserCreateSchema = z.object({
     phone: z.string().min(10).max(15),
     full_name: z.string().min(2).max(120).optional().nullable(),
     email: z.string().email().optional().nullable(),
-    roles: z.array(rolesEnum).min(1).default(["warehouse_manager"]),
+    roles: z.array(rolesEnum).length(1, "Select exactly one role.").default(["warehouse_manager"]),
     warehouse_ids: z.array(z.string().uuid()).optional().default([]),
 }).superRefine(requireWarehouseForStaffRoles);
 
 export const adminSetRolesSchema = z.object({
     user_id: z.string().uuid(),
-    roles: z.array(rolesEnum).min(1),
+    roles: z.array(rolesEnum).length(1, "Select exactly one role."),
     warehouse_ids: z.array(z.string().uuid()).optional().default([]),
 }).superRefine(requireWarehouseForStaffRoles);
