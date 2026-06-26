@@ -139,6 +139,16 @@ export const ENDPOINTS = {
       upsertItems: (dealId) => `/v1/admin/deals/${dealId}/items`,
       removeItem: (dealId, itemId) => `/v1/admin/deals/${dealId}/items/${itemId}`,
     },
+    notificationCampaigns: {
+      list: "/v1/admin/notification-campaigns",
+      create: "/v1/admin/notification-campaigns",
+      getById: (id) => `/v1/admin/notification-campaigns/${id}`,
+      update: (id) => `/v1/admin/notification-campaigns/${id}`,
+      remove: (id) => `/v1/admin/notification-campaigns/${id}`,
+      test: (id) => `/v1/admin/notification-campaigns/${id}/test`,
+      send: (id) => `/v1/admin/notification-campaigns/${id}/send`,
+      schedule: (id) => `/v1/admin/notification-campaigns/${id}/schedule`,
+    },
     ai: {
       generateProductDescription: "/v1/admin/ai/product-description",
     }

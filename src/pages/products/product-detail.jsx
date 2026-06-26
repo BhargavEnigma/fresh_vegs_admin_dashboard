@@ -126,7 +126,9 @@ export function ProductDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          {p ? <ProductPacksManager productId={p.id} /> : null}
+          
+          {/* <Card>
             <CardContent className="pt-6">
               <div className="text-sm font-semibold">Packs</div>
               <div className="mt-2 text-xs text-slate-500">
@@ -153,11 +155,10 @@ export function ProductDetailPage() {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       ) : null}
 
-      {p ? <ProductPacksManager productId={p.id} /> : null}
 
       <ConfirmDialog
         open={confirm.open}

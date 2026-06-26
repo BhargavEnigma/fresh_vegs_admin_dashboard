@@ -46,7 +46,11 @@ function RoleRadio({ value, active, name, onSelect }) {
 }
 
 function RolesPicker({ value, onChange }) {
+
     const all = ["admin", "warehouse_manager", "customer", "delivery_partner"];
+
+    all.splice(0, 1)
+
     const name = `role-${useId().replace(/:/g, "")}`;
     const selectedRole = Array.isArray(value) ? value[0] : value;
 
@@ -169,6 +173,8 @@ export function AdminUsersPage() {
             warehouse_ids: values.warehouse_ids || [],
         });
     };
+
+    listQuery
 
     return (
         <div className="">

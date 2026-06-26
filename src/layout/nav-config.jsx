@@ -9,6 +9,7 @@ import {
   FileText,
   Wrench,
   Clock,
+  Bell,
   Image,
   BadgePercent,
   IndianRupee,
@@ -107,6 +108,13 @@ export const NAV_ITEMS = [
         roles: ["admin"],
       },
     ],
+  },
+  {
+    key: "notifications",
+    label: "Notifications",
+    icon: Bell,
+    to: "/notifications",
+    roles: ["admin"],
   },
   {
     key: "adminSettings",

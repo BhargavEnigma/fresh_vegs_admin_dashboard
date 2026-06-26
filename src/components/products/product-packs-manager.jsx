@@ -16,6 +16,7 @@ import {
   deleteProductPack,
 } from "../../api/services/products.service";
 import { PremiumSelect } from "../ui/premium-select";
+import { Eye, LayoutGrid, Pencil, Power, Table2, Trash, PowerOff } from "lucide-react";
 
 function paiseToRupees(paise) {
   return Number(paise || 0) / 100;
@@ -127,27 +128,30 @@ export function ProductPacksManager({ productId }) {
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <div className="font-medium">{pk.label}</div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-4 text-xs text-slate-500">
                       {pk.base_quantity} {pk.base_unit} • MRP ₹{paiseToRupees(pk.mrp_paise).toFixed(2)} • Sell ₹
                       {paiseToRupees(pk.selling_price_paise).toFixed(2)}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-3">
                     <StatusBadge value={pk.is_active ? "active" : "inactive"} />
-                    <Button variant="outline" onClick={() => openEdit(pk)}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => activeM.mutate({ packId: pk.id, is_active: !pk.is_active })}
-                      disabled={activeM.isPending}
-                    >
-                      {pk.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button variant="destructive" onClick={() => setConfirmDelete({ open: true, pack: pk })}>
-                      Delete
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" onClick={() => openEdit(pk)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={pk.is_active ? "redoutline" : "outline"}
+                        size="icon"
+                        onClick={() => activeM.mutate({ packId: pk.id, is_active: !pk.is_active })}
+                        disabled={activeM.isPending}
+                      >
+                        {pk.is_active ? <Power className="h-4 w-4" /> : <PowerOff className="h-4 w-4"/>}
+                      </Button>
+                      <Button variant="destructive" onClick={() => setConfirmDelete({ open: true, pack: pk })}>
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

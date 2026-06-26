@@ -430,6 +430,20 @@ function OrderPreviewDialog({
         ? `${getDeliveryPartnerName(order)}${getDeliveryPartnerPhone(order) ? ` (${getDeliveryPartnerPhone(order)})` : ""}`
         : "Not assigned";
 
+    const ORDER_STATUS_LABELS = {
+        payment_pending: "Payment Pending",
+        placed: "Order Placed",
+        confirmed: "Order Confirmed",
+        locked: "Order Locked",
+        accepted: "Order Accepted",
+        packed: "Order Packed",
+        out_for_delivery: "Out for Delivery",
+        delivered: "Delivered",
+        delivery_failed: "Delivery Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -461,7 +475,7 @@ function OrderPreviewDialog({
                         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
                             <div className="text-xs text-slate-500">Status</div>
                             <div className="mt-2">
-                                <StatusBadge value={order.status} />
+                                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
                             </div>
                         </div>
 
@@ -604,6 +618,20 @@ function MobileOrderCard({
     const nextActions = getNextActions(order);
     const selected = selectedIds.includes(order.id);
 
+    const ORDER_STATUS_LABELS = {
+        payment_pending: "Payment Pending",
+        placed: "Order Placed",
+        confirmed: "Order Confirmed",
+        locked: "Order Locked",
+        accepted: "Order Accepted",
+        packed: "Order Packed",
+        out_for_delivery: "Out for Delivery",
+        delivered: "Delivered",
+        delivery_failed: "Delivery Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+    };
+
     return (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <div className="flex items-start justify-between gap-3">
@@ -624,7 +652,7 @@ function MobileOrderCard({
                     </div>
                 </div>
 
-                <StatusBadge value={order.status} />
+                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -726,6 +754,20 @@ function OrderGridCard({
     const deliveryPartner = order.delivery_partner ? getDeliveryPartnerName(order) : "Not assigned";
     const deliveryPartnerPhone = order.delivery_partner ? getDeliveryPartnerPhone(order) || "—" : "—";
 
+    const ORDER_STATUS_LABELS = {
+        payment_pending: "Payment Pending",
+        placed: "Order Placed",
+        confirmed: "Order Confirmed",
+        locked: "Order Locked",
+        accepted: "Order Accepted",
+        packed: "Order Packed",
+        out_for_delivery: "Out for Delivery",
+        delivered: "Delivered",
+        delivery_failed: "Delivery Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+    };
+
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-xl hover:shadow-dailyveg-900/10 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:shadow-black/30">
             <div className="border-b border-slate-100 bg-dailyveg-50/70 p-4 dark:border-slate-900 dark:bg-dailyveg-950/30">
@@ -749,7 +791,7 @@ function OrderGridCard({
                     </label>
 
                     <div className="shrink-0">
-                        <StatusBadge value={order.status} />
+                        <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
                     </div>
                 </div>
 
@@ -1262,7 +1304,7 @@ export function OpsOrdersPage() {
                 unassignDeliveryPartnerMut.mutate({
                     orderId: order.id,
                     payload: {
-                        order_id: [order.id],
+                        // order_id: [order.id],
                         note: "Delivery partner unassigned from order",
                     },
                 });
@@ -1343,6 +1385,19 @@ export function OpsOrdersPage() {
         });
     }
 
+    const ORDER_STATUS_LABELS = {
+        payment_pending: "Payment Pending",
+        placed: "Order Placed",
+        confirmed: "Order Confirmed",
+        locked: "Order Locked",
+        accepted: "Order Accepted",
+        packed: "Order Packed",
+        out_for_delivery: "Out for Delivery",
+        delivered: "Delivered",
+        delivery_failed: "Delivery Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded",
+    };
 
     return (
         <div className="min-w-0">
@@ -1672,9 +1727,9 @@ export function OpsOrdersPage() {
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="flex flex-col items-start gap-1">
-                                                                <StatusBadge value={order.status} />
-                                                                <span className="text-xs text-slate-500">
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
+                                                                <span className="text-xs text-slate-500 text-center">
                                                                     {order.is_locked ? "Locked" : "Not locked"}
                                                                 </span>
                                                             </div>

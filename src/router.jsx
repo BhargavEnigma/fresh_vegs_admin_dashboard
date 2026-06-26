@@ -32,6 +32,10 @@ import { AdminSettingsPage } from "./pages/admin/settings/settings-page";
 import { AdminUsersPage } from "./pages/admin/users/admin-users-page";
 import { AdminBannersPage } from "./pages/admin/banners/banners-page";
 import { AdminDealsPage } from "./pages/admin/deals/deals-page";
+import { NotificationsListPage } from "./pages/admin/notifications/notifications-list";
+import { NotificationsCreatePage } from "./pages/admin/notifications/notifications-create";
+import { NotificationsDetailPage } from "./pages/admin/notifications/notifications-detail";
+import { NotificationsEditPage } from "./pages/admin/notifications/notifications-edit";
 import { NotFoundPage } from "./pages/system/not-found";
 
 export function AppRouter() {
@@ -72,6 +76,10 @@ export function AppRouter() {
             <Route path="admin/users" element={<AdminUsersPage />} />
             <Route path="admin/banners" element={<AdminBannersPage />} />
             <Route path="admin/deals" element={<AdminDealsPage />} />
+            <Route path="notifications" element={<NotificationsListPage />} />
+            <Route path="notifications/create" element={<NotificationsCreatePage />} />
+            <Route path="notifications/:id" element={<NotificationsDetailPage />} />
+            <Route path="notifications/:id/edit" element={<NotificationsEditPage />} />
             <Route path="ops/jobs" element={<OpsJobsPage />} />
 
             <Route path="*" element={<NotFoundPage />} />
