@@ -46,10 +46,34 @@ export function labelFor(options, value) {
     return options.find((option) => option.value === value)?.label || value || "—";
 }
 
+function parseLocalDateTime(value) {
+    if (!value) return null;
+    const normalized = String(value).trim().replace(/([+-]\d{2}:\d{2}|Z)$/, "");
+    const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})[T ]([0-9]{2}):([0-9]{2})(?::([0-9]{2})(?:\.[0-9]+)?)?$/.exec(normalized);
+    if (!match) return null;
+
+    const [, year, month, day, hour, minute, second] = match;
+    return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second || "0")
+    );
+}
+
+function formatLocalDateTimeInput(value) {
+    const date = parseLocalDateTime(value);
+    if (!date || Number.isNaN(date.getTime())) return "";
+    const pad = (num) => String(num).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function formatDateTime(value) {
     if (!value) return "—";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+    const date = parseLocalDateTime(value);
+    if (!date || Number.isNaN(date.getTime())) return "—";
     return date.toLocaleString("en-IN", {
         day: "2-digit",
         month: "short",
@@ -139,6 +163,6 @@ export function formFromCampaign(campaign) {
         selected_user_ids: Array.isArray(filters.user_ids) ? filters.user_ids.join("\n") : "",
         deep_link_type: campaign?.deep_link_type || "none",
         deep_link_value: campaign?.deep_link_value || "",
-        scheduled_at: campaign?.scheduled_at ? String(campaign.scheduled_at).slice(0, 16) : "",
+        scheduled_at: formatLocalDateTimeInput(campaign?.scheduled_at),
     };
 }

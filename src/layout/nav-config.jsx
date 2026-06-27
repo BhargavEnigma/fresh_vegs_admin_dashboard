@@ -107,14 +107,14 @@ export const NAV_ITEMS = [
         to: "/admin/deals",
         roles: ["admin"],
       },
+      {
+        key: "notifications",
+        label: "Notifications",
+        icon: Bell,
+        to: "/notifications",
+        roles: ["admin"],
+      },
     ],
-  },
-  {
-    key: "notifications",
-    label: "Notifications",
-    icon: Bell,
-    to: "/notifications",
-    roles: ["admin"],
   },
   {
     key: "adminSettings",
