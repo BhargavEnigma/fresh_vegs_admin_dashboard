@@ -45,42 +45,42 @@ export function AppRouter() {
       <Route path="/access-denied" element={<AccessDeniedPage />} />
 
       <Route element={<RequireAuth />}>
-        <Route element={<RequireRole allowed={["admin"]} />}>
+        <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
 
             <Route path="categories" element={<CategoriesListPage />} />
             <Route path="categories/:id" element={<CategoryDetailPage />} />
+            <Route path="categories/new" element={<CategoryCreatePage />} />
+            <Route path="categories/:id/edit" element={<CategoryEditPage />} />
 
             <Route path="ops/orders" element={<OpsOrdersPage />} />
             <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />
-            <Route path="categories/new" element={<CategoryCreatePage />} />
-            <Route path="categories/:id/edit" element={<CategoryEditPage />} />
 
-            <Route path="products" element={<ProductsListPage />} />
-            <Route path="products/new" element={<ProductCreatePage />} />
-            <Route path="products/:productId" element={<ProductDetailPage />} />
-            <Route path="products/:productId/edit" element={<ProductEditPage />} />
+            <Route element={<RequireRole allowed={["admin"]} />}>
+              <Route path="products" element={<ProductsListPage />} />
+              <Route path="products/new" element={<ProductCreatePage />} />
+              <Route path="products/:productId" element={<ProductDetailPage />} />
+              <Route path="products/:productId/edit" element={<ProductEditPage />} />
 
-            <Route path="products/:productId/edit" element={<ProductEditPage />} />
+              <Route path="admin/cost" element={<CostPage />} />
 
-            <Route path="/admin/cost" element={<CostPage />} />
+              <Route path="admin/warehouses" element={<WarehousesListPage />} />
+              <Route path="admin/warehouses/new" element={<WarehouseCreatePage />} />
+              <Route path="admin/warehouses/:id" element={<WarehouseDetailPage />} />
+              <Route path="admin/warehouses/:id/edit" element={<WarehouseEditPage />} />
 
-            <Route path="admin/warehouses" element={<WarehousesListPage />} />
-            <Route path="admin/warehouses/new" element={<WarehouseCreatePage />} />
-            <Route path="admin/warehouses/:id" element={<WarehouseDetailPage />} />
-            <Route path="admin/warehouses/:id/edit" element={<WarehouseEditPage />} />
-
-            <Route path="admin/settings" element={<AdminSettingsPage />} />
-            <Route path="admin/users" element={<AdminUsersPage />} />
-            <Route path="admin/banners" element={<AdminBannersPage />} />
-            <Route path="admin/deals" element={<AdminDealsPage />} />
-            <Route path="notifications" element={<NotificationsListPage />} />
-            <Route path="notifications/create" element={<NotificationsCreatePage />} />
-            <Route path="notifications/:id" element={<NotificationsDetailPage />} />
-            <Route path="notifications/:id/edit" element={<NotificationsEditPage />} />
-            <Route path="ops/jobs" element={<OpsJobsPage />} />
+              <Route path="admin/settings" element={<AdminSettingsPage />} />
+              <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/banners" element={<AdminBannersPage />} />
+              <Route path="admin/deals" element={<AdminDealsPage />} />
+              <Route path="notifications" element={<NotificationsListPage />} />
+              <Route path="notifications/create" element={<NotificationsCreatePage />} />
+              <Route path="notifications/:id" element={<NotificationsDetailPage />} />
+              <Route path="notifications/:id/edit" element={<NotificationsEditPage />} />
+              <Route path="ops/jobs" element={<OpsJobsPage />} />
+            </Route>
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>

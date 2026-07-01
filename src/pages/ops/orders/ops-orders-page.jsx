@@ -323,35 +323,33 @@ function Filters({ value, onApply, deliveryPartners }) {
                         )}
                     />
                 </div>
-                <div className="flex items-end justify-start gap-1">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                            form.reset({
-                                warehouse_id: "",
-                                delivery_partner_user_id: "",
-                                q: "",
-                                limit: 20,
-                                delivery_date: null,
-                            });
-
-                            onApply({
-                                warehouse_id: "",
-                                delivery_partner_user_id: "",
-                                q: "",
-                                limit: 20,
-                                delivery_date: "",
-                            });
-                        }}
-                    >
-                        <RiResetLeftFill />
-                    </Button>
-
-                    <Button type="submit">Apply Filters</Button>
-                </div>
             </div>
+            <div className="flex items-end justify-end gap-1">
+                <Button type="submit">Apply Filters</Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                        form.reset({
+                            warehouse_id: "",
+                            delivery_partner_user_id: "",
+                            q: "",
+                            limit: 20,
+                            delivery_date: null,
+                        });
 
+                        onApply({
+                            warehouse_id: "",
+                            delivery_partner_user_id: "",
+                            q: "",
+                            limit: 20,
+                            delivery_date: "",
+                        });
+                    }}
+                >
+                    <RiResetLeftFill />
+                </Button>
+            </div>
         </form>
     );
 }

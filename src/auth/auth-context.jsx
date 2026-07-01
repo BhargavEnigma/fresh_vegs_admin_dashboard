@@ -7,9 +7,10 @@ import { AUTH_UPDATED_EVENT, SESSION_EXPIRED_EVENT } from "./auth-events";
 
 const AuthContext = React.createContext(null);
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
+const AUTHORIZED_ADMIN_ROLES = ["admin", "warehouse_manager"];
 
-function isActiveAdmin(user) {
-  return user?.status === "active" && user?.roles?.includes("admin");
+function hasAdminAccess(user) {
+  return user?.status === "active" && user?.roles?.some((role) => AUTHORIZED_ADMIN_ROLES.includes(role));
 }
 
 function getAuthData(payload) {
@@ -34,7 +35,7 @@ export function AuthProvider({ children }) {
       const user = data?.user;
       const tokens = data?.tokens;
 
-      if (!isActiveAdmin(user) || !tokens?.access_token || !tokens?.refresh_token) {
+      if (!hasAdminAccess(user) || !tokens?.access_token || !tokens?.refresh_token) {
         clearSession({ denied: true });
         const error = new Error(ACCESS_DENIED_MESSAGE);
         error.code = "ACCESS_DENIED";
@@ -69,7 +70,7 @@ export function AuthProvider({ children }) {
       const data = response?.data;
       const user = data?.user || data;
 
-      if (!isActiveAdmin(user)) {
+      if (!hasAdminAccess(user)) {
         clearSession({ denied: true });
         return false;
       }
@@ -130,7 +131,7 @@ export function AuthProvider({ children }) {
   const value = React.useMemo(() => {
     const accessToken = auth?.tokens?.access_token || null;
     const refreshToken = auth?.tokens?.refresh_token || null;
-    const isAuthenticated = Boolean(accessToken && refreshToken && isActiveAdmin(auth?.user));
+    const isAuthenticated = Boolean(accessToken && refreshToken && hasAdminAccess(auth?.user));
 
     return {
       auth,
