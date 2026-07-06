@@ -47,7 +47,7 @@ function RoleRadio({ value, active, name, onSelect }) {
 
 function RolesPicker({ value, onChange }) {
 
-    const all = ["admin", "warehouse_manager", "customer", "delivery_partner"];
+    const all = ["admin", "warehouse_manager", "customer", "delivery_partner", "support_manager"];
 
     all.splice(0, 1)
 
@@ -211,6 +211,7 @@ export function AdminUsersPage() {
                                 { value: "warehouse_manager", label: "Warehouse Manager" },
                                 { value: "delivery_partner", label: "Delivery Partner" },
                                 { value: "customer", label: "Customer" },
+                                { value: "support_manager", label: "Support Manager" },
                             ]}
                             placeholder="Select role"
                         />

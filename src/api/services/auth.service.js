@@ -1,8 +1,8 @@
 import api from "../axios";
 import { ENDPOINTS } from "../endpoints";
 import { getDeviceId, getDeviceName } from "../../auth/device";
+import { AUTHORIZED_ADMIN_ROLES, getPayloadRoles, hasAuthorizedAdminRole } from "../../auth/roles";
 
-const ADMIN_ROLES = ["admin", "warehouse_manager"];
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
 
 export class AccessDeniedError extends Error {
@@ -17,7 +17,7 @@ export async function checkConsoleAccess({ phone }) {
   try {
     const res = await api.post(ENDPOINTS.auth.consoleAccess, {
       phone,
-      roles: ADMIN_ROLES,
+      roles: AUTHORIZED_ADMIN_ROLES,
     });
 
     return res.data;
@@ -33,10 +33,10 @@ export async function checkConsoleAccess({ phone }) {
 
 export async function sendOtp({ phone }) {
   const accessResp = await checkConsoleAccess({ phone });
-  const roles = accessResp?.data?.roles || [];
-  const hasAccess = accessResp?.data?.has_access === true;
+  const roles = getPayloadRoles(accessResp);
+  const hasAccess = accessResp?.data?.has_access === true || accessResp?.has_access === true;
 
-  if (!hasAccess || !roles.some((role) => ADMIN_ROLES.includes(role))) {
+  if (!hasAccess || (roles.length > 0 && !hasAuthorizedAdminRole(roles))) {
     throw new AccessDeniedError();
   }
 

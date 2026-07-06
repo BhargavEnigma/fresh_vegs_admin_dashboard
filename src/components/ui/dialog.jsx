@@ -20,15 +20,27 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
+function isPremiumSelectMenuEvent(event) {
+  const target = event.target;
+  return target instanceof Element && Boolean(target.closest(".premium-select__menu-portal"));
+}
+
+const DialogContent = React.forwardRef(({ className, children, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      data-dialog-content
       className={cn(
         "thin-scrollbar fixed left-[50%] top-[50%] z-50 grid w-[calc(100vw-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-dailyveg-900/10 outline-none dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40",
         className
       )}
+      onInteractOutside={(event) => {
+        onInteractOutside?.(event);
+        if (!event.defaultPrevented && isPremiumSelectMenuEvent(event)) {
+          event.preventDefault();
+        }
+      }}
       {...props}
     >
       {children}

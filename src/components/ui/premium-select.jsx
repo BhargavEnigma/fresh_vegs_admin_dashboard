@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Select from "react-select";
 
 function useDarkMode() {
@@ -34,12 +34,19 @@ export function PremiumSelect({
     menuPosition,
 }) {
     const dark = useDarkMode();
-    const resolvedMenuPortalTarget =
-        menuPortalTarget === undefined
-            ? typeof document !== "undefined"
-                ? document.body
-                : undefined
-            : menuPortalTarget;
+    const selectRef = useRef(null);
+    const [insideDialog, setInsideDialog] = useState(false);
+
+    useEffect(() => {
+        setInsideDialog(Boolean(selectRef.current?.closest("[data-dialog-content]")));
+    }, []);
+
+    const shouldUseDefaultPortal = menuPortalTarget === undefined && !insideDialog;
+    const resolvedMenuPortalTarget = shouldUseDefaultPortal
+        ? typeof document !== "undefined"
+            ? document.body
+            : undefined
+        : menuPortalTarget;
     const selectedOption = isMulti
         ? options.filter((option) =>
             (Array.isArray(value) ? value : []).some(
@@ -49,27 +56,27 @@ export function PremiumSelect({
         : options.find((option) => String(option.value) === String(value ?? "")) || null;
 
     return (
-        <Select
-            value={selectedOption}
-            onChange={(selection) =>
-                onChange(
-                    isMulti
-                        ? (selection || []).map((option) => option.value)
-                        : selection?.value ?? ""
-                )
-            }
-            options={options}
-            placeholder={placeholder}
-            isDisabled={isDisabled}
-            isClearable={isClearable}
-            isMulti={isMulti}
-            classNamePrefix="premium-select"
-
-            menuPortalTarget={resolvedMenuPortalTarget}
-            menuPosition={menuPosition || (resolvedMenuPortalTarget ? "fixed" : "absolute")}
-            menuPlacement="auto"
-            menuShouldScrollIntoView={false}
-            styles={{
+        <div ref={selectRef}>
+            <Select
+                value={selectedOption}
+                onChange={(selection) =>
+                    onChange(
+                        isMulti
+                            ? (selection || []).map((option) => option.value)
+                            : selection?.value ?? ""
+                    )
+                }
+                options={options}
+                placeholder={placeholder}
+                isDisabled={isDisabled}
+                isClearable={isClearable}
+                isMulti={isMulti}
+                classNamePrefix="premium-select"
+                menuPortalTarget={resolvedMenuPortalTarget}
+                menuPosition={menuPosition || (resolvedMenuPortalTarget ? "fixed" : "absolute")}
+                menuPlacement="auto"
+                menuShouldScrollIntoView={false}
+                styles={{
                 control: (base, state) => ({
                     ...base,
                     minHeight: "40px",
@@ -133,6 +140,7 @@ export function PremiumSelect({
                 menuPortal: (base) => ({
                     ...base,
                     zIndex: 99999,
+                    pointerEvents: "auto",
                 }),
 
                 option: (base, state) => ({
@@ -164,7 +172,8 @@ export function PremiumSelect({
                     ...base,
                     backgroundColor: dark ? "#1e293b" : "#e2e8f0",
                 }),
-            }}
-        />
+                }}
+            />
+        </div>
     );
 }

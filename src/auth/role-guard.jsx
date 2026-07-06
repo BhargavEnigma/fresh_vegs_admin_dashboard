@@ -25,12 +25,8 @@ export function RequireAuth() {
 }
 
 export function RequireRole({ allowed = [] }) {
-  const { roles, clearSession } = useAuth();
+  const { roles } = useAuth();
   const ok = allowed.length === 0 || roles.some((r) => allowed.includes(r));
-
-  React.useEffect(() => {
-    if (!ok) clearSession({ denied: true });
-  }, [clearSession, ok]);
 
   if (!ok) {
     return <Navigate to="/access-denied" replace />;

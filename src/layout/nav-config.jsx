@@ -14,6 +14,11 @@ import {
   BadgePercent,
   IndianRupee,
   Megaphone,
+  Headset,
+  Ticket,
+  Search,
+  ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 
 // Navigation is driven by backend capabilities.
@@ -122,6 +127,49 @@ export const NAV_ITEMS = [
     icon: Settings,
     to: "/admin/settings",
     roles: ["admin"],
+  },
+  {
+    key: "support",
+    label: "Customer Support",
+    icon: Headset,
+    roles: ["admin", "support_manager"],
+    children: [
+      {
+        key: "supportDashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        to: "/support",
+        roles: ["admin", "support_manager"],
+      },
+      {
+        key: "supportTickets",
+        label: "Tickets",
+        icon: Ticket,
+        to: "/support/tickets",
+        roles: ["admin", "support_manager"],
+      },
+      {
+        key: "supportCustomers",
+        label: "Customers",
+        icon: Search,
+        to: "/support/customers",
+        roles: ["admin", "support_manager"],
+      },
+      {
+        key: "supportActions",
+        label: "Action Requests",
+        icon: ShieldCheck,
+        to: "/support/action-requests",
+        roles: ["admin", "support_manager"],
+      },
+      {
+        key: "supportAnalytics",
+        label: "Analytics",
+        icon: BarChart3,
+        to: "/support/analytics",
+        roles: ["admin", "support_manager"],
+      },
+    ],
   },
 
   {

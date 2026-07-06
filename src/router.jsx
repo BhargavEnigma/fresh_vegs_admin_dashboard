@@ -1,5 +1,6 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { RequireAuth, RequireRole } from "./auth/role-guard";
+import { useAuth } from "./auth/auth-context";
 import { AppShell } from "./layout/app-shell";
 
 import { LoginPage } from "./pages/auth/login-page";
@@ -37,6 +38,21 @@ import { NotificationsCreatePage } from "./pages/admin/notifications/notificatio
 import { NotificationsDetailPage } from "./pages/admin/notifications/notifications-detail";
 import { NotificationsEditPage } from "./pages/admin/notifications/notifications-edit";
 import { NotFoundPage } from "./pages/system/not-found";
+import { SupportDashboardPage } from "./pages/support/support-dashboard-page";
+import { SupportTicketsPage } from "./pages/support/support-tickets-page";
+import { SupportTicketDetailPage } from "./pages/support/support-ticket-detail-page";
+import { SupportCustomersPage } from "./pages/support/support-customers-page";
+import { SupportCustomerContextPage } from "./pages/support/support-customer-context-page";
+import { SupportOrderContextPage } from "./pages/support/support-order-context-page";
+import { SupportActionRequestsPage } from "./pages/support/support-action-requests-page";
+import { SupportAnalyticsPage } from "./pages/support/support-analytics-page";
+
+function HomeRoute() {
+  const { roles } = useAuth();
+  if (roles.some((role) => role === "admin" || role === "warehouse_manager")) return <DashboardPage />;
+  if (roles.some((role) => role === "support_manager")) return <Navigate to="/support" replace />;
+  return <Navigate to="/access-denied" replace />;
+}
 
 export function AppRouter() {
   return (
@@ -45,10 +61,11 @@ export function AppRouter() {
       <Route path="/access-denied" element={<AccessDeniedPage />} />
 
       <Route element={<RequireAuth />}>
-        <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>
-          <Route element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
+        <Route element={<AppShell />}>
+          <Route index element={<HomeRoute />} />
 
+          {/* Admin & Warehouse Manager Routes */}
+          <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>
             <Route path="categories" element={<CategoriesListPage />} />
             <Route path="categories/:id" element={<CategoryDetailPage />} />
             <Route path="categories/new" element={<CategoryCreatePage />} />
@@ -57,33 +74,49 @@ export function AppRouter() {
             <Route path="ops/orders" element={<OpsOrdersPage />} />
             <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />
-
-            <Route element={<RequireRole allowed={["admin"]} />}>
-              <Route path="products" element={<ProductsListPage />} />
-              <Route path="products/new" element={<ProductCreatePage />} />
-              <Route path="products/:productId" element={<ProductDetailPage />} />
-              <Route path="products/:productId/edit" element={<ProductEditPage />} />
-
-              <Route path="admin/cost" element={<CostPage />} />
-
-              <Route path="admin/warehouses" element={<WarehousesListPage />} />
-              <Route path="admin/warehouses/new" element={<WarehouseCreatePage />} />
-              <Route path="admin/warehouses/:id" element={<WarehouseDetailPage />} />
-              <Route path="admin/warehouses/:id/edit" element={<WarehouseEditPage />} />
-
-              <Route path="admin/settings" element={<AdminSettingsPage />} />
-              <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/banners" element={<AdminBannersPage />} />
-              <Route path="admin/deals" element={<AdminDealsPage />} />
-              <Route path="notifications" element={<NotificationsListPage />} />
-              <Route path="notifications/create" element={<NotificationsCreatePage />} />
-              <Route path="notifications/:id" element={<NotificationsDetailPage />} />
-              <Route path="notifications/:id/edit" element={<NotificationsEditPage />} />
-              <Route path="ops/jobs" element={<OpsJobsPage />} />
-            </Route>
-
-            <Route path="*" element={<NotFoundPage />} />
           </Route>
+
+          {/* Admin Only Routes */}
+          <Route element={<RequireRole allowed={["admin"]} />}>
+            <Route path="products" element={<ProductsListPage />} />
+            <Route path="products/new" element={<ProductCreatePage />} />
+            <Route path="products/:productId" element={<ProductDetailPage />} />
+            <Route path="products/:productId/edit" element={<ProductEditPage />} />
+
+            <Route path="admin/cost" element={<CostPage />} />
+
+            <Route path="admin/warehouses" element={<WarehousesListPage />} />
+            <Route path="admin/warehouses/new" element={<WarehouseCreatePage />} />
+            <Route path="admin/warehouses/:id" element={<WarehouseDetailPage />} />
+            <Route path="admin/warehouses/:id/edit" element={<WarehouseEditPage />} />
+
+            <Route path="admin/settings" element={<AdminSettingsPage />} />
+            <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/banners" element={<AdminBannersPage />} />
+            <Route path="admin/deals" element={<AdminDealsPage />} />
+            <Route path="notifications" element={<NotificationsListPage />} />
+            <Route path="notifications/create" element={<NotificationsCreatePage />} />
+            <Route path="notifications/:id" element={<NotificationsDetailPage />} />
+            <Route path="notifications/:id/edit" element={<NotificationsEditPage />} />
+            <Route path="ops/jobs" element={<OpsJobsPage />} />
+          </Route>
+
+          {/* Support Routes */}
+          <Route element={<RequireRole allowed={["admin", "support_manager"]} />}>
+            <Route path="support" element={<SupportDashboardPage />} />
+            <Route path="support/tickets" element={<SupportTicketsPage />} />
+            <Route path="support/tickets/:ticketId" element={<SupportTicketDetailPage />} />
+            <Route path="support/customers" element={<SupportCustomersPage />} />
+            <Route path="support/customers/:userId" element={<SupportCustomerContextPage />} />
+            <Route path="support/orders/:orderId" element={<SupportOrderContextPage />} />
+            <Route path="support/action-requests" element={<SupportActionRequestsPage />} />
+          </Route>
+
+          <Route element={<RequireRole allowed={["admin", "support_manager"]} />}>
+            <Route path="support/analytics" element={<SupportAnalyticsPage />} />
+          </Route>
+
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
     </Routes>

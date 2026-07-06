@@ -213,7 +213,7 @@ export function AppShell() {
 
               if (hasChildren) {
                 return (
-                  <div key={item.key} className="space-y-1">
+                  <div key={item.key} className="">
                     <button
                       type="button"
                       title={!sidebarOpen ? item.label : undefined}
@@ -253,7 +253,7 @@ export function AppShell() {
                         "overflow-hidden transition-all duration-300",
                         isGroupOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
                         sidebarOpen
-                          ? "ml-5 space-y-1 border-l border-dailyveg-300 py-1 pl-3 dark:border-dailyveg-800"
+                          ? "ml-5 space-y-1 border-l border-dailyveg-300 pt-1 pl-3 dark:border-dailyveg-800"
                           : "mt-1 space-y-1"
                       )}
                     >
@@ -261,6 +261,7 @@ export function AppShell() {
                         <NavLink
                           key={child.key}
                           to={child.to}
+                          end
                           title={!sidebarOpen ? child.label : undefined}
                           className={({ isActive }) =>
                             cn(

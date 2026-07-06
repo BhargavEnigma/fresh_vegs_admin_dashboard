@@ -4,13 +4,13 @@ import { getMe, logout as apiLogout } from "../api/services/auth.service";
 import { refreshAccessToken as apiRefreshAccessToken } from "../api/axios";
 import { useToast } from "../components/toast/toast-context";
 import { AUTH_UPDATED_EVENT, SESSION_EXPIRED_EVENT } from "./auth-events";
+import { hasAuthorizedAdminRole, normalizeRoles, normalizeUserRoles } from "./roles";
 
 const AuthContext = React.createContext(null);
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
-const AUTHORIZED_ADMIN_ROLES = ["admin", "warehouse_manager"];
 
 function hasAdminAccess(user) {
-  return user?.status === "active" && user?.roles?.some((role) => AUTHORIZED_ADMIN_ROLES.includes(role));
+  return user?.status === "active" && hasAuthorizedAdminRole(user?.roles);
 }
 
 function getAuthData(payload) {
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
   const login = React.useCallback(
     (payload) => {
       const data = getAuthData(payload);
-      const user = data?.user;
+      const user = normalizeUserRoles(data?.user);
       const tokens = data?.tokens;
 
       if (!hasAdminAccess(user) || !tokens?.access_token || !tokens?.refresh_token) {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     try {
       const response = await getMe();
       const data = response?.data;
-      const user = data?.user || data;
+      const user = normalizeUserRoles(data?.user || data);
 
       if (!hasAdminAccess(user)) {
         clearSession({ denied: true });
@@ -138,7 +138,7 @@ export function AuthProvider({ children }) {
       user: auth?.user || null,
       accessToken,
       refreshToken,
-      roles: auth?.user?.roles || [],
+      roles: normalizeRoles(auth?.user?.roles),
       isAuthenticated,
       isAuthed: isAuthenticated,
       booting,

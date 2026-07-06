@@ -188,4 +188,39 @@ export const ENDPOINTS = {
       reorder: "/v1/ops/categories/reorder",
     },
   },
+
+  support: {
+    settings: "/v1/support/admin/settings",
+    dashboard: "/v1/support/admin/dashboard",
+    analytics: "/v1/support/admin/analytics",
+    customers: {
+      search: "/v1/support/admin/customers/search",
+      context: (userId) => `/v1/support/admin/customers/${userId}/context`,
+    },
+    orders: {
+      context: (orderId) => `/v1/support/admin/orders/${orderId}/context`,
+    },
+    actionRequests: {
+      list: "/v1/support/admin/action-requests",
+      approve: (requestId) => `/v1/support/admin/action-requests/${requestId}/approve`,
+      reject: (requestId) => `/v1/support/admin/action-requests/${requestId}/reject`,
+      execute: (requestId) => `/v1/support/admin/action-requests/${requestId}/execute`,
+    },
+    tickets: {
+      list: "/v1/support/admin/tickets",
+      create: "/v1/support/admin/tickets",
+      detail: (ticketId) => `/v1/support/admin/tickets/${ticketId}`,
+      assign: (ticketId) => `/v1/support/admin/tickets/${ticketId}/assign`,
+      status: (ticketId) => `/v1/support/admin/tickets/${ticketId}/status`,
+      priority: (ticketId) => `/v1/support/admin/tickets/${ticketId}/priority`,
+      messages: (ticketId) => `/v1/support/admin/tickets/${ticketId}/messages`,
+      internalNotes: (ticketId) => `/v1/support/admin/tickets/${ticketId}/internal-notes`,
+      attachments: (ticketId) => `/v1/support/admin/tickets/${ticketId}/attachments`,
+      escalate: (ticketId) => `/v1/support/admin/tickets/${ticketId}/escalate`,
+      resolve: (ticketId) => `/v1/support/admin/tickets/${ticketId}/resolve`,
+      close: (ticketId) => `/v1/support/admin/tickets/${ticketId}/close`,
+      reopen: (ticketId) => `/v1/support/admin/tickets/${ticketId}/reopen`,
+      actionRequests: (ticketId) => `/v1/support/admin/tickets/${ticketId}/action-requests`,
+    },
+  },
 };
