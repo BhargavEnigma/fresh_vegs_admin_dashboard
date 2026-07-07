@@ -152,6 +152,9 @@ export function ProductEditPage() {
             }
             return updateProduct(productId, payload);
         },
+        meta: {
+            globalLoaderMessage: "Saving product...",
+        },
         onSuccess: () => {
             setNewImages([]);
             qc.invalidateQueries({ queryKey: ["products"] });
@@ -170,6 +173,9 @@ export function ProductEditPage() {
             if (!newImages.length) return null;
             return uploadProductImages(productId, newImages);
         },
+        meta: {
+            globalLoaderMessage: "Uploading product images...",
+        },
         onSuccess: () => {
             setNewImages([]);
             qc.invalidateQueries({ queryKey: ["product", productId] });
@@ -184,6 +190,9 @@ export function ProductEditPage() {
     // ✅ Optimistic delete: remove instantly, restore if error
     const deleteImageMut = useMutation({
         mutationFn: async (imageId) => deleteProductImage(imageId),
+        meta: {
+            globalLoaderMessage: "Deleting product image...",
+        },
         onMutate: async (imageId) => {
             setExistingImages((prev) => prev.filter((x) => x.id !== imageId));
             setDeleteDialog({ open: false, image: null });
@@ -212,6 +221,9 @@ export function ProductEditPage() {
             }));
             return reorderProductImages(productId, payload);
         },
+        meta: {
+            globalLoaderMessage: "Saving image order...",
+        },
         onSuccess: () => {
             setReorderDirty(false);
             qc.invalidateQueries({ queryKey: ["product", productId] });
@@ -225,6 +237,9 @@ export function ProductEditPage() {
 
     const generateDescriptionMutation = useMutation({
         mutationFn: (payload) => generateProductDescription(payload),
+        meta: {
+            globalLoaderMessage: "Generating product description...",
+        },
         onSuccess: (resp) => {
             const description = resp?.data?.data?.description;
 

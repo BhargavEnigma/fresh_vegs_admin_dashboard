@@ -69,6 +69,9 @@ export function NotificationsDetailPage() {
 
     const sendMut = useMutation({
         mutationFn: () => AdminNotificationsService.send(id),
+        meta: {
+            globalLoaderMessage: "Sending notification...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["notification-campaign", id] });
             qc.invalidateQueries({ queryKey: ["notification-campaigns"] });
@@ -80,6 +83,9 @@ export function NotificationsDetailPage() {
 
     const deleteMut = useMutation({
         mutationFn: () => AdminNotificationsService.remove(id),
+        meta: {
+            globalLoaderMessage: "Deleting notification campaign...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["notification-campaigns"] });
             toast.push({ variant: "success", title: "Campaign removed", description: "Draft/scheduled campaign was deleted or cancelled." });
@@ -90,6 +96,9 @@ export function NotificationsDetailPage() {
 
     const testMut = useMutation({
         mutationFn: () => AdminNotificationsService.test(id, { user_id: testUserId.trim() }),
+        meta: {
+            globalLoaderMessage: "Testing notification...",
+        },
         onSuccess: () => {
             toast.push({ variant: "success", title: "Test sent", description: "Test notification was sent." });
             setTestOpen(false);

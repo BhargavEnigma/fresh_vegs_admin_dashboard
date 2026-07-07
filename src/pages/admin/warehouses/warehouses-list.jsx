@@ -27,6 +27,9 @@ export function WarehousesListPage() {
 
     const deactivateMut = useMutation({
         mutationFn: (id) => WarehousesService.deactivate(id),
+        meta: {
+            globalLoaderMessage: "Deactivating warehouse...",
+        },
         onSuccess: () => {
             toast.success("Warehouse deactivated");
             setToDeactivate(null);

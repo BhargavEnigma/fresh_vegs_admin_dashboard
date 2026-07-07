@@ -160,6 +160,9 @@ export function AdminBannersPage() {
             if (imageFile) return AdminBannersService.createWithImage(payload, imageFile);
             return AdminBannersService.create(payload);
         },
+        meta: {
+            globalLoaderMessage: "Creating banner...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-banners", placement] });
             toast.push({ variant: "success", title: "Created", description: "Banner created." });
@@ -176,6 +179,9 @@ export function AdminBannersPage() {
             if (imageFile) return AdminBannersService.updateWithImage(bannerId, payload, imageFile);
             return AdminBannersService.update(bannerId, payload);
         },
+        meta: {
+            globalLoaderMessage: "Saving banner...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-banners", placement] });
             toast.push({ variant: "success", title: "Saved", description: "Banner updated." });
@@ -189,6 +195,9 @@ export function AdminBannersPage() {
 
     const activeMut = useMutation({
         mutationFn: ({ bannerId, is_active }) => AdminBannersService.setActive(bannerId, is_active),
+        meta: {
+            globalLoaderMessage: "Updating banner status...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-banners", placement] });
             toast.push({ variant: "success", title: "Updated", description: "Banner status updated." });
@@ -202,6 +211,9 @@ export function AdminBannersPage() {
 
     const deleteMut = useMutation({
         mutationFn: ({ bannerId }) => AdminBannersService.remove(bannerId),
+        meta: {
+            globalLoaderMessage: "Deleting banner...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-banners", placement] });
             toast.push({ variant: "success", title: "Deleted", description: "Banner deleted." });
@@ -215,6 +227,9 @@ export function AdminBannersPage() {
 
     const reorderMut = useMutation({
         mutationFn: (ids) => AdminBannersService.reorder(ids),
+        meta: {
+            globalLoaderMessage: "Saving banner order...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-banners", placement] });
             toast.push({ variant: "success", title: "Reordered", description: "Banner order updated." });

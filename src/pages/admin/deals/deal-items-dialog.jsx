@@ -80,6 +80,9 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
             }));
             return AdminDealsService.upsertItems(dealId, payload);
         },
+        meta: {
+            globalLoaderMessage: "Saving deal items...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-deal-by-id", dealId] });
             qc.invalidateQueries({ queryKey: ["admin-deals"] });
@@ -93,6 +96,9 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
 
     const removeMut = useMutation({
         mutationFn: ({ itemId }) => AdminDealsService.removeItem(dealId, itemId),
+        meta: {
+            globalLoaderMessage: "Removing deal item...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-deal-by-id", dealId] });
             qc.invalidateQueries({ queryKey: ["admin-deals"] });

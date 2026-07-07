@@ -121,6 +121,9 @@ export function AdminDealsPage() {
 
     const createMut = useMutation({
         mutationFn: (payload) => AdminDealsService.create(payload),
+        meta: {
+            globalLoaderMessage: "Creating deal...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-deals"] });
             toast.push({ variant: "success", title: "Created", description: "Deal created." });
@@ -134,6 +137,9 @@ export function AdminDealsPage() {
 
     const updateMut = useMutation({
         mutationFn: ({ dealId, payload }) => AdminDealsService.update(dealId, payload),
+        meta: {
+            globalLoaderMessage: "Saving deal...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-deals"] });
             toast.push({ variant: "success", title: "Saved", description: "Deal updated." });
@@ -147,6 +153,9 @@ export function AdminDealsPage() {
 
     const deleteMut = useMutation({
         mutationFn: ({ dealId }) => AdminDealsService.remove(dealId),
+        meta: {
+            globalLoaderMessage: "Deleting deal...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["admin-deals"] });
             toast.push({ variant: "success", title: "Deleted", description: "Deal deleted." });

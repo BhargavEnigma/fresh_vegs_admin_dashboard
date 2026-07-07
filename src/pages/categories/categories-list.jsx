@@ -28,6 +28,9 @@ export function CategoriesListPage() {
 
   const mutation = useMutation({
     mutationFn: ({ id, is_active }) => setCategoryActive(id, is_active),
+    meta: {
+      globalLoaderMessage: "Updating category status...",
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories", "ops"] });
       toast.push({

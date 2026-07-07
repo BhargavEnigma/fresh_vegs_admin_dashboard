@@ -54,6 +54,9 @@ export function ProductCreatePage() {
 
   const generateDescriptionMutation = useMutation({
     mutationFn: (payload) => generateProductDescription(payload),
+    meta: {
+      globalLoaderMessage: "Generating product description...",
+    },
     onSuccess: (resp) => {
       const description = resp?.data?.data?.description;
 
@@ -86,6 +89,9 @@ export function ProductCreatePage() {
 
   const mutation = useMutation({
     mutationFn: ({ payload, images }) => createProductWithImages(payload, images),
+    meta: {
+      globalLoaderMessage: "Creating product...",
+    },
     onSuccess: (resp) => {
       qc.invalidateQueries({ queryKey: ["products"] });
       const id = resp?.data?.product?.id;

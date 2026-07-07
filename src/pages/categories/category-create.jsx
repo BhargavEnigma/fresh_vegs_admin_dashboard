@@ -31,6 +31,9 @@ export function CategoryCreatePage() {
 
   const mutation = useMutation({
     mutationFn: (payload) => createCategory(payload),
+    meta: {
+      globalLoaderMessage: "Creating category...",
+    },
     onSuccess: (resp) => {
       qc.invalidateQueries({ queryKey: ["categories", "ops"] });
       const id = resp?.data?.category?.id;

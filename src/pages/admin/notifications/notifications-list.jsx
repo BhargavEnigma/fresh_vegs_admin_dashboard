@@ -99,6 +99,9 @@ export function NotificationsListPage() {
 
     const sendMut = useMutation({
         mutationFn: (campaign) => AdminNotificationsService.send(campaign.id),
+        meta: {
+            globalLoaderMessage: "Sending notification...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["notification-campaigns"] });
             toast.push({ variant: "success", title: "Broadcast started", description: "Campaign is being sent to eligible customers." });
@@ -109,6 +112,9 @@ export function NotificationsListPage() {
 
     const deleteMut = useMutation({
         mutationFn: (campaign) => AdminNotificationsService.remove(campaign.id),
+        meta: {
+            globalLoaderMessage: "Deleting notification campaign...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["notification-campaigns"] });
             toast.push({ variant: "success", title: "Campaign removed", description: "Draft/scheduled campaign was deleted or cancelled." });

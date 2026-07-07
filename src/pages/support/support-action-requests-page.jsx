@@ -83,6 +83,9 @@ function ActionRequestTableRow({ request, manager }) {
     const automated = AUTOMATED_ACTION_TYPES.includes(request.action_type);
     const mutation = useMutation({
         mutationFn: () => SupportService.executeActionRequest(request.id),
+        meta: {
+            globalLoaderMessage: "Executing action request...",
+        },
         onSuccess: () => {
             toast.success("Execution completed by backend");
             queryClient.invalidateQueries({ queryKey: ["support"] });

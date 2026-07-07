@@ -48,6 +48,9 @@ export function CategoryEditPage() {
 
   const mutation = useMutation({
     mutationFn: (payload) => updateCategory(id, payload),
+    meta: {
+      globalLoaderMessage: "Saving category...",
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories", "ops"] });
       qc.invalidateQueries({ queryKey: ["category", id] });

@@ -5,6 +5,7 @@ import { refreshAccessToken as apiRefreshAccessToken } from "../api/axios";
 import { useToast } from "../components/toast/toast-context";
 import { AUTH_UPDATED_EVENT, SESSION_EXPIRED_EVENT } from "./auth-events";
 import { hasAuthorizedAdminRole, normalizeRoles, normalizeUserRoles } from "./roles";
+import { useGlobalLoader } from "../components/common/global-loader-context";
 
 const AuthContext = React.createContext(null);
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
   const [booting, setBooting] = React.useState(true);
   const [accessDenied, setAccessDenied] = React.useState(false);
   const toast = useToast();
+  const { withLoader } = useGlobalLoader();
 
   const clearSession = React.useCallback(({ denied = false } = {}) => {
     clearAuth();
@@ -119,14 +121,17 @@ export function AuthProvider({ children }) {
 
     try {
       if (currentAuth?.tokens?.refresh_token) {
-        await apiLogout({ refresh_token: currentAuth.tokens.refresh_token });
+        await withLoader(
+          apiLogout({ refresh_token: currentAuth.tokens.refresh_token }),
+          "Logging out..."
+        );
       }
     } catch {
       // Local logout must always succeed, even if the API is unavailable.
     } finally {
       clearSession();
     }
-  }, [clearSession]);
+  }, [clearSession, withLoader]);
 
   const value = React.useMemo(() => {
     const accessToken = auth?.tokens?.access_token || null;

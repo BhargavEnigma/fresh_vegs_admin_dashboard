@@ -37,6 +37,9 @@ export function AdminSettingsPage() {
 
     const upsertMut = useMutation({
         mutationFn: ({ key, value }) => SettingsAdminService.upsert(key, value),
+        meta: {
+            globalLoaderMessage: "Saving setting...",
+        },
         onSuccess: () => {
             toast.success("Setting saved");
             setEdit(null);

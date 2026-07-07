@@ -14,6 +14,9 @@ export function WarehouseCreatePage() {
 
     const createMut = useMutation({
         mutationFn: (payload) => WarehousesService.create(payload),
+        meta: {
+            globalLoaderMessage: "Creating warehouse...",
+        },
         onSuccess: (data) => {
             toast.success("Warehouse created");
             qc.invalidateQueries({ queryKey: ["warehouses"] });

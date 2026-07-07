@@ -6,6 +6,7 @@ import "./styles/globals.css";
 import { AppRouter } from "./router";
 import { AuthProvider } from "./auth/auth-context";
 import { ToastProvider } from "./components/toast/toast-context";
+import { GlobalLoaderProvider } from "./components/common/global-loader-context";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,13 +20,15 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppRouter />
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
+      <GlobalLoaderProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRouter />
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </GlobalLoaderProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

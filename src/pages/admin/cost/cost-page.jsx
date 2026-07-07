@@ -498,11 +498,14 @@ export function CostPage() {
                 amount_paise: rupeesToPaise(values.amount_rupees),
                 notes: values.notes || null,
             }),
+        meta: {
+            globalLoaderMessage: "Adding cost entry...",
+        },
         onSuccess: () => {
             showSuccess("Cost entry added");
             form.reset({
                 cost_date: today(),
-                category: "delivery",
+                category: "dailyveg",
                 warehouse_id: "",
                 related_order_id: "",
                 reference_type: "",
@@ -529,6 +532,9 @@ export function CostPage() {
                 amount_paise: rupeesToPaise(values.amount_rupees),
                 notes: values.notes || null,
             }),
+        meta: {
+            globalLoaderMessage: "Updating cost entry...",
+        },
         onSuccess: (updatedCost) => {
             showSuccess("Cost entry updated");
             setEditCost(null);
@@ -542,6 +548,9 @@ export function CostPage() {
 
     const archiveMutation = useMutation({
         mutationFn: (id) => CostsService.remove(id),
+        meta: {
+            globalLoaderMessage: "Archiving cost...",
+        },
         onSuccess: () => {
             showSuccess("Cost archived");
             setArchiveTarget(null);
@@ -554,6 +563,9 @@ export function CostPage() {
 
     const reactivateMutation = useMutation({
         mutationFn: (id) => CostsService.update(id, { status: "active" }),
+        meta: {
+            globalLoaderMessage: "Reactivating cost...",
+        },
         onSuccess: () => {
             showSuccess("Cost reactivated");
             queryClient.invalidateQueries({ queryKey: ["costs"] });
@@ -578,6 +590,9 @@ export function CostPage() {
             }
 
             return CostsService.bulkUpsertProcurement(payload);
+        },
+        meta: {
+            globalLoaderMessage: "Saving procurement costs...",
         },
         onSuccess: () => {
             showSuccess("Procurement costs saved");
@@ -871,7 +886,14 @@ export function CostPage() {
                                         icon: ReceiptText,
                                     },
                                 ].map((item, index) => {
-                                    const percent = Math.max(4, Math.round((Number(item.value || 0) / Math.max(1, Number(profit.total_cost_paise || 0))) * 100));
+                                    const totalCostPaise = Number(profit.total_cost_paise || 0);
+                                    const itemValuePaise = Number(item.value || 0);
+
+                                    const percent =
+                                        totalCostPaise > 0 && itemValuePaise > 0
+                                            ? Math.round((itemValuePaise / totalCostPaise) * 100)
+                                            : 0;
+
                                     return (
                                         <div key={item.label} className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/50">
                                             <div className="flex items-center justify-between gap-3">
@@ -880,20 +902,27 @@ export function CostPage() {
                                                         <item.icon size={16} className="text-dailyveg-600" />
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-slate-900 dark:text-slate-100">{item.label}</div>
-                                                        <div className="text-sm text-slate-500 dark:text-slate-400">{paiseToRupees(item.value)}</div>
+                                                        <div className="font-medium text-slate-900 dark:text-slate-100">
+                                                            {item.label}
+                                                        </div>
+                                                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                                                            {paiseToRupees(item.value)}
+                                                        </div>
                                                     </div>
                                                 </div>
+
                                                 <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                                    {Number.isFinite(percent) ? `${percent}%` : "0%"}
+                                                    {percent}%
                                                 </div>
                                             </div>
+
                                             <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                                                 <div
                                                     className="h-full rounded-full bg-gradient-to-r from-dailyveg-500 to-emerald-500"
                                                     style={{ width: `${Math.min(percent, 100)}%` }}
                                                 />
                                             </div>
+
                                             {index === 0 ? (
                                                 <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                                                     Largest share of operational spend

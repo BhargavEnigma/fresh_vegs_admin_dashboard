@@ -208,6 +208,9 @@ function CreateTicketDialog({ open, onOpenChange, onCreated }) {
             description: payload.description || null,
             initial_message: payload.initial_message || null,
         }),
+        meta: {
+            globalLoaderMessage: "Creating support ticket...",
+        },
         onSuccess: async (data) => {
             const ticket = data.ticket;
             if (files.length && ticket?.id) {

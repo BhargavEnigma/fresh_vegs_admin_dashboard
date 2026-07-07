@@ -11,6 +11,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import Image from "../../assets/logo-light-trans.png";
 import ImageDark from "../../assets/logo-dark-trans.png";
+import { useGlobalLoader } from "../../components/common/global-loader-context";
 
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";
 
@@ -73,6 +74,7 @@ export function getAuthErrorMessage(error, phase) {
 export function LoginPage() {
   const logoSrc = useActiveThemeLogo();
   const { login, isAuthenticated } = useAuth();
+  const { withLoader } = useGlobalLoader();
   const navigate = useNavigate();
   const location = useLocation();
   const otpInputRef = React.useRef(null);
@@ -140,7 +142,7 @@ export function LoginPage() {
     setRequestError("");
 
     try {
-      const response = await sendOtp(values);
+      const response = await withLoader(sendOtp(values), "Checking access...");
       applyOtpResponse(response, values.phone);
     } catch (error) {
       setRequestError(getAuthErrorMessage(error, "send"));
@@ -151,7 +153,7 @@ export function LoginPage() {
     setRequestError("");
 
     try {
-      const response = await verifyOtp(values);
+      const response = await withLoader(verifyOtp(values), "Verifying code...");
       login(response);
       navigate(destination, { replace: true });
     } catch (error) {
@@ -170,7 +172,7 @@ export function LoginPage() {
     setRequestError("");
 
     try {
-      const response = await sendOtp({ phone });
+      const response = await withLoader(sendOtp({ phone }), "Resending code...");
       applyOtpResponse(response, phone);
     } catch (error) {
       setRequestError(getAuthErrorMessage(error, "send"));

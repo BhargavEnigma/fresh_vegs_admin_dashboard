@@ -133,6 +133,9 @@ export function AdminUsersPage() {
 
     const createMut = useMutation({
         mutationFn: (payload) => AdminUsersService.create(payload),
+        meta: {
+            globalLoaderMessage: "Creating admin user...",
+        },
         onSuccess: (data) => {
             setCreatedUser(data);
             toast.success("User created");
@@ -148,6 +151,9 @@ export function AdminUsersPage() {
     const setRolesMut = useMutation({
         mutationFn: ({ user_id, roles, warehouse_ids }) =>
             AdminUsersService.setRoles(user_id, roles, warehouse_ids),
+        meta: {
+            globalLoaderMessage: "Updating user roles...",
+        },
         onSuccess: () => {
             toast.success("Roles updated");
             listQuery.refetch();

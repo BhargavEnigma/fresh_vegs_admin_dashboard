@@ -23,6 +23,7 @@ import { Label } from "../../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { StatusBadge } from "../../../components/common/status-badge";
 import { useToast } from "../../../components/toast/toast-context";
+import { useGlobalLoader } from "../../../components/common/global-loader-context";
 
 import { OpsOrdersListPdf } from "./ops-orders-list-pdf";
 import { exportOrdersCsv } from "./ops-orders-export";
@@ -904,6 +905,7 @@ function OrderGridCard({
 
 export function OpsOrdersPage() {
     const toast = useToast();
+    const { withLoader } = useGlobalLoader();
     const qc = useQueryClient();
     const navigate = useNavigate();
     const { roles } = useAuth();
@@ -1016,6 +1018,9 @@ export function OpsOrdersPage() {
 
     const updateStatusMut = useMutation({
         mutationFn: ({ orderId, payload }) => OpsOrdersService.updateStatus(orderId, payload),
+        meta: {
+            globalLoaderMessage: "Updating order status...",
+        },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
@@ -1024,6 +1029,9 @@ export function OpsOrdersPage() {
 
     const assignDeliveryPartnerMut = useMutation({
         mutationFn: ({ orderId, payload }) => OpsOrdersService.assignDeliveryPartner(orderId, payload),
+        meta: {
+            globalLoaderMessage: "Assigning delivery partner...",
+        },
         onSuccess: () => {
             toast.success("Delivery partner assigned successfully");
             setAssignDialogOpen(false);
@@ -1039,6 +1047,9 @@ export function OpsOrdersPage() {
 
     const bulkAssignDeliveryPartnerMut = useMutation({
         mutationFn: (payload) => OpsOrdersService.bulkAssignDeliveryPartner(payload),
+        meta: {
+            globalLoaderMessage: "Bulk assigning delivery partners...",
+        },
         onSuccess: (data) => {
             toast.success(`${data?.assigned_count || selectedIds.length} orders assigned successfully`);
             setSelectedIds([]);
@@ -1053,6 +1064,9 @@ export function OpsOrdersPage() {
 
     const bulkUnassignDeliveryPartnerMut = useMutation({
         mutationFn: (payload) => OpsOrdersService.bulkUnassignDeliveryPartner(payload),
+        meta: {
+            globalLoaderMessage: "Bulk unassigning delivery partners...",
+        },
         onSuccess: (data) => {
             toast.success(`${data?.unassigned_count || selectedIds.length} orders unassigned successfully`);
             setSelectedIds([]);
@@ -1067,6 +1081,9 @@ export function OpsOrdersPage() {
 
     const unassignDeliveryPartnerMut = useMutation({
         mutationFn: ({ orderId, payload }) => OpsOrdersService.unassignDeliveryPartner(orderId, payload),
+        meta: {
+            globalLoaderMessage: "Removing delivery partner...",
+        },
         onSuccess: () => {
             toast.success("Delivery partner removed successfully");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
@@ -1084,6 +1101,9 @@ export function OpsOrdersPage() {
                 toStatus: toStatus,
                 note,
             }),
+        meta: {
+            globalLoaderMessage: "Bulk updating orders status...",
+        },
         onSuccess: () => {
             toast.success("Bulk update completed");
             setSelectedIds([]);
@@ -1097,6 +1117,9 @@ export function OpsOrdersPage() {
 
     const lockOrdersMut = useMutation({
         mutationFn: () => OpsJobsService.lockOrders({ delivery_date: filters.delivery_date }),
+        meta: {
+            globalLoaderMessage: "Locking orders...",
+        },
         onSuccess: () => {
             toast.success("Lock job executed successfully");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
@@ -1222,14 +1245,17 @@ export function OpsOrdersPage() {
 
     async function handleExportAllCsv() {
         try {
-            const { blob, filename } = await OpsOrdersService.exportAllCsv({
-                warehouse_id: filters.warehouse_id,
-                delivery_partner_user_id: filters.delivery_partner_user_id,
-                delivery_date: filters.delivery_date,
-                q: filters.q,
-                status: queueToStatusFilter(queue),
-                isOrderAssigned: queueToAssignedFilter(queue),
-            });
+            const { blob, filename } = await withLoader(
+                OpsOrdersService.exportAllCsv({
+                    warehouse_id: filters.warehouse_id,
+                    delivery_partner_user_id: filters.delivery_partner_user_id,
+                    delivery_date: filters.delivery_date,
+                    q: filters.q,
+                    status: queueToStatusFilter(queue),
+                    isOrderAssigned: queueToAssignedFilter(queue),
+                }),
+                "Exporting CSV..."
+            );
 
             downloadBlob(blob, filename);
         } catch (e) {

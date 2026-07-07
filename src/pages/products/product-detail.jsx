@@ -27,6 +27,9 @@ export function ProductDetailPage() {
 
   const mutation = useMutation({
     mutationFn: ({ id, is_active }) => setProductActive(id, is_active),
+    meta: {
+      globalLoaderMessage: "Updating product status...",
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["product", productId] });

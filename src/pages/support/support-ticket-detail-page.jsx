@@ -63,8 +63,9 @@ export function SupportTicketDetailPage() {
         queryClient.invalidateQueries({ queryKey: ["support"] });
     }
 
-    const simpleMutation = (fn, success) => useMutation({
+    const simpleMutation = (fn, success, loaderMessage) => useMutation({
         mutationFn: fn,
+        meta: loaderMessage ? { globalLoaderMessage: loaderMessage } : undefined,
         onSuccess: () => {
             toast.success(success);
             invalidate();
@@ -72,30 +73,30 @@ export function SupportTicketDetailPage() {
         onError: (error) => toast.error("Support action failed", apiError(error)),
     });
 
-    const assignMe = simpleMutation(() => SupportService.assignTicket(ticketId, { assign_to_me: true }), "Ticket assigned");
-    const addMessage = simpleMutation(() => SupportService.addMessage(ticketId, { message, channel }), "Message recorded");
-    const addNote = simpleMutation(() => SupportService.addInternalNote(ticketId, { message: note, channel: "admin_panel" }), "Internal note added");
+    const assignMe = simpleMutation(() => SupportService.assignTicket(ticketId, { assign_to_me: true }), "Ticket assigned", "Assigning ticket...");
+    const addMessage = simpleMutation(() => SupportService.addMessage(ticketId, { message, channel }), "Message recorded", "Saving reply...");
+    const addNote = simpleMutation(() => SupportService.addInternalNote(ticketId, { message: note, channel: "admin_panel" }), "Internal note added", "Adding internal note...");
     const updateStatus = simpleMutation(() => SupportService.updateStatus(ticketId, {
         status: lifecycle.status,
         reason: lifecycle.reason || null,
         resolution_code: lifecycle.status === "resolved" ? lifecycle.resolution_code : null,
         resolution_summary: lifecycle.status === "resolved" ? lifecycle.resolution_summary : null,
-    }), "Status updated");
-    const updatePriority = simpleMutation(() => SupportService.updatePriority(ticketId, { priority: lifecycle.priority, reason: lifecycle.reason || null }), "Priority updated");
-    const escalate = simpleMutation(() => SupportService.escalate(ticketId, escalation), "Ticket escalated");
+    }), "Status updated", "Updating ticket status...");
+    const updatePriority = simpleMutation(() => SupportService.updatePriority(ticketId, { priority: lifecycle.priority, reason: lifecycle.reason || null }), "Priority updated", "Updating ticket priority...");
+    const escalate = simpleMutation(() => SupportService.escalate(ticketId, escalation), "Ticket escalated", "Escalating ticket...");
     const resolve = simpleMutation(() => SupportService.resolve(ticketId, {
         resolution_code: lifecycle.resolution_code,
         resolution_summary: lifecycle.resolution_summary,
-    }), "Ticket resolved");
-    const close = simpleMutation(() => SupportService.close(ticketId, { reason: lifecycle.reason || null }), "Ticket closed");
-    const reopen = simpleMutation(() => SupportService.reopen(ticketId, { reason: lifecycle.reason }), "Ticket reopened");
+    }), "Ticket resolved", "Resolving ticket...");
+    const close = simpleMutation(() => SupportService.close(ticketId, { reason: lifecycle.reason || null }), "Ticket closed", "Closing ticket...");
+    const reopen = simpleMutation(() => SupportService.reopen(ticketId, { reason: lifecycle.reason }), "Ticket reopened", "Reopening ticket...");
     const requestAction = simpleMutation(() => SupportService.createActionRequest(ticketId, {
         action_type: actionPayload.action_type,
         reason: actionPayload.reason,
         requested_payload: parseJson(actionPayload.requested_payload),
         idempotency_key: crypto.randomUUID(),
-    }), "Action request created");
-    const upload = simpleMutation(() => SupportService.uploadAttachments(ticketId, { files, attachment_type: attachmentType }), "Attachments uploaded");
+    }), "Action request created", "Creating action request...");
+    const upload = simpleMutation(() => SupportService.uploadAttachments(ticketId, { files, attachment_type: attachmentType }), "Attachments uploaded", "Uploading attachment...");
 
     const data = detailQuery.data || {};
     const ticket = data.ticket || {};
@@ -293,6 +294,9 @@ function ActionRequestRow({ request, manager }) {
             if (action === "approve") return SupportService.approveActionRequest(request.id, { reason: reason || null });
             if (action === "reject") return SupportService.rejectActionRequest(request.id, { reason });
             return SupportService.executeActionRequest(request.id);
+        },
+        meta: {
+            globalLoaderMessage: "Processing action request...",
         },
         onSuccess: () => {
             toast.success("Action request updated");

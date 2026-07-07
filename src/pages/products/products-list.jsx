@@ -253,6 +253,9 @@ export function ProductsListPage() {
 
   const activeMut = useMutation({
     mutationFn: ({ productId, is_active }) => setProductActive(productId, is_active),
+    meta: {
+      globalLoaderMessage: "Updating product status...",
+    },
     onSuccess: (_, variables) => {
       toast.success(
         variables.is_active ? "Product activated" : "Product inactivated"

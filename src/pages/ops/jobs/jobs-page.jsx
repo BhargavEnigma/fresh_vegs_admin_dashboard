@@ -230,6 +230,9 @@ export function OpsJobsPage() {
             // backend validates delivery_date, so we send it always
             return OpsJobsService.lockOrders({ delivery_date: runDate });
         },
+        meta: {
+            globalLoaderMessage: "Executing lock orders job...",
+        },
         onSuccess: (data) => {
             setResult(data?.data || data);
             toast.success("Lock orders job executed");
@@ -250,6 +253,9 @@ export function OpsJobsPage() {
                 days_ahead: daysAheadInt,
             };
             return OpsJobsService.updateLockOrdersSchedule(payload);
+        },
+        meta: {
+            globalLoaderMessage: "Saving schedule config...",
         },
         onSuccess: () => {
             toast.success("Scheduler updated & applied");

@@ -86,14 +86,23 @@ export function NotificationForm({ campaign, mode = "create" }) {
             }
             return AdminNotificationsService.create(payload);
         },
+        meta: {
+            globalLoaderMessage: "Saving campaign...",
+        },
     });
 
     const sendMut = useMutation({
         mutationFn: (id) => AdminNotificationsService.send(id),
+        meta: {
+            globalLoaderMessage: "Sending notification...",
+        },
     });
 
     const testMut = useMutation({
         mutationFn: ({ id, userId }) => AdminNotificationsService.test(id, { user_id: userId }),
+        meta: {
+            globalLoaderMessage: "Testing notification...",
+        },
     });
 
     function apiError(error) {

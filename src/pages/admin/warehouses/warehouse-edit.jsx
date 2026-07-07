@@ -21,6 +21,9 @@ export function WarehouseEditPage() {
 
     const updateMut = useMutation({
         mutationFn: (payload) => WarehousesService.update(id, payload),
+        meta: {
+            globalLoaderMessage: "Saving warehouse...",
+        },
         onSuccess: () => {
             toast.success("Warehouse updated");
             qc.invalidateQueries({ queryKey: ["warehouse", id] });

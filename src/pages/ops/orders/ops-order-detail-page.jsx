@@ -137,6 +137,9 @@ export function OpsOrderDetailPage() {
 
     const refundMut = useMutation({
         mutationFn: () => AdminOrdersService.initiateRefund(orderId, refundReason),
+        meta: {
+            globalLoaderMessage: "Refunding order...",
+        },
         onSuccess: () => {
             toast.push({
                 variant: "success",
@@ -162,6 +165,9 @@ export function OpsOrderDetailPage() {
             to_status: "cancelled",
             note: cancelReason || null,
         }),
+        meta: {
+            globalLoaderMessage: "Cancelling order...",
+        },
         onSuccess: () => {
             toast.push({
                 variant: "success",
