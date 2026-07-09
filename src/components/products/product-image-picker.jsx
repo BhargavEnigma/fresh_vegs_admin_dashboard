@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../ui/button";
+import { ImageSizeInfo } from "../common/image-size-info";
 
 function createPreview(file) {
   return URL.createObjectURL(file);
@@ -97,8 +98,9 @@ export function ProductImagePicker({ value = [], onChange, maxFiles = 10, accept
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {items.map((x, idx) => (
             <div key={`${x.file.name}-${idx}`} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-              <div className="aspect-square bg-slate-50 dark:bg-slate-900">
+              <div className="aspect-square bg-slate-50 dark:bg-slate-900 relative">
                 <img src={x.preview} alt={x.file.name} className="h-full w-full object-cover" />
+                <ImageSizeInfo file={x.file} src={x.preview} />
               </div>
               <div className="p-2">
                 <div className="mb-2 truncate text-xs" title={x.file.name}>

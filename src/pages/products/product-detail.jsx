@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../../components/common/confirm-dialog";
 import { useToast } from "../../components/toast/toast-context";
 import { assetUrl } from "../../lib/utils";
 import { ProductPacksManager } from "../../components/products/product-packs-manager";
+import { ImageSizeInfo } from "../../components/common/image-size-info";
 
 export function ProductDetailPage() {
   const { productId } = useParams();
@@ -92,7 +93,7 @@ export function ProductDetailPage() {
                         href={assetUrl(img.image_url)}
                         target="_blank"
                         rel="noreferrer"
-                        className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800"
+                        className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 group"
                       >
                         <div className="aspect-square bg-slate-50 dark:bg-slate-900">
                           <img
@@ -102,6 +103,7 @@ export function ProductDetailPage() {
                             loading="lazy"
                           />
                         </div>
+                        <ImageSizeInfo src={assetUrl(img.image_url)} />
                       </a>
                     ))}
                   </div>

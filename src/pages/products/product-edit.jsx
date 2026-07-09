@@ -22,6 +22,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { PremiumSelect } from "../../components/ui/premium-select";
 import { generateProductDescription } from "../../api/services/ai.service";
 import { RiGeminiFill } from "react-icons/ri";
+import { ImageSizeInfo } from "../../components/common/image-size-info";
 
 function paiseToRupees(paise) {
     return Number(paise || 0) / 100;
@@ -484,12 +485,13 @@ export function ProductEditPage() {
                                                     key={img.id}
                                                     className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800"
                                                 >
-                                                    <div className="aspect-square bg-slate-50 dark:bg-slate-900">
+                                                    <div className="aspect-square bg-slate-50 dark:bg-slate-900 relative">
                                                         <img
                                                             src={assetUrl(img.image_url)}
                                                             alt={p?.name || "Product"}
                                                             className="h-full w-full object-cover"
                                                         />
+                                                        <ImageSizeInfo src={assetUrl(img.image_url)} />
                                                     </div>
 
                                                     <div className="p-2 space-y-2">
