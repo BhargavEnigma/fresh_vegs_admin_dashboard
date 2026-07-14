@@ -1,5 +1,6 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -76,7 +77,7 @@ export function OpsOrdersListPdf({ orders, filters }) {
                         <View key={o.id} style={styles.tr}>
                             <Text style={[styles.cell, styles.cOrder]}>{o.order_number || o.id}</Text>
                             <Text style={[styles.cell, styles.cStatus]}>{o.status || "—"}</Text>
-                            <Text style={[styles.cell, styles.cDate]}>{o.delivery_date || "—"}</Text>
+                            <Text style={[styles.cell, styles.cDate]}>{formatIndianDateTime(o.delivery_date)}</Text>
 
                             <Text style={[styles.cell, styles.cCustomer]}>
                                 {(o.user?.full_name || "—") + (o.user?.phone ? ` (${o.user.phone})` : "")}

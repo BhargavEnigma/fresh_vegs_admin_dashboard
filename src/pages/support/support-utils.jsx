@@ -1,4 +1,6 @@
 import { Badge } from "../../components/ui/badge";
+import { formatIndianDateTime } from "../../utils/date-formatter";
+
 
 export function labelize(value) {
     if (value === null || value === undefined || value === "") return "—";
@@ -9,10 +11,7 @@ export function labelize(value) {
 }
 
 export function formatDate(value) {
-    if (!value) return "—";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleString();
+    return formatIndianDateTime(value);
 }
 
 export function money(paise) {

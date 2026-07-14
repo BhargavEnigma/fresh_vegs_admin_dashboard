@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../utils/date-formatter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -73,35 +74,11 @@ function addDaysYyyyMmDd(yyyyMmDd, days) {
 }
 
 function formatDateLabel(value) {
-    if (!value) return "—";
-
-    const [y, m, d] = String(value).split("-").map(Number);
-    if (!y || !m || !d) return value;
-
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return new Intl.DateTimeFormat("en-IN", {
-        timeZone: "Asia/Kolkata",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    }).format(dt);
+    return formatIndianDateTime(value);
 }
 
 function formatDateTimeIst(value) {
-    if (!value) return "—";
-
-    const dt = new Date(value);
-    if (Number.isNaN(dt.getTime())) return "—";
-
-    return new Intl.DateTimeFormat("en-IN", {
-        timeZone: "Asia/Kolkata",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-    }).format(dt);
+    return formatIndianDateTime(value);
 }
 
 function getApiErrorMessage(error) {
@@ -418,7 +395,7 @@ export function DashboardPage() {
                             onChange={(date) =>
                                 setSelectedDate(date ? todayIstYyyyMmDd(date) : null)
                             }
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             placeholderText="Select date"
                             id="dashboard-date"
                             className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500/35 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400"

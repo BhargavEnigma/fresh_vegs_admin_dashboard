@@ -1,4 +1,5 @@
 import * as React from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AdminDealsService } from "../../../api/services/admin-deals.service";
@@ -17,15 +18,11 @@ import { PremiumSelect } from "../../../components/ui/premium-select";
 import DatePicker from "react-datepicker";
 
 function formatDateOnly(value) {
-    if (!value) return "—";
-    return String(value);
+    return formatIndianDateTime(value);
 }
 
 function formatDateTime(value) {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleString();
+    return formatIndianDateTime(value);
 }
 
 function DealMobileCard({ deal, onItems, onEdit, onDelete }) {
@@ -272,7 +269,7 @@ export function AdminDealsPage() {
                                     from: selectedDate ? formatDate(selectedDate) : "",
                                 }))
                             }
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             placeholderText="Select from date"
                             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-dailyveg-900 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             wrapperClassName="w-full"
@@ -290,7 +287,7 @@ export function AdminDealsPage() {
                                     to: selectedDate ? formatDate(selectedDate) : "",
                                 }))
                             }
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             placeholderText="Select to date"
                             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-dailyveg-900 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             wrapperClassName="w-full"

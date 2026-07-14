@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { Eye, LayoutGrid, Table2, Truck, UserPlus } from "lucide-react";
+import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -108,8 +109,69 @@ function isExceptionOrder(order) {
         paymentStatus === "verification_pending" ||
         paymentStatus === "refund_failed" ||
         refundStatus === "refund_failed" ||
-        (status === "cancelled" && paymentStatus === "paid")
+        (status === "cancelled" && paymentStatus === "paid") ||
+        status === "delivery_failed" ||
+        (status === "delivered" && paymentStatus !== "paid")
     );
+}
+
+function getQueueBadgeProps(q) {
+    switch (q) {
+        case "all":
+            return {
+                text: "All orders for this date",
+                className: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/50 dark:text-slate-300 dark:border-slate-800",
+                icon: LayoutGrid,
+            };
+        case "before_lock":
+            return {
+                text: "Draft Stage: showing placed/confirmed orders that are not yet locked",
+                className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50",
+                icon: Clock,
+            };
+        case "locked":
+            return {
+                text: "Locked Stage: finalized procurement demand",
+                className: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50",
+                icon: CheckCircle2,
+            };
+        case "to_pack":
+            return {
+                text: "To Pack: ready for warehouse packing and prep",
+                className: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-300 dark:border-indigo-900/50",
+                icon: Package,
+            };
+        case "packed":
+            return {
+                text: "Packed Stage: boxes ready at the warehouse loading dock",
+                className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50",
+                icon: Box,
+            };
+        case "out_for_delivery":
+            return {
+                text: "In Transit: orders currently dispatched with riders",
+                className: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/20 dark:text-cyan-300 dark:border-cyan-900/50",
+                icon: Truck,
+            };
+        case "delivered":
+            return {
+                text: "Delivered: completed orders successfully received by customers",
+                className: "bg-dailyveg-50 text-dailyveg-700 border-dailyveg-200 dark:bg-dailyveg-950/20 dark:text-dailyveg-300 dark:border-dailyveg-900/50",
+                icon: CheckCircle2,
+            };
+        case "exceptions":
+            return {
+                text: "Exceptions: unresolved payment errors, unpaid delivered orders, or failed deliveries",
+                className: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/25 dark:text-rose-300 dark:border-rose-900/50",
+                icon: AlertTriangle,
+            };
+        default:
+            return {
+                text: "",
+                className: "",
+                icon: null,
+            };
+    }
 }
 
 function matchesQueue(order, queueKey) {
@@ -292,7 +354,7 @@ function Filters({ value, onApply, deliveryPartners }) {
                     <DatePicker
                         selected={form.watch("delivery_date")}
                         onChange={(date) => form.setValue("delivery_date", date, { shouldValidate: true })}
-                        dateFormat="yyyy-MM-dd"
+                        dateFormat="dd-MM-yyyy"
                         placeholderText="Select delivery date"
                         className="flex h-9 sm:h-10 w-full rounded-md border border-slate-200 bg-white px-2.5 sm:px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                         isClearable
@@ -465,7 +527,7 @@ function OrderPreviewDialog({
 
                         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
                             <div className="text-xs text-slate-500">Delivery</div>
-                            <div className="mt-1 font-medium">{order.delivery_date || "—"}</div>
+                            <div className="mt-1 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
                             <div className="text-slate-500 dark:text-slate-400">{getOrderArea(order)}</div>
                         </div>
                     </div>
@@ -566,7 +628,7 @@ function AssignDeliveryPartnerDialog({
                             {getCustomerName(order)} · {getCustomerPhone(order)}
                         </div>
                         <div className="mt-1 text-slate-500 dark:text-slate-400">
-                            Delivery Date: {order.delivery_date || "—"} · Area: {getOrderArea(order)}
+                            Delivery Date: {formatIndianDateTime(order.delivery_date)} · Area: {getOrderArea(order)}
                         </div>
                     </div>
 
@@ -657,7 +719,7 @@ function MobileOrderCard({
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
                     <div className="text-xs text-slate-500">Delivery</div>
-                    <div className="mt-1 font-medium">{order.delivery_date || "—"}</div>
+                    <div className="mt-1 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
                     <div className="text-xs text-slate-500">{getOrderArea(order)}</div>
                 </div>
 
@@ -816,7 +878,7 @@ function OrderGridCard({
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/70">
                         <div className="text-[11px] font-medium uppercase text-slate-500">Delivery</div>
                         <div className="mt-1 font-semibold text-slate-900 dark:text-slate-100">
-                            {order.delivery_date || "—"}
+                            {formatIndianDateTime(order.delivery_date)}
                         </div>
                         <div className="truncate text-xs text-slate-500">{getOrderArea(order)}</div>
                     </div>
@@ -909,10 +971,14 @@ export function OpsOrdersPage() {
     const qc = useQueryClient();
     const navigate = useNavigate();
     const { roles } = useAuth();
+    const [searchParams] = useSearchParams();
 
     const isAdmin = roles.includes("admin");
 
-    const [queue, setQueue] = useState("all");
+    const paramDate = searchParams.get("delivery_date");
+    const paramQueue = searchParams.get("queue");
+
+    const [queue, setQueue] = useState(paramQueue || "all");
     const [previewOrder, setPreviewOrder] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -926,9 +992,20 @@ export function OpsOrdersPage() {
         limit: 20,
         warehouse_id: "",
         delivery_partner_user_id: "",
-        delivery_date: toYyyyMmDd(tomorrowDate()),
+        delivery_date: paramDate || toYyyyMmDd(tomorrowDate()),
         q: "",
     });
+
+    useEffect(() => {
+        const d = searchParams.get("delivery_date");
+        const q = searchParams.get("queue");
+        if (d && d !== filters.delivery_date) {
+            setFilters((prev) => ({ ...prev, delivery_date: d, page: 1 }));
+        }
+        if (q && q !== queue) {
+            setQueue(q);
+        }
+    }, [searchParams]);
 
     const [bulkActionDialog, setBulkActionDialog] = useState({
         open: false,
@@ -1024,6 +1101,7 @@ export function OpsOrdersPage() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
     });
 
@@ -1039,6 +1117,7 @@ export function OpsOrdersPage() {
             setSelectedPartnerId("");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Failed to assign delivery partner");
@@ -1056,6 +1135,7 @@ export function OpsOrdersPage() {
             setBulkPartnerId("");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Bulk delivery partner assignment failed");
@@ -1073,6 +1153,7 @@ export function OpsOrdersPage() {
             setBulkPartnerId("");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Bulk delivery partner assignment failed");
@@ -1088,6 +1169,7 @@ export function OpsOrdersPage() {
             toast.success("Delivery partner removed successfully");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Failed to unassign delivery partner");
@@ -1109,6 +1191,7 @@ export function OpsOrdersPage() {
             setSelectedIds([]);
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Bulk update failed");
@@ -1124,6 +1207,7 @@ export function OpsOrdersPage() {
             toast.success("Lock job executed successfully");
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Failed to run lock job");
@@ -1227,8 +1311,6 @@ export function OpsOrdersPage() {
     function confirmBulkAction() {
         if (!bulkActionDialog.toStatus) return;
 
-        console.log("bulkActionDialog : ", bulkActionDialog.toStatus);
-
         bulkUpdateMut.mutate({
             orderIds: selectedIds,
             toStatus: bulkActionDialog.toStatus,
@@ -1240,8 +1322,6 @@ export function OpsOrdersPage() {
             toStatus: null,
         });
     }
-
-    console.log("selectedIds : ", selectedIds);
 
     async function handleExportAllCsv() {
         try {
@@ -1422,6 +1502,9 @@ export function OpsOrdersPage() {
         cancelled: "Cancelled",
         refunded: "Refunded",
     };
+
+    const badgeProps = useMemo(() => getQueueBadgeProps(queue), [queue]);
+    const BadgeIcon = badgeProps.icon;
 
     return (
         <div className="min-w-0">
@@ -1615,8 +1698,20 @@ export function OpsOrdersPage() {
                             Bulk Delivered
                         </Button>
 
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                            Selected: {selectedIds.length}
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">Selected: {selectedIds.length}</span>
+                            {badgeProps.text ? (
+                                <>
+                                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                                    <div className={cn(
+                                        "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium shadow-sm transition-all duration-300 hover:shadow-md",
+                                        badgeProps.className
+                                    )}>
+                                        {BadgeIcon ? <BadgeIcon className="h-3.5 w-3.5 shrink-0" /> : null}
+                                        <span>{badgeProps.text}</span>
+                                    </div>
+                                </>
+                            ) : null}
                         </div>
                         {/* </div> */}
 

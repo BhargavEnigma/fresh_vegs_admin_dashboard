@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useQuery } from "@tanstack/react-query";
 
 import { WarehousesService } from "../../../api/services/warehouses.service";
@@ -72,8 +73,8 @@ export function WarehouseDetailPage() {
                             <InfoItem label="State" value={w?.state} />
                             <InfoItem label="Latitude" value={w?.lat} />
                             <InfoItem label="Longitude" value={w?.lng} />
-                            <InfoItem label="Created At" value={w?.created_at} />
-                            <InfoItem label="Updated At" value={w?.updated_at} />
+                            <InfoItem label="Created At" value={formatIndianDateTime(w?.created_at)} />
+                            <InfoItem label="Updated At" value={formatIndianDateTime(w?.updated_at)} />
 
                             <div className="sm:col-span-2 lg:col-span-3">
                                 <p className="text-xs text-slate-500">Address</p>

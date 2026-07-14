@@ -1,4 +1,5 @@
 import * as React from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AdminBannersService } from "../../../api/services/admin-banners.service";
@@ -15,10 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../compo
 import { BannerForm } from "./banner-form";
 
 function formatDate(value) {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString();
+    return formatIndianDateTime(value);
 }
 
 function BannerMobileCard({ banner, onMove, onEdit, onToggleActive, onDelete, isReordering }) {

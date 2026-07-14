@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -313,7 +314,7 @@ export function AdminUsersPage() {
                                         </div>
                                     </td>
                                     <td className="px-3 py-2">
-                                        {u.created_at ? new Date(u.created_at).toLocaleString() : "—"}
+                                        {formatIndianDateTime(u.created_at)}
                                     </td>
                                     <td className="px-3 py-2 text-right">
                                         <Button

@@ -1,4 +1,6 @@
 import React from "react";
+import { formatIndianDateTime, formatOrderStatusDateTime } from "../../../utils/date-formatter";
+import { getOrderStatusLabel, getOrderStatusSourceLabel } from "../../../utils/order-status-timeline";
 import {
     Document,
     Page,
@@ -39,6 +41,7 @@ const styles = StyleSheet.create({
 
 export function OpsOrderPdf({ order }) {
     const items = order?.items || [];
+    const timeline = order?.status_timeline || [];
 
     return (
         <Document>
@@ -50,7 +53,7 @@ export function OpsOrderPdf({ order }) {
                     </View>
                     <View>
                         <Text>Order: {order?.order_number || order?.id}</Text>
-                        <Text>Date: {order?.created_at || "—"}</Text>
+                        <Text>Date: {formatIndianDateTime(order?.created_at)}</Text>
                     </View>
                 </View>
 
@@ -58,8 +61,8 @@ export function OpsOrderPdf({ order }) {
                     <Text style={styles.sectionTitle}>Order Summary</Text>
                     <View style={styles.row}>
                         <View style={styles.col}>
-                            <Text style={styles.kv}><Text style={styles.kvLabel}>Status: </Text>{order?.status || "—"}</Text>
-                            <Text style={styles.kv}><Text style={styles.kvLabel}>Delivery Date: </Text>{order?.delivery_date || "—"}</Text>
+                            <Text style={styles.kv}><Text style={styles.kvLabel}>Status: </Text>{getOrderStatusLabel(order?.status)}</Text>
+                            <Text style={styles.kv}><Text style={styles.kvLabel}>Delivery Date: </Text>{formatIndianDateTime(order?.delivery_date)}</Text>
                             <Text style={styles.kv}><Text style={styles.kvLabel}>Warehouse: </Text>{order?.warehouse?.name || "—"}</Text>
                         </View>
                         <View style={styles.col}>
@@ -114,6 +117,38 @@ export function OpsOrderPdf({ order }) {
                             </Text>
                         </View>
                     </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Order Status Timeline</Text>
+                    {timeline && timeline.length > 0 ? (
+                        <View style={styles.table}>
+                            <View style={[styles.tr, styles.th]}>
+                                <Text style={{ flex: 2, fontWeight: 700 }}>Status</Text>
+                                <Text style={{ flex: 3, fontWeight: 700 }}>Date & Time (IST)</Text>
+                                <Text style={{ flex: 3, fontWeight: 700 }}>Updated By</Text>
+                            </View>
+                            {timeline.map((item, idx) => {
+                                const actorText = item.actor?.full_name 
+                                    ? item.actor.full_name 
+                                    : item.source === "scheduler" 
+                                    ? "Scheduler" 
+                                    : item.source === "payment" 
+                                    ? "Payment system" 
+                                    : getOrderStatusSourceLabel(item.source);
+
+                                return (
+                                    <View key={item.id || idx} style={styles.tr} wrap={false}>
+                                        <Text style={{ flex: 2 }}>{getOrderStatusLabel(item.status)}</Text>
+                                        <Text style={{ flex: 3 }}>{formatOrderStatusDateTime(item.occurred_at)}</Text>
+                                        <Text style={{ flex: 3 }}>{actorText}</Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    ) : (
+                        <Text style={styles.muted}>Status timeline unavailable for this order.</Text>
+                    )}
                 </View>
 
                 <View style={styles.section}>

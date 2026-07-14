@@ -5,7 +5,12 @@ import { SupportService } from "../../api/services/support.service";
 import { PageHeader } from "../../components/common/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import { Skeleton } from "../../components/ui/skeleton";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import { formatDate, labelize, money } from "./support-utils";
+import { OrderStatusTimeline } from "../../components/orders/order-status-timeline";
+import { formatOrderStatusDateTime } from "../../utils/date-formatter";
+import { cn } from "../../lib/utils";
 
 export function SupportOrderContextPage() {
     const { orderId } = useParams();
@@ -14,14 +19,80 @@ export function SupportOrderContextPage() {
         queryFn: () => SupportService.orderContext(orderId),
     });
 
-    if (query.isLoading) return <Card className="p-6">Loading order context…</Card>;
-    if (query.isError) return <Card className="p-6 text-red-600">Unable to load order context.</Card>;
+    if (query.isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-72" />
+                </div>
+                <div className="grid gap-5 lg:grid-cols-3">
+                    <Card className="p-4"><Skeleton className="h-24 w-full" /></Card>
+                    <Card className="p-4"><Skeleton className="h-24 w-full" /></Card>
+                    <Card className="p-4"><Skeleton className="h-24 w-full" /></Card>
+                </div>
+                <Card className="p-4"><Skeleton className="h-40 w-full" /></Card>
+            </div>
+        );
+    }
+
+    if (query.isError) {
+        return (
+            <div className="space-y-6">
+                <PageHeader
+                    title="Order Context"
+                    subtitle="Error loading order context"
+                    actions={
+                        <Button onClick={() => query.refetch()} disabled={query.isRefetching}>
+                            {query.isRefetching ? "Retrying..." : "Retry"}
+                        </Button>
+                    }
+                />
+                <Card className="p-6 border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20 text-center flex flex-col items-center">
+                    <AlertTriangle className="h-12 w-12 text-red-650 dark:text-red-400 mb-2" aria-hidden="true" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        Unable to load order context.
+                    </h3>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Please try again or contact administration if the problem persists.
+                    </p>
+                </Card>
+            </div>
+        );
+    }
 
     const order = query.data?.order || {};
 
     return (
         <div>
-            <PageHeader title={order.order_number || "Order Context"} subtitle={`${labelize(order.status)} • ${labelize(order.payment_status)} • ${money(order.totals?.grand_total_paise)}`} />
+            <PageHeader
+                title={order.order_number || "Order Context"}
+                subtitle={
+                    <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm font-semibold text-slate-950 dark:text-slate-50">
+                            <span>{labelize(order.status)}</span>
+                            <span className="text-slate-455">•</span>
+                            <span className="font-normal text-slate-500">Last changed: {order.current_status_at ? formatOrderStatusDateTime(order.current_status_at) : "Time unavailable"}</span>
+                        </div>
+                        <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            Payment: {labelize(order.payment_status)} • Total: {money(order.totals?.grand_total_paise)}
+                        </div>
+                    </div>
+                }
+                actions={
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => query.refetch()}
+                        disabled={query.isRefetching}
+                        className="gap-2"
+                    >
+                        <RefreshCw className={cn("h-3.5 w-3.5", query.isRefetching && "animate-spin")} />
+                        Refresh
+                    </Button>
+                }
+            />
+            
             <div className="grid gap-5 lg:grid-cols-3">
                 <Panel title="Order">
                     <Line label="Delivery Date" value={order.delivery_date || "—"} />
@@ -41,6 +112,16 @@ export function SupportOrderContextPage() {
                     <div className="text-sm">{[order.delivery_address?.address_line1, order.delivery_address?.address_line2, order.delivery_address?.area, order.delivery_address?.city, order.delivery_address?.pincode].filter(Boolean).join(", ") || "—"}</div>
                 </Panel>
             </div>
+
+            <div className="mt-5">
+                <OrderStatusTimeline
+                    items={order.status_timeline}
+                    currentStatus={order.status}
+                    currentStatusAt={order.current_status_at}
+                    isLoading={query.isLoading}
+                />
+            </div>
+
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
                 <Panel title="Items">{(order.items || []).map((item) => <Line key={item.id} label={item.product_name || item.name || item.id} value={`${item.quantity || "—"} • ${money(item.line_total_paise || item.total_paise)}`} />)}</Panel>
                 <Panel title="Payments">{(order.payments || []).map((payment) => <Line key={payment.id} label={labelize(payment.status)} value={`${money(payment.amount_paise)} • ${payment.provider_payment_id || "—"}`} />)}</Panel>
@@ -58,3 +139,4 @@ function Panel({ title, children }) {
 function Line({ label, value }) {
     return <div className="flex justify-between gap-4 text-sm"><span className="text-slate-500">{label}</span><span className="text-right font-medium">{value || "—"}</span></div>;
 }
+

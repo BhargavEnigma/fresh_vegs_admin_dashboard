@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { SettingsAdminService } from "../../../api/services/settings-admin.service";
@@ -55,8 +56,7 @@ export function AdminSettingsPage() {
                 id: "updated_at",
                 header: "Updated",
                 cell: ({ row }) => {
-                    const v = row.original.updated_at;
-                    return <span className="text-sm text-slate-600">{v ? new Date(v).toLocaleString() : "—"}</span>;
+                    return <span className="text-sm text-slate-600">{formatIndianDateTime(v)}</span>;
                 },
             },
             {

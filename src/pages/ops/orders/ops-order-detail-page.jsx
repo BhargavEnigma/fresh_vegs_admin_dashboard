@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { formatIndianDateTime, formatOrderStatusDateTime } from "../../../utils/date-formatter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../auth/auth-context";
 import { useToast } from "../../../components/toast/toast-context";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
@@ -7,6 +8,7 @@ import { Input } from "../../../components/ui/input";
 import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { Link, useParams } from "react-router-dom";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 
 import { PageHeader } from "../../../components/common/page-header";
 import { Card } from "../../../components/ui/card";
@@ -16,6 +18,10 @@ import { StatusBadge } from "../../../components/common/status-badge";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { OpsOrderPdf } from "./ops-order-pdf";
 import { Label } from "../../../components/ui/label";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { OrderStatusTimeline } from "../../../components/orders/order-status-timeline";
+import { getOrderStatusLabel } from "../../../utils/order-status-timeline";
+import { cn } from "../../../lib/utils";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -38,6 +44,21 @@ function money(paise) {
  * @property {boolean} [retry_allowed]
  * @property {Array<any>} [payment_attempts]
  * @property {Array<RefundRecord>} [refunds]
+ */
+/**
+ * @typedef {Object} OrderStatusActor
+ * @property {string|null} [id]
+ * @property {string|null} [full_name]
+ */
+/**
+ * @typedef {Object} OrderStatusTimelineItem
+ * @property {string|null} [id]
+ * @property {string|null} [from_status]
+ * @property {string} [status]
+ * @property {string|null} [occurred_at]
+ * @property {string} [source]
+ * @property {string|null} [note]
+ * @property {OrderStatusActor|null} [actor]
  */
 /**
  * @typedef {Object} Order
@@ -63,6 +84,9 @@ function money(paise) {
  * @property {boolean} [is_locked]
  * @property {string} [created_at]
  * @property {string} [updated_at]
+ * @property {string|null} [current_status_at]
+ * @property {Array<OrderStatusTimelineItem>} [status_timeline]
+ * @property {Array<any>} [status_events]
  */
 
 function pickFirstImageUrl(item) {
@@ -122,6 +146,7 @@ export function OpsOrderDetailPage() {
 
     const { roles } = useAuth();
     const toast = useToast();
+    const qc = useQueryClient();
     const isAdmin = roles.includes("admin");
 
     const [refundOpen, setRefundOpen] = useState(false);
@@ -148,8 +173,9 @@ export function OpsOrderDetailPage() {
             });
             setRefundOpen(false);
             setRefundReason("");
+            qc.invalidateQueries({ queryKey: ["opsOrder", orderId] });
             paymentAuditQuery.refetch();
-            query.refetch();
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             const msg = getApiErrorMessage(e);
@@ -176,8 +202,9 @@ export function OpsOrderDetailPage() {
             });
             setCancelOpen(false);
             setCancelReason("");
+            qc.invalidateQueries({ queryKey: ["opsOrder", orderId] });
             paymentAuditQuery.refetch();
-            query.refetch();
+            qc.invalidateQueries({ queryKey: ["procurement"] });
         },
         onError: (e) => {
             const msg = getApiErrorMessage(e);
@@ -246,26 +273,87 @@ export function OpsOrderDetailPage() {
 
     if (query.isLoading) {
         return (
-            <div>
-                <PageHeader title="Order Details" subtitle="Loading..." />
-                <Card className="p-4">Loading order…</Card>
+            <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-28" />
+                        <Skeleton className="h-10 w-20" />
+                    </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="lg:col-span-2 space-y-4">
+                        <Card className="p-4 space-y-4">
+                            <div className="flex justify-between">
+                                <Skeleton className="h-10 w-32" />
+                                <Skeleton className="h-10 w-24" />
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <Skeleton className="h-28 w-full" />
+                                <Skeleton className="h-28 w-full" />
+                            </div>
+                        </Card>
+                        
+                        <Card className="p-4">
+                            <Skeleton className="h-6 w-40 mb-4" />
+                            <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                        </Card>
+                    </div>
+
+                    <Card className="p-4 space-y-6">
+                        <div className="space-y-2">
+                            <Skeleton className="h-5 w-24" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                        <div className="space-y-2">
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
+                        <div className="space-y-2">
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-20 w-full" />
+                        </div>
+                    </Card>
+                </div>
             </div>
         );
     }
 
-    if (!order) {
+    if (query.isError) {
+        const errorMsg = getApiErrorMessage(query.error);
         return (
-            <div>
+            <div className="space-y-6">
                 <PageHeader
                     title="Order Details"
-                    subtitle="Order not found"
+                    subtitle="Error loading order"
                     actions={
-                        <Button variant="secondary" asChild>
-                            <Link to="/ops/orders">Back</Link>
-                        </Button>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                            <Button onClick={() => query.refetch()} disabled={query.isRefetching}>
+                                {query.isRefetching ? "Retrying..." : "Retry"}
+                            </Button>
+                            <Button variant="secondary" asChild>
+                                <Link to="/ops/orders">Back to Orders</Link>
+                            </Button>
+                        </div>
                     }
                 />
-                <Card className="p-4">No order data available.</Card>
+                <Card className="p-6 border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/20 text-center flex flex-col items-center">
+                    <AlertTriangle className="h-12 w-12 text-red-650 dark:text-red-400 mb-2" aria-hidden="true" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        Unable to load order details.
+                    </h3>
+                    <p className="text-sm text-slate-500 mt-1 max-w-md">
+                        {errorMsg}
+                    </p>
+                </Card>
             </div>
         );
     }
@@ -274,9 +362,19 @@ export function OpsOrderDetailPage() {
         <div>
             <PageHeader
                 title={`Order ${order.order_number || order.id}`}
-                subtitle={`Delivery: ${order.delivery_date || "—"} · Warehouse: ${order.warehouse?.name || "—"}`}
+                subtitle={`Delivery: ${formatIndianDateTime(order.delivery_date)} · Warehouse: ${order.warehouse?.name || "—"}`}
                 actions={
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                        <Button
+                            className="w-full sm:w-auto gap-2"
+                            variant="outline"
+                            onClick={() => query.refetch()}
+                            disabled={query.isRefetching}
+                        >
+                            <RefreshCw className={cn("h-4 w-4", query.isRefetching && "animate-spin")} />
+                            Refresh
+                        </Button>
+
                         <PDFDownloadLink
                             document={<OpsOrderPdf order={order} />}
                             fileName={`order_${order.order_number || order.id}.pdf`}
@@ -298,10 +396,18 @@ export function OpsOrderDetailPage() {
             <div className="grid gap-4 lg:grid-cols-3">
                 <Card className="p-4 lg:col-span-2 min-w-0 max-w-full">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                            <div className="text-sm text-slate-500">Status</div>
-                            <div className="mt-1">
-                                <StatusBadge value={order.status} />
+                        <div className="flex flex-col gap-3 sm:flex-row sm:gap-8">
+                            <div>
+                                <div className="text-sm text-slate-500">Current status</div>
+                                <div className="mt-1">
+                                    <StatusBadge value={order.status} label={getOrderStatusLabel(order.status)} />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-sm text-slate-500">Last changed</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    {order.current_status_at ? formatOrderStatusDateTime(order.current_status_at) : "Time unavailable"}
+                                </div>
                             </div>
                         </div>
 
@@ -362,6 +468,15 @@ export function OpsOrderDetailPage() {
                                 </div>
                             </div>
                         ) : null}
+                    </div>
+
+                    <div className="mt-6">
+                        <OrderStatusTimeline
+                            items={order.status_timeline}
+                            currentStatus={order.status}
+                            currentStatusAt={order.current_status_at}
+                            isLoading={query.isLoading}
+                        />
                     </div>
 
                     <div className="mt-6">
@@ -430,7 +545,7 @@ export function OpsOrderDetailPage() {
                                         <div className="font-medium">{order.delivery_partner.full_name || "—"}</div>
                                         <div className="text-slate-500">{order.delivery_partner.phone || "—"}</div>
                                         <div className="text-xs text-slate-500">
-                                            Assigned at: {order.delivery_assigned_at || "—"}
+                                            Assigned at: {formatIndianDateTime(order.delivery_assigned_at)}
                                         </div>
                                     </div>
                                 ) : (
@@ -443,51 +558,11 @@ export function OpsOrderDetailPage() {
                             <h3 className="text-sm font-semibold">Meta</h3>
                             <div className="mt-2 space-y-2 text-sm text-slate-500 dark:text-slate-400">
                                 <div><span className="font-medium text-slate-700 dark:text-slate-200">Locked:</span> {order.is_locked ? "Yes" : "No"}</div>
-                                <div><span className="font-medium text-slate-700 dark:text-slate-200">Created:</span> {order.created_at}</div>
-                                <div><span className="font-medium text-slate-700 dark:text-slate-200">Updated:</span> {order.updated_at}</div>
+                                <div><span className="font-medium text-slate-700 dark:text-slate-200">Created:</span> {formatIndianDateTime(order.created_at)}</div>
+                                <div><span className="font-medium text-slate-700 dark:text-slate-200">Record updated:</span> {formatIndianDateTime(order.updated_at)}</div>
+                                <div><span className="font-medium text-slate-700 dark:text-slate-200">Current status since:</span> {order.current_status_at ? formatOrderStatusDateTime(order.current_status_at) : "Time unavailable"}</div>
                             </div>
                         </div>
-                    </div>
-                    <div className="mt-2 text-sm">
-                        <div className="font-medium">{order.user?.full_name || "—"}</div>
-                        <div className="text-slate-500">{order.user?.phone || "—"}</div>
-                    </div>
-
-                    <h3 className="mt-5 text-sm font-semibold">Delivery Address</h3>
-                    <div className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-                        <div className="font-medium">{order.address?.label || "—"}</div>
-                        <div>{order.address?.name || "—"} · {order.address?.phone || "—"}</div>
-                        <div className="mt-1 text-slate-500 dark:text-slate-400">
-                            {order.address?.address_line1 || ""}{order.address?.address_line2 ? `, ${order.address.address_line2}` : ""}
-                        </div>
-                        <div className="text-slate-500 dark:text-slate-400">
-                            {order.address?.area || ""}{order.address?.landmark ? `, ${order.address.landmark}` : ""}
-                        </div>
-                        <div className="text-slate-500 dark:text-slate-400">
-                            {order.address?.city || ""}, {order.address?.state || ""} {order.address?.pincode || ""}
-                        </div>
-                    </div>
-
-                    <h3 className="mt-5 text-sm font-semibold">Delivery Partner</h3>
-                    <div className="mt-2 rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
-                        {order.delivery_partner ? (
-                            <>
-                                <div className="font-medium">{order.delivery_partner.full_name || "—"}</div>
-                                <div className="text-slate-500">{order.delivery_partner.phone || "—"}</div>
-                                <div className="mt-2 text-xs text-slate-500">
-                                    Assigned at: {order.delivery_assigned_at || "—"}
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-slate-500">Not assigned</div>
-                        )}
-                    </div>
-
-                    <h3 className="mt-5 text-sm font-semibold">Meta</h3>
-                    <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        <div><span className="font-medium text-slate-700 dark:text-slate-200">Locked:</span> {order.is_locked ? "Yes" : "No"}</div>
-                        <div><span className="font-medium text-slate-700 dark:text-slate-200">Created:</span> {order.created_at}</div>
-                        <div><span className="font-medium text-slate-700 dark:text-slate-200">Updated:</span> {order.updated_at}</div>
                     </div>
 
                     {isAdmin ? (

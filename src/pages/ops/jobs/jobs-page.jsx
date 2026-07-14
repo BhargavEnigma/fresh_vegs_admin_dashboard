@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { OpsJobsService } from "../../../api/services/ops-jobs.service";
@@ -78,19 +79,7 @@ function timeToDailyCron(timeHHmm) {
 }
 
 function formatIstDateTime(isoString) {
-    if (!isoString) return "-";
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return "-";
-    return new Intl.DateTimeFormat("en-IN", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-    }).format(d);
+    return formatIndianDateTime(isoString);
 }
 
 function safeJson(val) {

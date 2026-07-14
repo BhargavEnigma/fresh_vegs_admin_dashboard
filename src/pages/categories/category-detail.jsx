@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { formatIndianDateTime } from "../../utils/date-formatter";
 import { useQuery } from "@tanstack/react-query";
 import { getCategoryById } from "../../api/services/categories.service";
 import { PageHeader } from "../../components/common/page-header";
@@ -87,7 +88,7 @@ export function CategoryDetailPage() {
               />
               <Field
                 label="Created"
-                value={c.created_at ? new Date(c.created_at).toLocaleString() : "—"}
+                value={formatIndianDateTime(c.created_at)}
               />
             </div>
           </CardContent>

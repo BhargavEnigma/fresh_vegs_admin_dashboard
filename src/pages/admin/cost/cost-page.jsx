@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -145,7 +146,7 @@ function CostFormFields({ form, warehouses, disabled = false }) {
                             shouldTouch: true,
                         })
                     }
-                    dateFormat="yyyy-MM-dd"
+                    dateFormat="dd-MM-yyyy"
                     placeholderText="Select cost date"
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                     isClearable
@@ -227,7 +228,7 @@ function CostFormFields({ form, warehouses, disabled = false }) {
 
 function CostDetails({ cost }) {
     const rows = [
-        ["Date", cost?.cost_date],
+        ["Date", formatIndianDateTime(cost?.cost_date)],
         ["Category", cost?.category],
         ["Warehouse", cost?.warehouse?.name || "No warehouse"],
         ["Amount", paiseToRupees(cost?.amount_paise)],
@@ -236,8 +237,8 @@ function CostDetails({ cost }) {
         ["Related Order", cost?.related_order_id || "—"],
         ["Status", cost?.status],
         ["Created By", cost?.creator?.full_name || cost?.creator?.phone || "—"],
-        ["Created At", cost?.created_at ? new Date(cost.created_at).toLocaleString() : "—"],
-        ["Updated At", cost?.updated_at ? new Date(cost.updated_at).toLocaleString() : "—"],
+        ["Created At", formatIndianDateTime(cost?.created_at)],
+        ["Updated At", formatIndianDateTime(cost?.updated_at)],
         ["Notes", cost?.notes || "—"],
     ];
 
@@ -260,7 +261,7 @@ function CostMobileCard({ cost, onArchive, onEdit, onView, onReactivate, isBusy 
                 <div>
                     <div className="font-semibold capitalize text-slate-900 dark:text-slate-100">{cost.category}</div>
                     <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {cost.cost_date}
+                        {formatIndianDateTime(cost.cost_date)}
                     </div>
                 </div>
 
@@ -724,7 +725,7 @@ export function CostPage() {
                                     from_date: formatDateForApi(selectedDate),
                                 }))
                             }
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             placeholderText="Select from date"
                             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             isClearable
@@ -741,7 +742,7 @@ export function CostPage() {
                                     to_date: formatDateForApi(selectedDate),
                                 }))
                             }
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             placeholderText="Select to date"
                             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             isClearable
@@ -1104,7 +1105,7 @@ export function CostPage() {
                                     ) : (
                                         pagedCosts.map((cost) => (
                                             <tr key={cost.id} className="border-t border-slate-100 bg-white/70 transition-colors hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950/60 dark:hover:bg-slate-900/80">
-                                                <td className="px-4 py-3">{cost.cost_date}</td>
+                                                <td className="px-4 py-3">{formatIndianDateTime(cost.cost_date)}</td>
                                                 <td className="px-4 py-3 capitalize">{cost.category}</td>
                                                 <td className="px-4 py-3">{cost.warehouse?.name || "—"}</td>
                                                 <td className="px-4 py-3">
@@ -1244,7 +1245,7 @@ export function CostPage() {
                                         onChange={(selectedDate) =>
                                             setProcurementDate(formatDateForApi(selectedDate))
                                         }
-                                        dateFormat="yyyy-MM-dd"
+                                        dateFormat="dd-MM-yyyy"
                                         placeholderText="Select procurement date"
                                         className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                                         isClearable

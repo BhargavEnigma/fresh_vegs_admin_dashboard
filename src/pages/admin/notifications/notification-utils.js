@@ -1,3 +1,5 @@
+import { formatIndianDateTime } from "../../../utils/date-formatter";
+
 export const NOTIFICATION_TYPES = [
     { value: "product_offer", label: "Product Offer" },
     { value: "banner", label: "Banner" },
@@ -74,13 +76,7 @@ export function formatDateTime(value) {
     if (!value) return "—";
     const date = parseLocalDateTime(value);
     if (!date || Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    return formatIndianDateTime(date);
 }
 
 export function formatStatus(value) {

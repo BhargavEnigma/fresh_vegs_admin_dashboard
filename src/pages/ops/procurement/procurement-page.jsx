@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -62,18 +63,7 @@ function formatMoneyPaise(value) {
 }
 
 function formatDateLabel(value) {
-    if (!value) return "—";
-
-    const [y, m, d] = String(value).split("-").map(Number);
-    if (!y || !m || !d) return value;
-
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return new Intl.DateTimeFormat("en-IN", {
-        timeZone: "Asia/Kolkata",
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    }).format(dt);
+    return formatIndianDateTime(value);
 }
 
 function addDays(dateString, days) {
@@ -117,45 +107,106 @@ function SummaryStat({ title, value, subtitle, icon: Icon, tone = "default" }) {
     );
 }
 
-function ReadinessBanner({ isLocked, ignoredOrders, date }) {
+function ReadinessBanner({ procurementState, summary, date, totalQty }) {
+    const formattedDate = formatDateLabel(date);
+    
+    // Status counts
+    const ignoredOrders = Number(summary.ignored_orders || 0);
+    const deliveredOrders = Number(summary.delivered_orders || 0);
+    const actionableOrders = Number(summary.actionable_procurement_orders || 0);
+
+    let title = "";
+    let desc = "";
+    let iconColor = "bg-amber-500 text-white";
+    let Icon = AlertTriangle;
+    let cardClass = "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25";
+
+    if (procurementState === "completed") {
+        title = "Procurement completed";
+        desc = `All orders for ${formattedDate} have completed fulfilment. No products need to be purchased or prepared again.`;
+        iconColor = "bg-dailyveg-500 text-white";
+        Icon = CheckCircle2;
+        cardClass = "border-dailyveg-200 bg-dailyveg-50 dark:border-dailyveg-900 dark:bg-dailyveg-950/25";
+    } else if (procurementState === "no_orders") {
+        title = "No orders for this delivery date";
+        desc = "There are no customer orders requiring procurement for the selected date.";
+        iconColor = "bg-slate-400 text-white";
+        Icon = CalendarCheck;
+        cardClass = "border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/25";
+    } else if (procurementState === "draft") {
+        title = "Procurement list is still a draft";
+        desc = "Orders may still change. Finalize purchasing only after eligible orders are locked.";
+        iconColor = "bg-amber-500 text-white";
+        Icon = AlertTriangle;
+        cardClass = "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25";
+    } else if (procurementState === "ready") {
+        title = "Ready to prepare purchase list";
+        desc = "Eligible orders are locked and the purchase list can be finalized.";
+        iconColor = "bg-dailyveg-500 text-white";
+        Icon = CheckCircle2;
+        cardClass = "border-dailyveg-200 bg-dailyveg-50 dark:border-dailyveg-900 dark:bg-dailyveg-950/25";
+    } else if (procurementState === "in_progress") {
+        title = "Fulfilment is in progress";
+        desc = "Some orders have already moved to packing or delivery. Only the remaining actionable quantities are shown below.";
+        iconColor = "bg-blue-500 text-white";
+        Icon = PackageCheck;
+        cardClass = "border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/25";
+    } else if (procurementState === "exceptions") {
+        title = "Operational exceptions need review";
+        desc = "No normal purchase is required, but one or more failed or unresolved orders need manual review.";
+        iconColor = "bg-rose-500 text-white";
+        Icon = AlertTriangle;
+        cardClass = "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/25";
+    }
+
     return (
-        <Card
-            className={cn(
-                "overflow-hidden border shadow-sm",
-                isLocked
-                    ? "border-dailyveg-200 bg-dailyveg-50 dark:border-dailyveg-900 dark:bg-dailyveg-950/25"
-                    : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/25"
-            )}
-        >
+        <Card className={cn("overflow-hidden border shadow-sm", cardClass)}>
             <CardContent className="p-4 sm:p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex gap-3">
-                        <div
-                            className={cn(
-                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                                isLocked ? "bg-dailyveg-500 text-white" : "bg-amber-500 text-white"
-                            )}
-                        >
-                            {isLocked ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", iconColor)}>
+                            <Icon className="h-5 w-5" />
                         </div>
                         <div>
                             <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
-                                {isLocked ? "Ready to prepare purchase list" : "Review before final purchase"}
+                                {title}
                             </div>
                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                {isLocked
-                                    ? `Orders for ${formatDateLabel(date)} are locked, so this list is safe for farm/market planning.`
-                                    : `Orders for ${formatDateLabel(date)} may still change. Use this as a draft until orders are locked.`}
+                                {desc}
                             </p>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-                        <div className="text-xs font-medium uppercase text-slate-500">Needs attention</div>
-                        <div className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
-                            {formatCount(ignoredOrders)} ignored orders
+                    {procurementState === "completed" ? (
+                        <div className="flex flex-wrap gap-4 rounded-2xl border border-white/70 bg-white/75 px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                            <div>
+                                <div className="text-xs font-medium uppercase text-slate-500">Delivered Orders</div>
+                                <div className="mt-1 font-semibold text-slate-950 dark:text-slate-50">{formatCount(deliveredOrders)}</div>
+                            </div>
+                            <div className="w-[1px] bg-slate-200 dark:bg-slate-800 my-1"></div>
+                            <div>
+                                <div className="text-xs font-medium uppercase text-slate-500">Completed</div>
+                                <div className="mt-1 font-semibold text-slate-950 dark:text-slate-50">{formatCount(deliveredOrders)}</div>
+                            </div>
+                            <div className="w-[1px] bg-slate-200 dark:bg-slate-800 my-1"></div>
+                            <div>
+                                <div className="text-xs font-medium uppercase text-slate-500">Remaining Actionable</div>
+                                <div className="mt-1 font-semibold text-slate-950 dark:text-slate-50">{formatCount(actionableOrders)}</div>
+                            </div>
+                            <div className="w-[1px] bg-slate-200 dark:bg-slate-800 my-1"></div>
+                            <div>
+                                <div className="text-xs font-medium uppercase text-slate-500">Actionable Packs</div>
+                                <div className="mt-1 font-semibold text-slate-950 dark:text-slate-50">{formatCount(totalQty)}</div>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                            <div className="text-xs font-medium uppercase text-slate-500">Needs attention</div>
+                            <div className="mt-1 text-lg font-semibold text-slate-950 dark:text-slate-50">
+                                {formatCount(ignoredOrders)} ignored {ignoredOrders === 1 ? 'order' : 'orders'}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -183,7 +234,7 @@ function MiniBreakdown({ title, items }) {
     );
 }
 
-function FarmPurchaseList({ rows, date }) {
+function FarmPurchaseList({ rows, date, procurementState }) {
     const purchaseText = useMemo(() => {
         if (!rows.length) return "";
 
@@ -206,6 +257,8 @@ function FarmPurchaseList({ rows, date }) {
         );
     }
 
+    const isDisabled = !rows.length || procurementState === "completed" || procurementState === "no_orders" || procurementState === "exceptions";
+
     return (
         <Card className="mb-6 overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <CardHeader>
@@ -221,7 +274,7 @@ function FarmPurchaseList({ rows, date }) {
                         <Button
                             variant="outline"
                             onClick={handleCopy}
-                            disabled={!rows.length}
+                            disabled={isDisabled}
                             className="w-full sm:w-auto"
                         >
                             <ClipboardList className="mr-2 h-4 w-4" />
@@ -230,7 +283,7 @@ function FarmPurchaseList({ rows, date }) {
                         <Button
                             variant="outline"
                             onClick={() => window.print()}
-                            disabled={!rows.length}
+                            disabled={isDisabled}
                             className="w-full sm:w-auto"
                         >
                             <Printer className="mr-2 h-4 w-4" />
@@ -243,7 +296,10 @@ function FarmPurchaseList({ rows, date }) {
             <CardContent>
                 {rows.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No items need to be prepared for the selected date.
+                        {procurementState === "completed" && "Nothing needs to be purchased for this date. All applicable orders have completed fulfilment."}
+                        {procurementState === "no_orders" && "No purchase list is available because no orders exist for this delivery date."}
+                        {procurementState === "exceptions" && "No products were automatically added. Review operational exceptions before taking further action."}
+                        {procurementState !== "completed" && procurementState !== "no_orders" && procurementState !== "exceptions" && "No items need to be prepared for the selected date."}
                     </div>
                 ) : (
                     <>
@@ -378,17 +434,6 @@ export function ProcurementPage() {
         enabled: !!date,
     });
 
-    // const ordersQuery = useQuery({
-    //     queryKey: ["procurementOrdersCount", date],
-    //     queryFn: () =>
-    //         OpsOrdersService.list({
-    //             page: 1,
-    //             limit: 100,
-    //             delivery_date: date,
-    //         }),
-    //     enabled: !!date,
-    // });
-
     const rows = procurementQuery.data?.items || [];
     const backendSummary = procurementQuery.data?.summary || {};
     const backendStatusBreakdown = procurementQuery.data?.status_breakdown || [];
@@ -451,8 +496,73 @@ export function ProcurementPage() {
         ];
     }, [orderSummary]);
 
-    const isLocked = orderSummary.isFullyLocked;
-    const ignoredOrders = orderSummary.ignoredOrders;
+    const fallbackDerivedState = useMemo(() => {
+        if (procurementQuery.isLoading) return "loading";
+        if (procurementQuery.isError) return "error";
+
+        const totalOrders = Number(backendSummary.total_orders || 0);
+        if (totalOrders === 0) {
+            return "no_orders";
+        }
+
+        const unlockedOrders = Number(backendSummary.unlocked_orders || 0);
+        const paymentPending = Number(backendSummary.payment_pending_orders || 0);
+        const cancelled = Number(backendSummary.cancelled_orders || 0);
+
+        if (paymentPending + cancelled === totalOrders) {
+            return "exceptions";
+        }
+
+        if (unlockedOrders > 0) {
+            return "draft";
+        }
+
+        const validProcurementOrders = Number(backendSummary.valid_procurement_orders || 0);
+        const itemsCount = rows.length;
+
+        if (validProcurementOrders > 0 && itemsCount === 0) {
+            const statusCounts = {};
+            (backendStatusBreakdown || []).forEach((item) => {
+                statusCounts[item.label] = Number(item.value || 0);
+            });
+
+            const activeFulfilment = (statusCounts["packed"] || 0) + (statusCounts["out_for_delivery"] || 0);
+            const completed = statusCounts["delivered"] || 0;
+            const failed = statusCounts["delivery_failed"] || 0;
+
+            if (activeFulfilment > 0) {
+                return "in_progress";
+            } else if (completed > 0 && failed === 0) {
+                return "completed";
+            } else if (failed > 0) {
+                return "exceptions";
+            } else {
+                return "completed";
+            }
+        }
+
+        if (itemsCount > 0) {
+            const statusCounts = {};
+            (backendStatusBreakdown || []).forEach((item) => {
+                statusCounts[item.label] = Number(item.value || 0);
+            });
+            const progressed =
+                (statusCounts["packed"] || 0) +
+                (statusCounts["out_for_delivery"] || 0) +
+                (statusCounts["delivered"] || 0) +
+                (statusCounts["delivery_failed"] || 0);
+
+            if (progressed > 0) {
+                return "in_progress";
+            } else {
+                return "ready";
+            }
+        }
+
+        return "no_orders";
+    }, [procurementQuery.isLoading, procurementQuery.isError, backendSummary, rows, backendStatusBreakdown]);
+
+    const procurementState = backendSummary.procurement_state || fallbackDerivedState;
 
     const columns = useMemo(
         () => [
@@ -503,6 +613,8 @@ export function ProcurementPage() {
         </div>
     );
 
+    const isCompletedState = procurementState === "completed";
+
     return (
         <div className="min-w-0 space-y-4 sm:space-y-6">
             <PageHeader
@@ -537,7 +649,7 @@ export function ProcurementPage() {
                                     setSearchParams({});
                                 }
                             }}
-                            dateFormat="yyyy-MM-dd"
+                            dateFormat="dd-MM-yyyy"
                             id="procurement-date"
                             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
                             isClearable
@@ -577,171 +689,283 @@ export function ProcurementPage() {
                 </CardContent>
             </Card>
 
-            <ReadinessBanner
-                isLocked={isLocked}
-                ignoredOrders={ignoredOrders}
-                date={date}
-            />
+            {procurementQuery.isLoading ? (
+                <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                    <RefreshCw className="h-8 w-8 animate-spin text-dailyveg-600" />
+                    <p className="text-sm text-slate-500">Loading procurement details...</p>
+                </div>
+            ) : procurementQuery.isError ? (
+                <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border border-rose-200 bg-rose-50/50 p-6 text-center dark:border-rose-900/50 dark:bg-rose-950/20">
+                    <AlertTriangle className="h-8 w-8 text-rose-500" />
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Failed to load procurement details</h3>
+                    <p className="text-sm text-slate-500 max-w-md">
+                        {procurementQuery.error?.response?.data?.error?.message || procurementQuery.error?.message || "An error occurred while fetching the procurement data."}
+                    </p>
+                    <Button variant="outline" onClick={() => procurementQuery.refetch()} className="mt-2 bg-white">
+                        <RefreshCw className="mr-2 h-4 w-4" /> Retry
+                    </Button>
+                </div>
+            ) : (
+                <>
+                    <ReadinessBanner
+                        procurementState={procurementState}
+                        summary={backendSummary}
+                        date={date}
+                        totalQty={isCompletedState ? 0 : totalQty}
+                    />
 
-            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                <SummaryStat
-                    title="Items to Prepare"
-                    value={formatCount(rows.length)}
-                    subtitle="Product-pack lines in today’s list."
-                    icon={ShoppingBasket}
-                />
+                    <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                        <SummaryStat
+                            title="Items Still to Procure"
+                            value={formatCount(isCompletedState ? 0 : rows.length)}
+                            subtitle="Product-pack lines remaining to prepare."
+                            icon={ShoppingBasket}
+                        />
 
-                <SummaryStat
-                    title="Different Products"
-                    value={formatCount(uniqueProducts)}
-                    subtitle="Unique products needed for orders."
-                    icon={PackageCheck}
-                />
+                        <SummaryStat
+                            title="Different Products Remaining"
+                            value={formatCount(isCompletedState ? 0 : uniqueProducts)}
+                            subtitle="Unique products remaining."
+                            icon={PackageCheck}
+                        />
 
-                <SummaryStat
-                    title="Total Packs Needed"
-                    value={formatCount(totalQty)}
-                    subtitle="Total quantity to buy or prepare."
-                    icon={ClipboardList}
-                />
+                        <SummaryStat
+                            title="Total Packs Remaining"
+                            value={formatCount(isCompletedState ? 0 : totalQty)}
+                            subtitle="Packs remaining to prepare."
+                            icon={ClipboardList}
+                        />
 
-                <SummaryStat
-                    title="Orders Included"
-                    value={formatCount(orderSummary.validProcurementOrders)}
-                    subtitle="Orders used to calculate this list."
-                    icon={CheckCircle2}
-                    tone="success"
-                />
-            </div>
+                        <SummaryStat
+                            title="Actionable Orders"
+                            value={formatCount(isCompletedState ? 0 : (backendSummary.actionable_procurement_orders || 0))}
+                            subtitle="Locked/accepted orders requiring procurement."
+                            icon={CheckCircle2}
+                            tone={procurementState === "ready" || procurementState === "in_progress" ? "success" : "default"}
+                        />
+                    </div>
 
-            <div className="mb-6 grid gap-4 lg:grid-cols-4">
-                <SummaryStat
-                    title="Order Readiness"
-                    value={isLocked ? "Locked" : "Draft"}
-                    subtitle={isLocked ? "Safe to finalize purchase." : "Wait before final purchase."}
-                    icon={isLocked ? CheckCircle2 : AlertTriangle}
-                    tone={isLocked ? "success" : "warning"}
-                />
+                    <div className="mb-6 grid gap-4 lg:grid-cols-4">
+                        <SummaryStat
+                            title="Delivered Orders"
+                            value={formatCount(backendSummary.delivered_orders || 0)}
+                            subtitle="Successfully completed orders."
+                            icon={CheckCircle2}
+                            tone={isCompletedState ? "success" : "default"}
+                        />
 
-                <SummaryStat
-                    title="Orders Not Included"
-                    value={formatCount(ignoredOrders)}
-                    subtitle="Payment or status needs review."
-                    icon={AlertTriangle}
-                    tone={ignoredOrders > 0 ? "warning" : "default"}
-                />
+                        <SummaryStat
+                            title="Packed Orders"
+                            value={formatCount(backendSummary.packed_orders || 0)}
+                            subtitle="Orders ready at warehouse."
+                        />
 
-                <SummaryStat
-                    title="COD Orders"
-                    value={formatCount(orderSummary.codOrders)}
-                    subtitle="Cash collection on delivery."
-                />
+                        <SummaryStat
+                            title="Out for Delivery"
+                            value={formatCount(backendSummary.out_for_delivery_orders || 0)}
+                            subtitle="Orders in transit to customers."
+                        />
 
-                <SummaryStat
-                    title="Delivery Not Assigned"
-                    value={formatCount(orderSummary.unassignedDeliveryOrders)}
-                    subtitle="Assign riders before dispatch."
-                />
-            </div>
+                        <SummaryStat
+                            title="Exceptions"
+                            value={formatCount((backendSummary.delivery_failed_orders || 0) + (backendSummary.payment_pending_orders || 0))}
+                            subtitle="Failed deliveries or pending payments."
+                            icon={AlertTriangle}
+                            tone={((backendSummary.delivery_failed_orders || 0) + (backendSummary.payment_pending_orders || 0)) > 0 ? "warning" : "default"}
+                        />
+                    </div>
 
-            <div className="mb-6 grid gap-4 lg:grid-cols-2">
-                <MiniBreakdown title="Payment Summary" items={paymentBreakdown} />
-
-                <MiniBreakdown
-                    title="Order Status Summary"
-                    items={
-                        statusBreakdown.length > 0
-                            ? statusBreakdown
-                            : [{ label: "No orders", value: "0" }]
-                    }
-                />
-            </div>
-
-            <FarmPurchaseList rows={rows} date={date} />
-
-            <div className="mb-6 grid gap-4 xl:grid-cols-3">
-                <Card className="overflow-hidden xl:col-span-2 xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
-                    <CardHeader>
-                        <CardTitle>Product Preparation Checklist</CardTitle>
-                        <CardDescription>
-                            Buy or prepare these quantities for {formatDateLabel(date)}.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                        <ProcurementMobileList rows={rows} />
-
-                        <div className="hidden lg:block">
-                            <DataTable
-                                columns={columns}
-                                data={rows}
-                                searchPlaceholder="Search product to prepare…"
-                                initialPageSize={20}
-                            />
-                        </div>
-
-                        {procurementQuery.isLoading ? (
-                            <p className="mt-3 text-sm text-slate-500">Loading preparation list...</p>
-                        ) : null}
-
-                        {procurementQuery.isError ? (
-                            <p className="mt-3 text-sm text-red-600">
-                                Failed to load preparation list. Check selected date and backend response.
-                            </p>
-                        ) : null}
-                    </CardContent>
-                </Card>
-
-                <Card className="overflow-hidden xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
-                    <CardHeader>
-                        <CardTitle>Highest Quantity Items</CardTitle>
-                        <CardDescription>
-                            Start with these products first when buying or preparing.
-                        </CardDescription>
-                    </CardHeader>
-
-                    <CardContent>
-                        {procurementQuery.isLoading ? (
-                            <div className="text-sm text-slate-500">Loading top items...</div>
-                        ) : topItems.length === 0 ? (
-                            <div className="text-sm text-slate-500">No items need preparation.</div>
-                        ) : (
-                            <div className="space-y-3">
-                                {topItems.map((item, index) => (
-                                    <div
-                                        key={`${item.product_id}-${item.product_pack_id}-${index}`}
-                                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
-                                    >
-                                        <div className="min-w-0">
-                                            <div className="font-medium">{item.product_name || "—"}</div>
-                                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                {item.pack_label || "No pack label"}
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right">
-                                            <div className="text-lg font-semibold">
-                                                {formatCount(item.total_quantity)}
-                                            </div>
-                                            <div className="text-xs text-slate-500 dark:text-slate-400">{formatCount(item.total_quantity) > 1 ? "Packs" : "Pack"}</div>
+                    {Number(backendSummary.delivered_orders || 0) > 0 ? (
+                        <Card className="mb-6 overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-semibold">Completed Fulfilment Summary</CardTitle>
+                                <CardDescription>
+                                    Historical summary of successfully completed orders for this date.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900/60">
+                                        <div className="text-xs text-slate-500 uppercase font-medium">Delivered Orders</div>
+                                        <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                                            {formatCount(backendSummary.delivered_orders)}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900/60">
+                                        <div className="text-xs text-slate-500 uppercase font-medium">Delivered Packs</div>
+                                        <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                                            {formatCount(backendSummary.delivered_packs)}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900/60">
+                                        <div className="text-xs text-slate-500 uppercase font-medium">Total Delivered Order Value</div>
+                                        <div className="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+                                            {formatMoneyPaise(backendSummary.delivered_order_value_paise)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : null}
 
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            <Button variant="outline" asChild>
-                                <Link to={`/ops/orders?delivery_date=${date}`}>View Orders</Link>
-                            </Button>
+                    <div className="mb-6 grid gap-4 lg:grid-cols-2">
+                        <MiniBreakdown title="Payment Summary" items={paymentBreakdown} />
 
-                            <Button variant="outline" asChild>
-                                <Link to="/ops/jobs">Lock Jobs</Link>
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        <MiniBreakdown
+                            title="Order Status Summary"
+                            items={
+                                statusBreakdown.length > 0
+                                    ? statusBreakdown
+                                    : [{ label: "No orders", value: "0" }]
+                            }
+                        />
+                    </div>
+
+                    <FarmPurchaseList rows={rows} date={date} procurementState={procurementState} />
+
+                    <div className="mb-6 grid gap-4 xl:grid-cols-3">
+                        <Card className="overflow-hidden xl:col-span-2 xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
+                            <CardHeader>
+                                <CardTitle>Product Preparation Checklist</CardTitle>
+                                <CardDescription>
+                                    Buy or prepare these quantities for {formatDateLabel(date)}.
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent>
+                                {rows.length === 0 ? (
+                                    procurementState === "completed" ? (
+                                        <div className="flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
+                                            <CheckCircle2 className="h-10 w-10 text-dailyveg-500 mb-3" />
+                                            <div className="text-base font-semibold">Preparation complete</div>
+                                            <p className="text-sm text-slate-500 max-w-sm mt-1">
+                                                All required products for this delivery date have already moved through fulfilment. Do not purchase them again.
+                                            </p>
+                                            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                                                <Button variant="outline" asChild size="sm">
+                                                    <Link to={`/ops/orders?delivery_date=${date}&queue=delivered`}>
+                                                        View Completed Orders
+                                                    </Link>
+                                                </Button>
+                                                <Button variant="outline" asChild size="sm">
+                                                    <Link to={`/ops/orders?delivery_date=${date}&queue=exceptions`}>
+                                                        Review Failed Deliveries
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : procurementState === "no_orders" ? (
+                                        <div className="flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
+                                            <CalendarCheck className="h-10 w-10 text-slate-400 mb-3" />
+                                            <div className="text-base font-semibold">No orders</div>
+                                            <p className="text-sm text-slate-500 max-w-sm mt-1">
+                                                There are no customer orders requiring procurement for the selected date.
+                                            </p>
+                                        </div>
+                                    ) : procurementState === "exceptions" ? (
+                                        <div className="flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
+                                            <AlertTriangle className="h-10 w-10 text-rose-500 mb-3" />
+                                            <div className="text-base font-semibold">Exceptions require review</div>
+                                            <p className="text-sm text-slate-500 max-w-sm mt-1">
+                                                Operational exceptions require attention. Check orders with failed delivery or pending payment.
+                                            </p>
+                                            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                                                <Button variant="outline" asChild size="sm">
+                                                    <Link to={`/ops/orders?delivery_date=${date}&queue=exceptions`}>
+                                                        Review Failed Deliveries
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
+                                            No items need to be prepared.
+                                        </div>
+                                    )
+                                ) : (
+                                    <>
+                                        <ProcurementMobileList rows={rows} />
+
+                                        <div className="hidden lg:block">
+                                            <DataTable
+                                                columns={columns}
+                                                data={rows}
+                                                searchPlaceholder="Search product to prepare…"
+                                                initialPageSize={20}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="overflow-hidden xl:h-[600px] xl:overflow-y-auto thin-scrollbar">
+                            <CardHeader>
+                                <CardTitle>Highest Quantity Items</CardTitle>
+                                <CardDescription>
+                                    Start with these products first when buying or preparing.
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent>
+                                {topItems.length === 0 ? (
+                                    <div className="text-sm text-slate-500">
+                                        {procurementState === "completed" && "All required items have already completed fulfilment."}
+                                        {procurementState === "no_orders" && "No ordered items exist for this date."}
+                                        {procurementState === "exceptions" && "No standard procurement items remain. Review exceptions."}
+                                        {procurementState !== "completed" && procurementState !== "no_orders" && procurementState !== "exceptions" && "No items need preparation."}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {topItems.map((item, index) => (
+                                            <div
+                                                key={`${item.product_id}-${item.product_pack_id}-${index}`}
+                                                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+                                            >
+                                                <div className="min-w-0">
+                                                    <div className="font-medium">{item.product_name || "—"}</div>
+                                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                        {item.pack_label || "No pack label"}
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-right">
+                                                    <div className="text-lg font-semibold">
+                                                        {formatCount(item.total_quantity)}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400">{formatCount(item.total_quantity) > 1 ? "Packs" : "Pack"}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                                    <Button variant="outline" asChild size="sm" className="w-full justify-start text-xs sm:w-auto">
+                                        <Link to={`/ops/orders?delivery_date=${date}`}>View Orders</Link>
+                                    </Button>
+
+                                    <Button variant="outline" asChild size="sm" className="w-full justify-start text-xs sm:w-auto">
+                                        <Link to={`/ops/orders?delivery_date=${date}&queue=delivered`}>View Delivered Orders</Link>
+                                    </Button>
+
+                                    <Button variant="outline" asChild size="sm" className="w-full justify-start text-xs sm:w-auto">
+                                        <Link to={`/ops/orders?delivery_date=${date}&queue=exceptions`}>Review Failed Deliveries</Link>
+                                    </Button>
+
+                                    <Button variant="outline" asChild size="sm" className="w-full justify-start text-xs sm:w-auto">
+                                        <Link to={`/ops/orders?delivery_date=${date}&queue=to_pack`}>View Remaining Orders</Link>
+                                    </Button>
+
+                                    <Button variant="outline" asChild size="sm" className="w-full justify-start text-xs sm:w-auto">
+                                        <Link to="/ops/jobs">Lock Jobs</Link>
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

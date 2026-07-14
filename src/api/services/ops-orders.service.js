@@ -1,5 +1,6 @@
 import api from "../axios";
 import { ENDPOINTS } from "../endpoints";
+import { normalizeOrderStatusTimeline, getCurrentStatusAt } from "../../utils/order-status-timeline";
 
 export const OpsOrdersService = {
     async list(filters = {}) {
@@ -33,7 +34,18 @@ export const OpsOrdersService = {
 
     async getById(orderId) {
         const res = await api.get(ENDPOINTS.ops.orders.getById(orderId));
-        return res.data?.data;
+        const payload = res.data?.data;
+        if (!payload?.order) {
+            return payload;
+        }
+        return {
+            ...payload,
+            order: {
+                ...payload.order,
+                status_timeline: normalizeOrderStatusTimeline(payload.order),
+                current_status_at: getCurrentStatusAt(payload.order),
+            },
+        };
     },
 
     async exportAllCsv(filters = {}) {
@@ -98,7 +110,6 @@ export const OpsOrdersService = {
     },
 
     async bulkUpdateStatus({ orderIds, toStatus, note }) {
-        console.log('{ orderIds, toStatus, note } : ', orderIds, toStatus, note);
         return api.post(ENDPOINTS.ops.orders.bulkUpdateStatus, {
             order_ids: Array.isArray(orderIds) ? orderIds : orderIds.split(",").map(id => id.trim()),
             to_status: toStatus,

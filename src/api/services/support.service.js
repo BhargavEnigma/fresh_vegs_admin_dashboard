@@ -1,5 +1,6 @@
 import api from "../axios";
 import { ENDPOINTS } from "../endpoints";
+import { normalizeOrderStatusTimeline, getCurrentStatusAt } from "../../utils/order-status-timeline";
 
 function data(response) {
     return response.data?.data;
@@ -36,7 +37,18 @@ export const SupportService = {
     },
 
     async orderContext(orderId) {
-        return data(await api.get(ENDPOINTS.support.orders.context(orderId)));
+        const payload = data(await api.get(ENDPOINTS.support.orders.context(orderId)));
+        if (!payload?.order) {
+            return payload;
+        }
+        return {
+            ...payload,
+            order: {
+                ...payload.order,
+                status_timeline: normalizeOrderStatusTimeline(payload.order),
+                current_status_at: getCurrentStatusAt(payload.order),
+            },
+        };
     },
 
     async listTickets(params = {}) {
