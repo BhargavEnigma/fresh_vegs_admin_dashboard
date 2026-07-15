@@ -1081,7 +1081,7 @@ export function CostPage() {
                         </div>
 
                         <div className="hidden overflow-x-auto thin-scrollbar lg:block">
-                            <table className="min-w-[1050px] w-full text-sm">
+                            <table className="premium-table min-w-[1050px]">
                                 <thead className="bg-slate-50/90 dark:bg-slate-900/40">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Date</th>
@@ -1314,7 +1314,7 @@ export function CostPage() {
                         </div>
 
                         <div className="hidden overflow-x-auto thin-scrollbar lg:block">
-                            <table className="min-w-[950px] w-full text-sm">
+                            <table className="premium-table min-w-[950px]">
                                 <thead className="bg-slate-50/90 dark:bg-slate-900/40">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Product</th>

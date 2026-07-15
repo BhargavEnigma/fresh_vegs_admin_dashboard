@@ -106,7 +106,7 @@ export function WarehouseDetailPage() {
                             <p className="text-sm text-slate-500">No service areas added.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[760px] text-left text-sm">
+                                <table className="premium-table min-w-[760px] text-left">
                                     <thead>
                                         <tr className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-800">
                                             <th className="px-3 py-3">Area</th>

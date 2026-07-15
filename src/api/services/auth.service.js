@@ -58,6 +58,21 @@ export async function verifyOtp({ otp_request_id, phone, otp }) {
   return res.data;
 }
 
+export async function loginWithPassword({ identifier, password }) {
+  const res = await api.post(ENDPOINTS.auth.passwordLogin, {
+    identifier,
+    password,
+    device: { device_id: getDeviceId(), device_name: getDeviceName() },
+    fcm_token: null,
+  });
+  return res.data;
+}
+
+export async function changePassword(payload) {
+  const res = await api.put(ENDPOINTS.auth.changePassword, payload);
+  return res.data?.data;
+}
+
 export async function getMe() {
   const res = await api.get(ENDPOINTS.auth.me);
   return res.data;

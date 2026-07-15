@@ -106,8 +106,8 @@ export function SupportTicketsPage() {
 
             <Card className="overflow-hidden">
                 <div className="overflow-x-auto thin-scrollbar">
-                    <table className="w-full text-sm">
-                        <thead className="bg-dailyveg-50/80 text-left dark:bg-dailyveg-950/50">
+                    <table className="premium-table">
+                        <thead className="text-left">
                             <tr>
                                 {["Ticket", "Customer", "Order", "Category", "Priority", "Status", "Team", "Assigned", "Updated", ""].map((head) => (
                                     <th key={head} className="whitespace-nowrap px-4 py-3 font-semibold">{head}</th>

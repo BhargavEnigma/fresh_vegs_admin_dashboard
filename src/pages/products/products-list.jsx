@@ -413,7 +413,7 @@ export function ProductsListPage() {
           </div>
 
           <div className={cn("w-full overflow-x-auto thin-scrollbar", viewMode === VIEW_MODES.table ? "hidden md:block" : "hidden")}>
-            <table className="min-w-[1050px] w-full text-sm">
+            <table className="premium-table min-w-[1050px]">
               <thead className="text-left bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Image</th>

@@ -3,6 +3,8 @@ export const ENDPOINTS = {
   health: "/v1/health",
 
   auth: {
+    passwordLogin: "/v1/auth/password/login",
+    changePassword: "/v1/auth/password",
     consoleAccess: "/v1/auth/console-access",
     sendOtp: "/v1/auth/otp/send",
     verifyOtp: "/v1/auth/otp/verify",
@@ -117,6 +119,7 @@ export const ENDPOINTS = {
       setRoles: (id) => `/v1/admin/users/${id}/roles`,
       list: "/v1/admin/users",
       getById: (id) => `/v1/admin/users/${id}`,
+      passwordLogin: (id) => `/v1/admin/users/${id}/password-login`,
     },
 
     banners: {

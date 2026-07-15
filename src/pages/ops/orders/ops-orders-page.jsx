@@ -7,7 +7,7 @@ import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box } from "lucide-react";
+import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -336,38 +336,41 @@ function Filters({ value, onApply, deliveryPartners }) {
     return (
         <form
             onSubmit={form.handleSubmit(submit)}
-            className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
+            className="grid gap-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark sm:p-5"
         >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-900">
+                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-dailyveg-50 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300"><SlidersHorizontal className="h-4 w-4" /></span><div><h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Refine orders</h3><p className="text-xs text-slate-500">Narrow the operations queue</p></div></div>
+            </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <div className="grid min-w-0 gap-1.5">
-                    <Label>Search</Label>
-                    <Input className="h-9 sm:h-10" placeholder="Order no / order id / phone" {...form.register("q")} />
+                    <Label className="text-xs font-semibold text-slate-500">Search</Label>
+                    <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Order no. or phone" {...form.register("q")} /></div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
-                    <Label>Warehouse ID</Label>
-                    <Input className="h-9 sm:h-10" placeholder="uuid" {...form.register("warehouse_id")} />
+                    <Label className="text-xs font-semibold text-slate-500">Warehouse ID</Label>
+                    <div className="relative"><Warehouse className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Warehouse UUID" {...form.register("warehouse_id")} /></div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
-                    <Label>Delivery Date</Label>
-                    <DatePicker
+                    <Label className="text-xs font-semibold text-slate-500">Delivery Date</Label>
+                    <div className="relative"><CalendarDays className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" /><DatePicker
                         selected={form.watch("delivery_date")}
                         onChange={(date) => form.setValue("delivery_date", date, { shouldValidate: true })}
                         dateFormat="dd-MM-yyyy"
                         placeholderText="Select delivery date"
-                        className="flex h-9 sm:h-10 w-full rounded-md border border-slate-200 bg-white px-2.5 sm:px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
+                        className="flex h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm ring-offset-white placeholder:text-slate-400 focus-visible:border-dailyveg-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500/25 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-dailyveg-950"
                         isClearable
-                    />
+                    /></div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
-                    <Label>Page Size</Label>
-                    <Input className="h-9 sm:h-10" type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true })} />
+                    <Label className="text-xs font-semibold text-slate-500">Page Size</Label>
+                    <Input className="h-10" type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true })} />
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
-                    <Label>Delivery Partner</Label>
+                    <Label className="text-xs font-semibold text-slate-500">Delivery Partner</Label>
                     <Controller
                         control={form.control}
                         name="delivery_partner_user_id"
@@ -387,8 +390,8 @@ function Filters({ value, onApply, deliveryPartners }) {
                     />
                 </div>
             </div>
-            <div className="flex items-end justify-end gap-1">
-                <Button type="submit">Apply Filters</Button>
+            <div className="flex items-end justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-900">
+                <Button className="gap-2" type="submit"><SlidersHorizontal className="h-4 w-4" />Apply Filters</Button>
                 <Button
                     type="button"
                     variant="outline"
@@ -410,33 +413,40 @@ function Filters({ value, onApply, deliveryPartners }) {
                         });
                     }}
                 >
-                    <RiResetLeftFill />
+                    <RiResetLeftFill className="h-4 w-4" /><span className="sr-only">Reset filters</span>
                 </Button>
             </div>
         </form>
     );
 }
 
-function SummaryCard({ title, value, active, onClick }) {
+function SummaryCard({ title, value, active, onClick, icon: Icon = ClipboardList, accent = "dailyveg" }) {
+    const accentClasses = {
+        dailyveg: "bg-dailyveg-50 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300",
+        amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+        blue: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+        cyan: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300",
+        rose: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
+        slate: "bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300",
+    };
     return (
         <button
             className={[
-                "min-w-0 rounded-xl border p-3 text-left transition sm:rounded-2xl sm:p-4",
-                "flex flex-col items-start justify-between gap-2",
+                "group relative min-w-0 overflow-hidden rounded-xl border p-3 text-left transition-all duration-200 sm:rounded-2xl sm:p-4",
+                "flex min-h-[100px] flex-col items-start justify-between gap-3 sm:min-h-[116px]",
                 active
-                    ? "bg-dailyveg-500 shadow-brand text-white hover:bg-dailyveg-600 dark:border-0 dark:bg-dailyveg-600"
-                    : "border-slate-200 bg-white hover:border-dailyveg-300 hover:bg-dailyveg-50 hover:text-dailyveg-800 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:bg-slate-950/70 dark:hover:text-dailyveg-300 dark:shadow-brand-dark",
+                    ? "border-dailyveg-500 bg-gradient-to-br from-dailyveg-500 to-dailyveg-600 text-white shadow-brand hover:-translate-y-0.5 dark:border-dailyveg-600"
+                    : "border-slate-200/80 bg-white text-slate-800 shadow-sm hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-brand dark:border-slate-800/80 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-dailyveg-800 dark:shadow-brand-dark",
             ].join(" ")}
             type="button"
             onClick={onClick}
         >
-            <div className="line-clamp-2 text-xs leading-tight sm:text-sm">
-                {title}
+            <div className="flex w-full items-start justify-between gap-2">
+                <div className="line-clamp-2 text-xs font-medium leading-tight sm:text-sm">{title}</div>
+                <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105", active ? "bg-white/15 text-white" : accentClasses[accent])}><Icon className="h-3.5 w-3.5" /></span>
             </div>
 
-            <div className="text-xl font-bold leading-none sm:text-2xl">
-                {value}
-            </div>
+            <div className="flex w-full items-end justify-between"><div className="text-xl font-bold leading-none sm:text-2xl">{value}</div><ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", active ? "text-white/70" : "text-slate-300 dark:text-slate-700")} /></div>
         </button>
     );
 }
@@ -1514,7 +1524,7 @@ export function OpsOrdersPage() {
                 actions={
                     <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={() => handleQuickDate("today")}>
-                            Today
+                            <CalendarDays className="mr-2 h-4 w-4" />Today
                         </Button>
 
                         <Button variant="outline" onClick={() => handleQuickDate("tomorrow")}>
@@ -1530,7 +1540,7 @@ export function OpsOrdersPage() {
                             onClick={() => navigate(`/ops/procurement?delivery_date=${filters.delivery_date}`)}
                             disabled={!filters.delivery_date}
                         >
-                            View Procurement
+                            <ClipboardList className="mr-2 h-4 w-4" />View Procurement
                         </Button>
 
                         {isAdmin ? (
@@ -1538,29 +1548,33 @@ export function OpsOrdersPage() {
                                 onClick={() => lockOrdersMut.mutate()}
                                 disabled={!filters.delivery_date || lockOrdersMut.isPending}
                             >
-                                {lockOrdersMut.isPending ? "Running..." : "Run Lock Job"}
+                                <LockKeyhole className="mr-2 h-4 w-4" />{lockOrdersMut.isPending ? "Running..." : "Run Lock Job"}
                             </Button>
                         ) : null}
                     </div>
                 }
             />
 
-            <Card className="max-w-full overflow-hidden p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Selected Delivery Date</div>
-                        <div className="mt-1 text-xl font-semibold">{filters.delivery_date || "—"}</div>
+            <Card className="relative max-w-full overflow-hidden border-dailyveg-200/70 bg-gradient-to-r from-dailyveg-50 via-white to-white p-5 dark:border-dailyveg-900/70 dark:from-dailyveg-950/60 dark:via-slate-950 dark:to-slate-950 sm:p-6">
+                <div className="absolute -right-12 -top-20 h-44 w-44 rounded-full bg-dailyveg-200/30 blur-3xl dark:bg-dailyveg-800/20" />
+                <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dailyveg-500 text-white shadow-brand"><CalendarDays className="h-5 w-5" /></div>
+                        <div>
+                            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-dailyveg-700 dark:text-dailyveg-300">Operations snapshot</div>
+                            <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{filters.delivery_date || "No delivery date"}</div>
+                        </div>
                     </div>
 
-                    <div className="flex max-w-full flex-wrap items-center gap-2 overflow-hidden">
-                        <div className="rounded-full border border-slate-200 px-3 py-1 text-sm dark:border-slate-800">
-                            Before Lock: <span className="font-semibold">{summary.beforeLock}</span>
+                    <div className="grid max-w-full grid-cols-3 gap-2 overflow-hidden">
+                        <div className="rounded-xl border border-amber-200/80 bg-white/80 px-3 py-2 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-amber-900/60 dark:bg-slate-950/70">
+                            Before Lock <span className="ml-1 text-base font-bold text-amber-700 dark:text-amber-300">{summary.beforeLock}</span>
                         </div>
-                        <div className="rounded-full border border-slate-200 px-3 py-1 text-sm dark:border-slate-800">
-                            Locked: <span className="font-semibold">{summary.locked}</span>
+                        <div className="rounded-xl border border-dailyveg-200/80 bg-white/80 px-3 py-2 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-dailyveg-900/60 dark:bg-slate-950/70">
+                            Locked <span className="ml-1 text-base font-bold text-dailyveg-700 dark:text-dailyveg-300">{summary.locked}</span>
                         </div>
-                        <div className="rounded-full border border-slate-200 px-3 py-1 text-sm dark:border-slate-800">
-                            Exceptions: <span className="font-semibold">{summary.exceptions}</span>
+                        <div className="rounded-xl border border-rose-200/80 bg-white/80 px-3 py-2 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-rose-900/60 dark:bg-slate-950/70">
+                            Exceptions <span className="ml-1 text-base font-bold text-rose-700 dark:text-rose-300">{summary.exceptions}</span>
                         </div>
                     </div>
                 </div>
@@ -1571,23 +1585,23 @@ export function OpsOrdersPage() {
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
-                <SummaryCard title="Total Orders" value={summary.total} active={queue === "all"} onClick={() => handleQueueChange("all")} />
-                <SummaryCard title="Before Lock" value={summary.beforeLock} active={queue === "before_lock"} onClick={() => handleQueueChange("before_lock")} />
-                <SummaryCard title="To Pack" value={summary.toPack} active={queue === "to_pack"} onClick={() => handleQueueChange("to_pack")} />
-                <SummaryCard title="Packed" value={summary.packed} active={queue === "packed"} onClick={() => handleQueueChange("packed")} />
-                <SummaryCard title="Out for Delivery" value={summary.outForDelivery} active={queue === "out_for_delivery"} onClick={() => handleQueueChange("out_for_delivery")} />
-                <SummaryCard title="Delivered" value={summary.delivered} active={queue === "delivered"} onClick={() => handleQueueChange("delivered")} />
+                <SummaryCard title="Total Orders" value={summary.total} icon={ClipboardList} accent="slate" active={queue === "all"} onClick={() => handleQueueChange("all")} />
+                <SummaryCard title="Before Lock" value={summary.beforeLock} icon={Clock} accent="amber" active={queue === "before_lock"} onClick={() => handleQueueChange("before_lock")} />
+                <SummaryCard title="To Pack" value={summary.toPack} icon={Package} accent="amber" active={queue === "to_pack"} onClick={() => handleQueueChange("to_pack")} />
+                <SummaryCard title="Packed" value={summary.packed} icon={Box} accent="blue" active={queue === "packed"} onClick={() => handleQueueChange("packed")} />
+                <SummaryCard title="Out for Delivery" value={summary.outForDelivery} icon={Truck} accent="cyan" active={queue === "out_for_delivery"} onClick={() => handleQueueChange("out_for_delivery")} />
+                <SummaryCard title="Delivered" value={summary.delivered} icon={CheckCircle2} active={queue === "delivered"} onClick={() => handleQueueChange("delivered")} />
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 xl:grid-cols-4">
-                <SummaryCard title="Locked Queue" value={summary.locked} active={queue === "locked"} onClick={() => handleQueueChange("locked")} />
-                <SummaryCard title="Exceptions" value={summary.exceptions} active={queue === "exceptions"} onClick={() => handleQueueChange("exceptions")} />
-                <SummaryCard title="Assigned" value={summary.assigned} active={queue === "assigned"} onClick={() => handleQueueChange("assigned")} />
-                <SummaryCard title="Unassigned" value={summary.unassigned} active={queue === "unassigned"} onClick={() => handleQueueChange("unassigned")} />
+                <SummaryCard title="Locked Queue" value={summary.locked} icon={LockKeyhole} active={queue === "locked"} onClick={() => handleQueueChange("locked")} />
+                <SummaryCard title="Exceptions" value={summary.exceptions} icon={AlertTriangle} accent="rose" active={queue === "exceptions"} onClick={() => handleQueueChange("exceptions")} />
+                <SummaryCard title="Assigned" value={summary.assigned} icon={UsersRound} accent="blue" active={queue === "assigned"} onClick={() => handleQueueChange("assigned")} />
+                <SummaryCard title="Unassigned" value={summary.unassigned} icon={UserPlus} accent="slate" active={queue === "unassigned"} onClick={() => handleQueueChange("unassigned")} />
             </div>
 
             <div className="mt-4 min-w-0">
-                <Card className="w-full overflow-hidden p-3 sm:p-4">
+                <Card className="w-full overflow-hidden border-slate-200/80 p-3 shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:shadow-brand-dark sm:p-4">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         {/* <QueueTabs value={queue} onChange={handleQueueChange} /> */}
 
@@ -1597,22 +1611,22 @@ export function OpsOrdersPage() {
                                 fileName={`ops_orders_${filters.delivery_date || new Date().toISOString().slice(0, 10)}.pdf`}
                             >
                                 {({ loading }) => (
-                                    <Button variant="outline" disabled={loading || !visibleRows.length}>
-                                        {loading ? "Preparing PDF..." : "Export PDF"}
+                                    <Button className="gap-2" variant="outline" disabled={loading || !visibleRows.length}>
+                                        <FileDown className="h-4 w-4" />{loading ? "Preparing PDF..." : "Export PDF"}
                                     </Button>
                                 )}
                             </PDFDownloadLink>
 
-                            <Button
+                            <Button className="gap-2"
                                 variant="outline"
                                 disabled={!visibleRows.length}
                                 onClick={() => exportOrdersCsv({ orders: visibleRows, filters: { ...filters, queue } })}
                             >
-                                Export CSV (Visible)
+                                <FileDown className="h-4 w-4" />Export Visible
                             </Button>
 
-                            <Button variant="outline" onClick={handleExportAllCsv}>
-                                Export All CSV
+                            <Button className="gap-2" variant="outline" onClick={handleExportAllCsv}>
+                                <FileDown className="h-4 w-4" />Export All
                             </Button>
                         </div>
 
@@ -1760,108 +1774,99 @@ export function OpsOrdersPage() {
                                 )}
                             </div>
 
-                            <div className={cn("w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200 thin-scrollbar dark:border-slate-800", viewMode === VIEW_MODES.table ? "hidden lg:block" : "hidden")}>
-                                <table className="w-full min-w-[1150px] table-auto whitespace-nowrap text-sm">
-                                    <thead className="sticky text-left top-0 z-10 bg-dailyveg-50/80 dark:bg-dailyveg-950/50">
+                            <div className={cn("w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm thin-scrollbar dark:border-slate-800/80 dark:bg-slate-950", viewMode === VIEW_MODES.table ? "hidden lg:block" : "hidden")}>
+                                <table className="premium-table min-w-[1280px] table-auto whitespace-nowrap">
+                                    <thead className="sticky left-0 top-0 z-10 bg-gradient-to-r from-dailyveg-50 to-slate-50/80 text-left dark:from-dailyveg-950/70 dark:to-slate-900/60">
                                         <tr>
-                                            <th className="w-10 px-4 py-3 text-left">
-                                                <input type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
+                                            <th className="w-10 px-4 py-3.5 text-left">
+                                                <input aria-label="Select all visible orders" className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500" type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
                                             </th>
-                                            <th className="px-4 py-3 text-left font-semibold">Order</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Customer</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Delivery</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Area</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Items</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Amount</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Payment</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Delivery Partner</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Status</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Actions</th>
+                                            {['Order', 'Customer', 'Delivery', 'Area', 'Items', 'Amount', 'Payment', 'Delivery Partner', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{heading}</th>)}
                                         </tr>
                                     </thead>
 
                                     <tbody>
                                         {listQuery.isLoading ? (
                                             <tr>
-                                                <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
-                                                    Loading orders...
+                                                <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
+                                                    <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin text-dailyveg-500" /><span className="font-medium">Loading orders…</span>
                                                 </td>
                                             </tr>
                                         ) : visibleRows.length === 0 ? (
                                             <tr>
-                                                <td colSpan={11} className="px-4 py-10 text-center text-slate-500">
-                                                    No orders found for this queue.
+                                                <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
+                                                    <Package className="mx-auto mb-3 h-8 w-8 text-slate-300 dark:text-slate-700" /><span className="font-semibold text-slate-700 dark:text-slate-200">No orders found</span><p className="mt-1 text-xs">This queue is clear for the selected filters.</p>
                                                 </td>
                                             </tr>
                                         ) : (
                                             visibleRows.map((order) => {
                                                 const nextActions = getNextActions(order);
+                                                const selected = selectedIds.includes(order.id);
 
                                                 return (
-                                                    <tr key={order.id} className="border-t border-slate-100 dark:border-slate-900">
+                                                    <tr key={order.id} className={cn("group border-t border-slate-100 transition-colors dark:border-slate-900", selected ? "bg-dailyveg-50/80 dark:bg-dailyveg-950/35" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/35")}>
                                                         <td className="px-4 py-3 align-middle">
                                                             <input
+                                                                aria-label={`Select order ${order.order_number || order.id}`}
+                                                                className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500"
                                                                 type="checkbox"
-                                                                checked={selectedIds.includes(order.id)}
+                                                                checked={selected}
                                                                 onChange={() => toggleRowSelection(order.id)}
                                                             />
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="font-medium">{order.order_number || "—"}</div>
-                                                            <div className="max-w-[220px] truncate text-xs text-slate-500" title={order.id}>
-                                                                {order.id}
-                                                            </div>
+                                                            <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300"><Hash className="h-4 w-4" /></span><div><div className="font-semibold text-slate-900 dark:text-white">{order.order_number || "—"}</div><div className="max-w-[150px] truncate font-mono text-[10px] text-slate-400" title={order.id}>{order.id}</div></div></div>
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="font-medium">{getCustomerName(order)}</div>
-                                                            <div className="text-xs text-slate-500">{getCustomerPhone(order)}</div>
+                                                            <div className="font-semibold text-slate-800 dark:text-slate-100">{getCustomerName(order)}</div>
+                                                            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><Phone className="h-3 w-3" />{getCustomerPhone(order)}</div>
                                                         </td>
 
-                                                        <td className="px-4 py-3 align-middle">{order.delivery_date || "—"}</td>
-                                                        <td className="px-4 py-3 align-middle">{getOrderArea(order)}</td>
-                                                        <td className="px-4 py-3 align-middle">{getOrderItemsCount(order)}</td>
+                                                        <td className="px-4 py-3 align-middle"><div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"><CalendarDays className="h-3.5 w-3.5 text-slate-400" />{order.delivery_date || "—"}</div></td>
+                                                        <td className="px-4 py-3 align-middle"><div className="flex max-w-[140px] items-center gap-2 truncate text-xs text-slate-600 dark:text-slate-300" title={getOrderArea(order)}><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{getOrderArea(order)}</span></div></td>
+                                                        <td className="px-4 py-3 align-middle"><span className="inline-flex min-w-8 items-center justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{getOrderItemsCount(order)}</span></td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="font-medium">{money(getOrderTotal(order))}</div>
+                                                            <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white"><IndianRupee className="h-3.5 w-3.5 text-dailyveg-600" />{money(getOrderTotal(order)).replace(/^₹\s?/, "")}</div>
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="font-medium">{order.payment_method || "—"}</div>
-                                                            <div className="text-xs text-slate-500">{order.payment_status || "—"}</div>
+                                                            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase text-slate-700 dark:text-slate-200"><CreditCard className="h-3.5 w-3.5 text-slate-400" />{order.payment_method || "—"}</div>
+                                                            <div className="mt-1 text-[11px] capitalize text-slate-500">{String(order.payment_status || "—").replaceAll("_", " ")}</div>
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
                                                             {order.delivery_partner ? (
                                                                 <div>
-                                                                    <div className="font-medium">{getDeliveryPartnerName(order)}</div>
-                                                                    <div className="text-xs text-slate-500">
+                                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100"><Truck className="h-3.5 w-3.5 text-dailyveg-600" />{getDeliveryPartnerName(order)}</div>
+                                                                    <div className="mt-1 text-xs text-slate-500">
                                                                         {getDeliveryPartnerPhone(order) || "—"}
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <span className="text-slate-500">—</span>
+                                                                <span className="inline-flex rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-medium text-slate-500 dark:border-slate-700">Unassigned</span>
                                                             )}
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="flex flex-col items-center gap-1">
+                                                            <div className="flex flex-col items-start gap-1.5">
                                                                 <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
-                                                                <span className="text-xs text-slate-500 text-center">
-                                                                    {order.is_locked ? "Locked" : "Not locked"}
+                                                                <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold", order.is_locked ? "text-dailyveg-700 dark:text-dailyveg-300" : "text-slate-400")}>
+                                                                    <span className={cn("h-1.5 w-1.5 rounded-full", order.is_locked ? "bg-dailyveg-500" : "bg-slate-300 dark:bg-slate-700")} />{order.is_locked ? "Locked" : "Not locked"}
                                                                 </span>
                                                             </div>
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="flex flex-nowrap gap-2">
-                                                                <Button variant="outline" size="sm" onClick={() => setPreviewOrder(order)}>
-                                                                    Preview
+                                                            <div className="flex flex-nowrap gap-1.5">
+                                                                <Button className="gap-1.5" variant="ghost" size="sm" onClick={() => setPreviewOrder(order)}>
+                                                                    <Eye className="h-3.5 w-3.5" />Preview
                                                                 </Button>
 
-                                                                <Button variant="outline" size="sm" asChild>
-                                                                    <Link to={`/ops/orders/${order.id}`}>View</Link>
+                                                                <Button className="gap-1.5" variant="outline" size="sm" asChild>
+                                                                    <Link to={`/ops/orders/${order.id}`}>View<ExternalLink className="h-3.5 w-3.5" /></Link>
                                                                 </Button>
 
                                                                 {canAssignDeliveryPartner(order) ? (

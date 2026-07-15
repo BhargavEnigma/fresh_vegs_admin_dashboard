@@ -37,8 +37,8 @@ export function DataTable({
   });
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark">
-      <div className="flex flex-col gap-2 border-b border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+    <div className="premium-table-shell overflow-x-auto">
+      <div className="flex flex-col gap-2 border-b border-slate-200/80 bg-gradient-to-r from-white to-dailyveg-50/40 p-4 dark:border-slate-800 dark:from-slate-950 dark:to-dailyveg-950/30 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:max-w-sm">
           <Input
             value={globalFilter ?? ""}
@@ -50,14 +50,14 @@ export function DataTable({
       </div>
 
       <div className="w-full overflow-x-auto thin-scrollbar">
-        <table className="w-full text-sm">
-          <thead className="bg-dailyveg-50/80 text-left dark:bg-dailyveg-950/50">
+        <table className="premium-table">
+          <thead className="text-left">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className={cn("whitespace-nowrap px-4 py-3 font-semibold text-slate-700 dark:text-slate-200", header.column.getCanSort() && "cursor-pointer select-none")}
+                    className={cn("whitespace-nowrap px-4 py-3.5", header.column.getCanSort() && "cursor-pointer select-none hover:text-dailyveg-700 dark:hover:text-dailyveg-300")}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -80,9 +80,9 @@ export function DataTable({
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="border-t border-slate-100 transition-colors hover:bg-dailyveg-50/70 dark:border-slate-900 dark:hover:bg-dailyveg-950/40">
+                <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="whitespace-nowrap px-4 py-3">
+                    <td key={cell.id} className="whitespace-nowrap px-4 py-3.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -93,7 +93,7 @@ export function DataTable({
         </table>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-slate-200 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/30 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-slate-500">
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()} • {table.getFilteredRowModel().rows.length} rows
         </div>

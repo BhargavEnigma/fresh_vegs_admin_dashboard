@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/auth-context";
 import { NAV_ITEMS } from "./nav-config";
 import { cn } from "../lib/utils";
@@ -19,6 +19,7 @@ import {
   ChevronRight,
   User,
   LogOut,
+  KeyRound,
 } from "lucide-react";
 import * as React from "react";
 import Image from "../assets/logo-light-trans.png";
@@ -53,6 +54,7 @@ export function AppShell() {
   const { user, roles, logout } = useAuth();
   const { dark, toggle } = useDarkMode();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [openNavGroups, setOpenNavGroups] = React.useState({});
@@ -360,6 +362,12 @@ export function AppShell() {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="start" className="w-60">
+                  <DropdownMenuItem onSelect={() => navigate("/account/security")}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Change Password
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={toggle}>
                     {dark ? (
                       <>

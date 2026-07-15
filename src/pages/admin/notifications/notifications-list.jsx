@@ -168,8 +168,8 @@ export function NotificationsListPage() {
             ) : (
                 <>
                     <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 lg:block">
-                        <table className="w-full text-sm">
-                            <thead className="bg-dailyveg-50/80 text-left dark:bg-dailyveg-950/50">
+                        <table className="premium-table">
+                            <thead className="text-left">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Notification</th>
                                     <th className="px-4 py-3 font-semibold">Type</th>

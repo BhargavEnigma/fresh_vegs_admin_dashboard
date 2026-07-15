@@ -101,3 +101,47 @@ select {
     width: 3px;
     height: 3px;
 }
+
+@layer components {
+    .premium-table-shell {
+        @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark;
+    }
+
+    .premium-table {
+        @apply w-full text-sm text-slate-700 dark:text-slate-200;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .premium-table thead {
+        @apply bg-gradient-to-r from-dailyveg-50 via-dailyveg-50/70 to-slate-50/80 dark:from-dailyveg-950/70 dark:via-dailyveg-950/40 dark:to-slate-900/60;
+    }
+
+    .premium-table thead th {
+        @apply border-b border-dailyveg-100/80 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:border-dailyveg-900/60 dark:text-slate-400;
+    }
+
+    .premium-table tbody tr {
+        @apply transition-colors duration-150;
+    }
+
+    .premium-table tbody tr:not(.premium-table-state-row):hover {
+        @apply bg-dailyveg-50/55 dark:bg-dailyveg-950/25;
+    }
+
+    .premium-table tbody td {
+        @apply border-b border-slate-100/90 dark:border-slate-900/90;
+    }
+
+    .premium-table tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    .premium-table input[type="checkbox"] {
+        @apply h-4 w-4 rounded border-slate-300 accent-dailyveg-500 dark:border-slate-700;
+    }
+
+    .premium-table a:not([class*="bg-"]) {
+        @apply transition-colors;
+    }
+}

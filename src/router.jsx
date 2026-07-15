@@ -5,6 +5,7 @@ import { AppShell } from "./layout/app-shell";
 
 import { LoginPage } from "./pages/auth/login-page";
 import { AccessDeniedPage } from "./pages/auth/access-denied-page";
+import { ChangePasswordPage } from "./pages/auth/change-password-page";
 import { DashboardPage } from "./pages/dashboard/dashboard-page";
 
 import { CategoriesListPage } from "./pages/categories/categories-list";
@@ -63,6 +64,7 @@ export function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<HomeRoute />} />
+          <Route path="account/security" element={<ChangePasswordPage />} />
 
           {/* Admin & Warehouse Manager Routes */}
           <Route element={<RequireRole allowed={["admin", "warehouse_manager"]} />}>

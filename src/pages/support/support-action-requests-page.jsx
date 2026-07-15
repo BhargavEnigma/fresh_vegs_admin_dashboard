@@ -58,8 +58,8 @@ export function SupportActionRequestsPage() {
             </Card>
             <Card className="overflow-hidden">
                 <div className="overflow-x-auto thin-scrollbar">
-                    <table className="w-full text-sm">
-                        <thead className="bg-dailyveg-50/80 text-left dark:bg-dailyveg-950/50">
+                    <table className="premium-table">
+                        <thead className="text-left">
                             <tr>
                                 {["Action", "Ticket", "Review", "Execution", "Requested", "Failure", ""].map((head) => <th key={head} className="px-4 py-3 font-semibold">{head}</th>)}
                             </tr>

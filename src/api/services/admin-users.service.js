@@ -24,4 +24,9 @@ export const AdminUsersService = {
         });
         return res.data?.data;
     },
+
+    async updatePasswordLogin(userId, payload) {
+        const res = await api.put(ENDPOINTS.admin.users.passwordLogin(userId), payload);
+        return res.data?.data;
+    },
 };

@@ -86,6 +86,7 @@ export function refreshAccessToken() {
 }
 
 const NO_REFRESH_ENDPOINTS = [
+  ENDPOINTS.auth.passwordLogin,
   ENDPOINTS.auth.consoleAccess,
   ENDPOINTS.auth.sendOtp,
   ENDPOINTS.auth.verifyOtp,
