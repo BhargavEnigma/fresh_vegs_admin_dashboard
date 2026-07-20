@@ -1,6 +1,7 @@
 import React from "react";
 import { formatIndianDateTime, formatOrderStatusDateTime } from "../../../utils/date-formatter";
 import { getOrderStatusLabel, getOrderStatusSourceLabel } from "../../../utils/order-status-timeline";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 import {
     Document,
     Page,
@@ -11,7 +12,12 @@ import {
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
-    return n.toLocaleString(undefined, { style: "currency", currency: "INR" });
+    // React PDF's built-in Helvetica font does not contain the rupee glyph.
+    // Using the glyph makes it render as a tiny superscript-like "1" in the PDF.
+    return `Rs. ${n.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
 }
 
 const styles = StyleSheet.create({
@@ -41,6 +47,8 @@ const styles = StyleSheet.create({
 
 export function OpsOrderPdf({ order }) {
     const items = order?.items || [];
+    console.log("ITEMS : ", items);
+    
     const timeline = order?.status_timeline || [];
 
     return (
@@ -48,11 +56,26 @@ export function OpsOrderPdf({ order }) {
             <Page size="A4" style={styles.page}>
                 <View style={styles.headerRow}>
                     <View>
-                        <Text style={styles.title}>FreshVeg - Order Details</Text>
-                        <Text style={styles.muted}>Generated from Admin Panel</Text>
+                        {getDailyOrderLabel(order) ? (
+                            <Text style={{ fontSize: 24, fontWeight: "extrabold", color: "#111" }}>
+                                ORDER {getDailyOrderLabel(order)}
+                            </Text>
+                        ) : (
+                            <Text style={styles.title}>FreshVeg - Order Details</Text>
+                        )}
+                        {order?.operational_order_code ? (
+                            <Text style={{ fontSize: 13, fontWeight: "bold", color: "#333", marginTop: 2 }}>
+                                {order.operational_order_code}
+                            </Text>
+                        ) : null}
+                        <Text style={[styles.muted, { marginTop: 4 }]}>Generated from Operations Panel</Text>
                     </View>
-                    <View>
-                        <Text>Order: {order?.order_number || order?.id}</Text>
+                    <View style={{ alignItems: "flex-end", textAlign: "right" }}>
+                        {order?.order_number && (
+                            <Text>Customer Reference: {order.order_number}</Text>
+                        )}
+                        <Text>Delivery Date: {formatIndianDateTime(order?.delivery_date)}</Text>
+                        <Text>Internal ID: {order?.id}</Text>
                         <Text>Date: {formatIndianDateTime(order?.created_at)}</Text>
                     </View>
                 </View>

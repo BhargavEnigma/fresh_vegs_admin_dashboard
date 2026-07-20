@@ -13,6 +13,8 @@ export function exportOrdersCsv({ orders, filters, filePrefix = "ops_orders" }) 
     const list = Array.isArray(orders) ? orders : [];
 
     const headers = [
+        "daily_order_number",
+        "operational_order_code",
         "order_number",
         "order_id",
         "status",
@@ -32,6 +34,8 @@ export function exportOrdersCsv({ orders, filters, filePrefix = "ops_orders" }) 
     ];
 
     const rows = list.map((o) => [
+        o.daily_order_number != null ? o.daily_order_number : "",
+        o.operational_order_code || "",
         o.order_number || "",
         o.id || "",
         o.status || "",
@@ -60,7 +64,14 @@ export function exportOrdersCsv({ orders, filters, filePrefix = "ops_orders" }) 
     if (filters?.delivery_date) filterTagParts.push(`date-${filters.delivery_date}`);
     const filterTag = filterTagParts.length ? `_${filterTagParts.join("_")}` : "";
 
-    const fileName = `${filePrefix}${filterTag}_${new Date().toISOString().slice(0, 10)}.csv`;
+    let fileName = `${filePrefix}${filterTag}_${new Date().toISOString().slice(0, 10)}.csv`;
+    if (list.length === 1) {
+        const singleOrder = list[0];
+        const code = singleOrder.operational_order_code || singleOrder.order_number || singleOrder.id;
+        if (code) {
+            fileName = `order_${code}.csv`;
+        }
+    }
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);

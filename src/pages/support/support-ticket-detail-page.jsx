@@ -38,6 +38,7 @@ import {
     money,
     optionList,
 } from "./support-utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../utils/order-identifier";
 
 export function SupportTicketDetailPage() {
     const { ticketId } = useParams();
@@ -272,7 +273,29 @@ function OrderSummary({ order }) {
         <Card>
             <CardHeader><CardTitle>Order Context</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <Info label="Order" value={order.order_number || order.id} />
+                <Info 
+                    label="Order" 
+                    value={
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                {getDailyOrderLabel(order) && (
+                                    <span className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs text-dailyveg-700 dark:text-dailyveg-300">
+                                        {getDailyOrderLabel(order)}
+                                    </span>
+                                )}
+                                <span className="font-semibold">{getPrimaryOrderLabel(order)}</span>
+                            </div>
+                            {order.order_number && (
+                                <div className="text-xs text-slate-500 font-mono">
+                                    Ref: {order.order_number}
+                                </div>
+                            )}
+                            <div className="text-xs text-slate-400 font-mono">
+                                UUID: {order.id}
+                            </div>
+                        </div>
+                    } 
+                />
                 <Info label="Status" value={labelize(order.status)} />
                 <Info label="Payment" value={labelize(order.payment_status)} />
                 <Info label="Refund" value={labelize(order.refund_status)} />

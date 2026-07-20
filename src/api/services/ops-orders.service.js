@@ -13,6 +13,7 @@ export const OpsOrdersService = {
             delivery_date,
             assigned,
             unassigned,
+            isOrderAssigned,
             q,
         } = filters;
 
@@ -25,6 +26,7 @@ export const OpsOrdersService = {
             ...(delivery_date ? { delivery_date } : {}),
             ...(assigned ? { assigned } : {}),
             ...(unassigned ? { unassigned } : {}),
+            ...(isOrderAssigned !== undefined ? { isOrderAssigned } : {}),
             ...(q ? { q } : {}),
         };
 
@@ -49,15 +51,17 @@ export const OpsOrdersService = {
     },
 
     async exportAllCsv(filters = {}) {
-        const { status, warehouse_id, delivery_partner_user_id, delivery_date, q } = filters;
+        const { status, warehouse_id, delivery_partner_user_id, delivery_date, isOrderAssigned, q } = filters;
 
         const params = {
             ...(status ? { status } : {}),
             ...(warehouse_id ? { warehouse_id } : {}),
             ...(delivery_partner_user_id ? { delivery_partner_user_id } : {}),
             ...(delivery_date ? { delivery_date } : {}),
+            ...(isOrderAssigned !== undefined ? { isOrderAssigned } : {}),
             ...(q ? { q } : {}),
         };
+
 
         const res = await api.get(ENDPOINTS.ops.orders.exportCsv, {
             params,

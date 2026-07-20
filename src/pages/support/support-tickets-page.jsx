@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PremiumSelect } from "../../components/ui/premium-select";
 import { useToast } from "../../components/toast/toast-context";
 import { SUPPORT_CATEGORIES, SUPPORT_PRIORITIES, SUPPORT_SOURCES, SUPPORT_STATUSES, SUPPORT_TEAMS } from "./support-constants";
-import { TicketPriorityBadge, TicketStatusBadge, apiError, formatDate, optionList } from "./support-utils";
+import { TicketPriorityBadge, TicketStatusBadge, apiError, formatDate, labelize, optionList } from "./support-utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../utils/order-identifier";
 
 function paramsFromSearch(searchParams) {
     return {
@@ -259,7 +260,32 @@ function CreateTicketDialog({ open, onOpenChange, onCreated }) {
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
                             <Label>Related Order</Label>
-                            <PremiumSelect value={payload.order_id} onChange={(value) => setPayload((s) => ({ ...s, order_id: value }))} options={[{ value: "", label: "No related order" }, ...orders.map((order) => ({ value: order.id, label: `${order.order_number || order.id} • ${order.status}` }))]} />
+                            <PremiumSelect
+                                value={payload.order_id}
+                                onChange={(value) => setPayload((s) => ({ ...s, order_id: value }))}
+                                options={[
+                                    { value: "", label: "No related order" },
+                                    ...orders.map((order) => {
+                                        const daily = getDailyOrderLabel(order);
+                                        const primary = getPrimaryOrderLabel(order);
+                                        const status = labelize(order.status);
+                                        const date = order.delivery_date ? formatDate(order.delivery_date) : "";
+                                        const ref = order.order_number;
+
+                                        const parts = [];
+                                        if (daily) parts.push(daily);
+                                        if (primary) parts.push(primary);
+                                        if (status) parts.push(status);
+                                        if (date) parts.push(date);
+                                        if (ref && ref !== primary) parts.push(`Ref: ${ref}`);
+
+                                        return {
+                                            value: order.id,
+                                            label: parts.join(" • "),
+                                        };
+                                    })
+                                ]}
+                            />
                         </div>
                         <div className="grid gap-2">
                             <Label>Category</Label>

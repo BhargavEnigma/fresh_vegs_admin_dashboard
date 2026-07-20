@@ -8,7 +8,7 @@ import { Input } from "../../../components/ui/input";
 import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { Link, useParams } from "react-router-dom";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, AlertTriangle, Copy } from "lucide-react";
 
 import { PageHeader } from "../../../components/common/page-header";
 import { Card } from "../../../components/ui/card";
@@ -22,6 +22,7 @@ import { Skeleton } from "../../../components/ui/skeleton";
 import { OrderStatusTimeline } from "../../../components/orders/order-status-timeline";
 import { getOrderStatusLabel } from "../../../utils/order-status-timeline";
 import { cn } from "../../../lib/utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -64,6 +65,8 @@ function money(paise) {
  * @typedef {Object} Order
  * @property {string} id
  * @property {string} [order_number]
+ * @property {number|null} [daily_order_number]
+ * @property {string|null} [operational_order_code]
  * @property {string} [delivery_date]
  * @property {Object} [warehouse]
  * @property {string} [status]
@@ -361,8 +364,16 @@ export function OpsOrderDetailPage() {
     return (
         <div>
             <PageHeader
-                title={`Order ${order.order_number || order.id}`}
-                subtitle={`Delivery: ${formatIndianDateTime(order.delivery_date)} · Warehouse: ${order.warehouse?.name || "—"}`}
+                title={
+                    getDailyOrderLabel(order)
+                        ? `Order ${getDailyOrderLabel(order)}`
+                        : `Order ${getPrimaryOrderLabel(order)}`
+                }
+                subtitle={
+                    getDailyOrderLabel(order)
+                        ? `${getPrimaryOrderLabel(order)} · Delivery: ${formatIndianDateTime(order.delivery_date)} · Warehouse: ${order.warehouse?.name || "—"}`
+                        : `Delivery: ${formatIndianDateTime(order.delivery_date)} · Warehouse: ${order.warehouse?.name || "—"}`
+                }
                 actions={
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                         <Button
@@ -377,7 +388,11 @@ export function OpsOrderDetailPage() {
 
                         <PDFDownloadLink
                             document={<OpsOrderPdf order={order} />}
-                            fileName={`order_${order.order_number || order.id}.pdf`}
+                            fileName={
+                                order.operational_order_code
+                                    ? `order_${order.operational_order_code}.pdf`
+                                    : `order_${order.order_number || order.id}.pdf`
+                            }
                         >
                             {({ loading }) => (
                                 <Button className="w-full sm:w-auto" variant="default" disabled={loading}>
@@ -557,6 +572,42 @@ export function OpsOrderDetailPage() {
                         <div>
                             <h3 className="text-sm font-semibold">Meta</h3>
                             <div className="mt-2 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+                                {order.operational_order_code && (
+                                    <div>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">Operational code:</span>{" "}
+                                        <span className="font-mono text-slate-800 dark:text-slate-200">{order.operational_order_code}</span>
+                                    </div>
+                                )}
+                                {order.daily_order_number !== null && order.daily_order_number !== undefined && (
+                                    <div>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">Daily number:</span>{" "}
+                                        <span className="font-bold text-dailyveg-700 dark:text-dailyveg-300">{getDailyOrderLabel(order)}</span>
+                                    </div>
+                                )}
+                                {order.order_number && (
+                                    <div>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">Customer order reference:</span>{" "}
+                                        <span className="font-mono text-slate-800 dark:text-slate-200">{order.order_number}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">Internal order ID:</span>{" "}
+                                    <span className="font-mono text-xs truncate max-w-[150px]">{order.id}</span>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(order.id);
+                                            toast.push({
+                                                variant: "success",
+                                                title: "Internal ID copied",
+                                                description: "The order's internal ID has been copied to clipboard.",
+                                            });
+                                        }}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        title="Copy Internal ID"
+                                    >
+                                        <Copy className="h-3.5 w-3.5 inline-block" />
+                                    </button>
+                                </div>
                                 <div><span className="font-medium text-slate-700 dark:text-slate-200">Locked:</span> {order.is_locked ? "Yes" : "No"}</div>
                                 <div><span className="font-medium text-slate-700 dark:text-slate-200">Created:</span> {formatIndianDateTime(order.created_at)}</div>
                                 <div><span className="font-medium text-slate-700 dark:text-slate-200">Record updated:</span> {formatIndianDateTime(order.updated_at)}</div>

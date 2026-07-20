@@ -1,10 +1,34 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
-    return n.toLocaleString(undefined, { style: "currency", currency: "INR" });
+    // Keep PDF text within Helvetica's supported glyph set.
+    return `Rs. ${n.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+}
+
+function getOrderItemsCount(o) {
+    if (typeof o?.item_count === "number") return o.item_count;
+    if (typeof o?.items_count === "number") return o.items_count;
+    if (typeof o?.total_items === "number") return o.total_items;
+    if (Array.isArray(o?.items)) return o.items.length;
+    return 0;
+}
+
+function getOrderArea(o) {
+    return (
+        o?.delivery_area ||
+        o?.address?.area ||
+        o?.delivery_city ||
+        o?.address?.city ||
+        o?.area ||
+        "—"
+    );
 }
 
 const styles = StyleSheet.create({
@@ -29,14 +53,14 @@ const styles = StyleSheet.create({
         paddingRight: 6,
     },
 
-    cOrder: { width: 125 },
-    cStatus: { width: 60 },
-    cDate: { width: 70 },
-    cCustomer: { width: 210 },
-    cTotal: { width: 70, textAlign: "right" },
-    cPay: { width: 70 },
-
-    payLine: { fontSize: 8, color: "#444" },
+    cDailyNo: { width: 45 },
+    cOpsCode: { width: 90 },
+    cCustRef: { width: 60 },
+    cStatus: { width: 55 },
+    cCustomer: { width: 110 },
+    cArea: { width: 90 },
+    cItems: { width: 35, textAlign: "right" },
+    cTotal: { width: 55, textAlign: "right" },
 });
 
 function filterLine(filters) {
@@ -64,31 +88,29 @@ export function OpsOrdersListPdf({ orders, filters }) {
                 <View style={styles.table}>
                     {/* Header */}
                     <View style={[styles.tr, styles.th]}>
-                        <Text style={[styles.cell, styles.cOrder]}>Order</Text>
+                        <Text style={[styles.cell, styles.cDailyNo]}>Daily No.</Text>
+                        <Text style={[styles.cell, styles.cOpsCode]}>Operational Code</Text>
+                        <Text style={[styles.cell, styles.cCustRef]}>Customer Ref.</Text>
                         <Text style={[styles.cell, styles.cStatus]}>Status</Text>
-                        <Text style={[styles.cell, styles.cDate]}>Delivery</Text>
                         <Text style={[styles.cell, styles.cCustomer]}>Customer</Text>
+                        <Text style={[styles.cell, styles.cArea]}>Area</Text>
+                        <Text style={[styles.cell, styles.cItems]}>Items</Text>
                         <Text style={[styles.cell, styles.cTotal]}>Total</Text>
-                        <Text style={[styles.cell, styles.cPay]}>Payment</Text>
                     </View>
 
                     {/* Rows */}
                     {list.map((o) => (
                         <View key={o.id} style={styles.tr}>
-                            <Text style={[styles.cell, styles.cOrder]}>{o.order_number || o.id}</Text>
+                            <Text style={[styles.cell, styles.cDailyNo]}>{getDailyOrderLabel(o) || "—"}</Text>
+                            <Text style={[styles.cell, styles.cOpsCode]}>{getPrimaryOrderLabel(o) || "—"}</Text>
+                            <Text style={[styles.cell, styles.cCustRef]}>{o.order_number || "—"}</Text>
                             <Text style={[styles.cell, styles.cStatus]}>{o.status || "—"}</Text>
-                            <Text style={[styles.cell, styles.cDate]}>{formatIndianDateTime(o.delivery_date)}</Text>
-
                             <Text style={[styles.cell, styles.cCustomer]}>
-                                {(o.user?.full_name || "—") + (o.user?.phone ? ` (${o.user.phone})` : "")}
+                                {o.user?.full_name || "—"}
                             </Text>
-
+                            <Text style={[styles.cell, styles.cArea]}>{getOrderArea(o)}</Text>
+                            <Text style={[styles.cell, styles.cItems]}>{getOrderItemsCount(o)}</Text>
                             <Text style={[styles.cell, styles.cTotal]}>{money(o.total_paise)}</Text>
-
-                            <View style={[styles.cell, styles.cPay]}>
-                                <Text style={styles.payLine}>{o.payment_method || "—"}</Text>
-                                <Text style={styles.payLine}>{o.payment_status || "—"}</Text>
-                            </View>
                         </View>
                     ))}
                 </View>

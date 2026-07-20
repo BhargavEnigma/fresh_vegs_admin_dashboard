@@ -11,6 +11,7 @@ import { formatDate, labelize, money } from "./support-utils";
 import { OrderStatusTimeline } from "../../components/orders/order-status-timeline";
 import { formatOrderStatusDateTime } from "../../utils/date-formatter";
 import { cn } from "../../lib/utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../utils/order-identifier";
 
 export function SupportOrderContextPage() {
     const { orderId } = useParams();
@@ -65,11 +66,11 @@ export function SupportOrderContextPage() {
 
     return (
         <div>
-            <PageHeader
-                title={order.order_number || "Order Context"}
+             <PageHeader
+                title={getPrimaryOrderLabel(order) || "Order Context"}
                 subtitle={
                     <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm font-semibold text-slate-950 dark:text-slate-50">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm font-semibold text-slate-955 dark:text-slate-50">
                             <span>{labelize(order.status)}</span>
                             <span className="text-slate-455">•</span>
                             <span className="font-normal text-slate-500">Last changed: {order.current_status_at ? formatOrderStatusDateTime(order.current_status_at) : "Time unavailable"}</span>
@@ -95,6 +96,16 @@ export function SupportOrderContextPage() {
             
             <div className="grid gap-5 lg:grid-cols-3">
                 <Panel title="Order">
+                    {order.operational_order_code && (
+                        <Line label="Operational Order" value={order.operational_order_code} />
+                    )}
+                    {order.daily_order_number !== null && order.daily_order_number !== undefined && (
+                        <Line label="Daily Number" value={getDailyOrderLabel(order)} />
+                    )}
+                    {order.order_number && (
+                        <Line label="Customer Reference" value={order.order_number} />
+                    )}
+                    <Line label="Internal ID" value={order.id} />
                     <Line label="Delivery Date" value={order.delivery_date || "—"} />
                     <Line label="Payment Method" value={labelize(order.payment_method)} />
                     <Line label="Refund Status" value={labelize(order.refund_status)} />

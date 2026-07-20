@@ -7,7 +7,7 @@ import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, Copy, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -32,6 +32,8 @@ import { downloadBlob } from "../../../utils/download";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { RiResetLeftFill } from "react-icons/ri";
 import { cn } from "../../../lib/utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
+
 
 const VIEW_MODES = {
     table: "table",
@@ -327,7 +329,7 @@ function Filters({ value, onApply, deliveryPartners }) {
         onApply({
             warehouse_id: v.warehouse_id ?? "",
             delivery_partner_user_id: v.delivery_partner_user_id ?? "",
-            q: v.q ?? "",
+            q: (v.q ?? "").trim(),
             limit: v.limit ?? value.limit ?? 20,
             delivery_date: v.delivery_date ? toYyyyMmDd(v.delivery_date) : "",
         });
@@ -336,7 +338,7 @@ function Filters({ value, onApply, deliveryPartners }) {
     return (
         <form
             onSubmit={form.handleSubmit(submit)}
-            className="grid gap-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark sm:p-5"
+            className="grid gap-4 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark sm:p-5"
         >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-900">
                 <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-dailyveg-50 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300"><SlidersHorizontal className="h-4 w-4" /></span><div><h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Refine orders</h3><p className="text-xs text-slate-500">Narrow the operations queue</p></div></div>
@@ -344,7 +346,7 @@ function Filters({ value, onApply, deliveryPartners }) {
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <div className="grid min-w-0 gap-1.5">
                     <Label className="text-xs font-semibold text-slate-500">Search</Label>
-                    <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Order no. or phone" {...form.register("q")} /></div>
+                    <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Search operational code, daily no., order no. or phone" {...form.register("q")} /></div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
@@ -523,9 +525,36 @@ function OrderPreviewDialog({
                 </DialogHeader>
 
                 <div className="grid gap-3 text-sm">
-                    <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                        <div className="font-semibold">{order.order_number || order.id}</div>
-                        <div className="mt-1 text-slate-500 dark:text-slate-400">{order.id}</div>
+                    <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800 space-y-1">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-slate-500">Operational Order</div>
+                                <div className="font-semibold text-base text-slate-900 dark:text-white">{getPrimaryOrderLabel(order)}</div>
+                            </div>
+                            {getDailyOrderLabel(order) && (
+                                <div className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-1 text-sm font-bold text-dailyveg-700 dark:text-dailyveg-300">
+                                    {getDailyOrderLabel(order)}
+                                </div>
+                            )}
+                        </div>
+                        {order.order_number && (
+                            <div className="text-xs text-slate-500">
+                                Customer Reference: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
+                            </div>
+                        )}
+                        <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-1">
+                            <span>UUID: {order.id}</span>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(order.id);
+                                    toast.success("UUID copied to clipboard");
+                                }}
+                                className="hover:text-slate-600 dark:hover:text-slate-200"
+                                title="Copy UUID"
+                            >
+                                <Copy className="h-3.5 w-3.5 inline-block" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -627,17 +656,29 @@ function AssignDeliveryPartnerDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
-                        {order.delivery_partner_user_id ? "Reassign Delivery Partner" : "Assign Delivery Partner"}
+                        {order.delivery_partner_user_id ? "Reassign Delivery Partner" : "Assign Delivery Partner"} to {getDailyOrderLabel(order) || getPrimaryOrderLabel(order)}
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4">
                     <div className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
-                        <div className="font-medium">{order.order_number || order.id}</div>
-                        <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center justify-between font-semibold">
+                            <span>{getPrimaryOrderLabel(order)}</span>
+                            {getDailyOrderLabel(order) && (
+                                <span className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs text-dailyveg-700 dark:text-dailyveg-300">
+                                    {getDailyOrderLabel(order)}
+                                </span>
+                            )}
+                        </div>
+                        {order.order_number && (
+                            <div className="text-xs text-slate-500 mt-1">
+                                Customer Reference: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
+                            </div>
+                        )}
+                        <div className="mt-1 text-slate-550 dark:text-slate-400">
                             {getCustomerName(order)} · {getCustomerPhone(order)}
                         </div>
-                        <div className="mt-1 text-slate-500 dark:text-slate-400">
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Delivery Date: {formatIndianDateTime(order.delivery_date)} · Area: {getOrderArea(order)}
                         </div>
                     </div>
@@ -706,18 +747,29 @@ function MobileOrderCard({
     return (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <input
                             type="checkbox"
                             checked={selected}
                             onChange={() => onToggleSelect(order.id)}
+                            className="shrink-0"
+                            aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
                         />
-                        <div className="truncate font-semibold">
-                            {order.order_number || "—"}
-                        </div>
+                        {getDailyOrderLabel(order) && (
+                            <span className="shrink-0 rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs font-extrabold text-dailyveg-700 dark:text-dailyveg-300">
+                                {getDailyOrderLabel(order)}
+                            </span>
+                        )}
+                        <span className="font-semibold text-slate-900 dark:text-white truncate">
+                            {getPrimaryOrderLabel(order)}
+                        </span>
                     </div>
-
+                    {order.order_number && (
+                        <div className="mt-1 text-xs text-slate-500">
+                            Ref: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
+                        </div>
+                    )}
                     <div className="mt-1 text-xs text-slate-500">
                         {getCustomerName(order)} · {getCustomerPhone(order)}
                     </div>
@@ -843,20 +895,32 @@ function OrderGridCard({
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-xl hover:shadow-dailyveg-900/10 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-dailyveg-800 dark:hover:shadow-black/30">
             <div className="border-b border-slate-100 bg-dailyveg-50/70 p-4 dark:border-slate-900 dark:bg-dailyveg-950/30">
                 <div className="flex items-start justify-between gap-3">
-                    <label className="flex min-w-0 items-start gap-3">
+                    <label className="flex min-w-0 items-start gap-3 flex-1">
                         <input
                             type="checkbox"
                             checked={selected}
                             onChange={() => onToggleSelect(order.id)}
-                            className="mt-1"
-                            aria-label={`Select order ${order.order_number || order.id}`}
+                            className="mt-1 shrink-0"
+                            aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
                         />
-                        <span className="min-w-0">
-                            <span className="block truncate text-base font-semibold text-slate-950 dark:text-slate-50">
-                                {order.order_number || "—"}
-                            </span>
-                            <span className="mt-1 block max-w-full truncate text-xs text-slate-500" title={order.id}>
-                                {order.id}
+                        <span className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                {getDailyOrderLabel(order) && (
+                                    <span className="shrink-0 rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-[11px] font-extrabold text-dailyveg-700 dark:text-dailyveg-300">
+                                        {getDailyOrderLabel(order)}
+                                    </span>
+                                )}
+                                <span className="block truncate text-base font-semibold text-slate-950 dark:text-slate-50">
+                                    {getPrimaryOrderLabel(order)}
+                                </span>
+                            </div>
+                            {order.order_number && (
+                                <span className="mt-1 block max-w-full truncate text-xs text-slate-500">
+                                    Ref: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
+                                </span>
+                            )}
+                            <span className="mt-0.5 block max-w-full truncate text-[10px] text-slate-400 font-mono" title={order.id}>
+                                UUID: {order.id}
                             </span>
                         </span>
                     </label>
@@ -1005,6 +1069,10 @@ export function OpsOrdersPage() {
         delivery_date: paramDate || toYyyyMmDd(tomorrowDate()),
         q: "",
     });
+
+    function formatDateLabel(value) {
+        return formatIndianDateTime(value);
+    }
 
     useEffect(() => {
         const d = searchParams.get("delivery_date");
@@ -1444,10 +1512,14 @@ export function OpsOrdersPage() {
             return;
         }
 
+        const idsSummary = selectedOrders.slice(0, 5).map(o => getDailyOrderLabel(o) || getPrimaryOrderLabel(o)).join(", ");
+        const suffix = selectedOrders.length > 5 ? ` and ${selectedOrders.length - 5} more` : "";
+        const summary = `Selected: ${idsSummary}${suffix}`;
+
         setConfirmDialog({
             open: true,
             title: "Assign Delivery Partner",
-            description: `Assign ${orderIds.length} selected orders to this delivery partner?`,
+            description: `Assign ${orderIds.length} selected orders to this delivery partner? (${summary})`,
             confirmText: "Assign",
             loading: bulkAssignDeliveryPartnerMut.isPending,
             onConfirm: () => {
@@ -1478,10 +1550,14 @@ export function OpsOrdersPage() {
             return;
         }
 
+        const idsSummary = selectedOrders.slice(0, 5).map(o => getDailyOrderLabel(o) || getPrimaryOrderLabel(o)).join(", ");
+        const suffix = selectedOrders.length > 5 ? ` and ${selectedOrders.length - 5} more` : "";
+        const summary = `Selected: ${idsSummary}${suffix}`;
+
         setConfirmDialog({
             open: true,
             title: "Unassign Delivery Partner",
-            description: `Unassign ${orderIds.length} selected orders from this delivery partner?`,
+            description: `Unassign ${orderIds.length} selected orders from this delivery partner? (${summary})`,
             confirmText: "Unassign",
             loading: bulkUnassignDeliveryPartnerMut.isPending,
             onConfirm: () => {
@@ -1562,7 +1638,7 @@ export function OpsOrdersPage() {
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dailyveg-500 text-white shadow-brand"><CalendarDays className="h-5 w-5" /></div>
                         <div>
                             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-dailyveg-700 dark:text-dailyveg-300">Operations snapshot</div>
-                            <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{filters.delivery_date || "No delivery date"}</div>
+                            <div className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatDateLabel(filters.delivery_date) || "No delivery date"}</div>
                         </div>
                     </div>
 
@@ -1807,7 +1883,7 @@ export function OpsOrdersPage() {
                                                     <tr key={order.id} className={cn("group border-t border-slate-100 transition-colors dark:border-slate-900", selected ? "bg-dailyveg-50/80 dark:bg-dailyveg-950/35" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/35")}>
                                                         <td className="px-4 py-3 align-middle">
                                                             <input
-                                                                aria-label={`Select order ${order.order_number || order.id}`}
+                                                                aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
                                                                 className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500"
                                                                 type="checkbox"
                                                                 checked={selected}
@@ -1816,7 +1892,25 @@ export function OpsOrdersPage() {
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
-                                                            <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300"><Hash className="h-4 w-4" /></span><div><div className="font-semibold text-slate-900 dark:text-white">{order.order_number || "—"}</div><div className="max-w-[150px] truncate font-mono text-[10px] text-slate-400" title={order.id}>{order.id}</div></div></div>
+                                                            <div className="flex items-center gap-3" aria-label={`Order ${getPrimaryOrderLabel(order)}`}>
+                                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300">
+                                                                    {getDailyOrderLabel(order) ? (
+                                                                        <span className="text-xs font-bold">{getDailyOrderLabel(order)}</span>
+                                                                    ) : (
+                                                                        <Hash className="h-4 w-4" />
+                                                                    )}
+                                                                </span>
+                                                                <div>
+                                                                    <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                                        {getPrimaryOrderLabel(order)}
+                                                                    </div>
+                                                                    {order.order_number && (
+                                                                        <div className="text-[10px] text-slate-500 font-mono">
+                                                                            Ref: {order.order_number}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </td>
 
                                                         <td className="px-4 py-3 align-middle">
@@ -1824,7 +1918,7 @@ export function OpsOrdersPage() {
                                                             <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><Phone className="h-3 w-3" />{getCustomerPhone(order)}</div>
                                                         </td>
 
-                                                        <td className="px-4 py-3 align-middle"><div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"><CalendarDays className="h-3.5 w-3.5 text-slate-400" />{order.delivery_date || "—"}</div></td>
+                                                        <td className="px-4 py-3 align-middle"><div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"><CalendarDays className="h-3.5 w-3.5 text-slate-400" />{formatDateLabel(order.delivery_date) || "—"}</div></td>
                                                         <td className="px-4 py-3 align-middle"><div className="flex max-w-[140px] items-center gap-2 truncate text-xs text-slate-600 dark:text-slate-300" title={getOrderArea(order)}><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{getOrderArea(order)}</span></div></td>
                                                         <td className="px-4 py-3 align-middle"><span className="inline-flex min-w-8 items-center justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{getOrderItemsCount(order)}</span></td>
 

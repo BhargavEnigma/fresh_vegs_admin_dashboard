@@ -6,6 +6,7 @@ import { PageHeader } from "../../components/common/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { TicketPriorityBadge, TicketStatusBadge, formatDate, labelize, money } from "./support-utils";
+import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../utils/order-identifier";
 
 export function SupportCustomerContextPage() {
     const { userId } = useParams();
@@ -59,9 +60,28 @@ function ContextLists({ data }) {
                 <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm">
                     {(data.recent_orders || []).map((order) => (
-                        <div key={order.id} className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="font-semibold">{order.order_number || order.id}</div>
-                            <div className="text-slate-500">{labelize(order.status)} • {money(order.grand_total_paise)}</div>
+                        <div key={order.id} className="rounded-xl border border-slate-200 p-3 dark:border-slate-800 space-y-1">
+                            <div className="flex items-center justify-between font-semibold">
+                                <span>{getPrimaryOrderLabel(order)}</span>
+                                {getDailyOrderLabel(order) && (
+                                    <span className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs text-dailyveg-700 dark:text-dailyveg-300">
+                                        {getDailyOrderLabel(order)}
+                                    </span>
+                                )}
+                            </div>
+                            {order.order_number && (
+                                <div className="text-xs text-slate-500 font-mono">
+                                    Ref: {order.order_number}
+                                </div>
+                            )}
+                            <div className="text-xs text-slate-500 font-medium">
+                                {labelize(order.status)} • {money(order.grand_total_paise)}
+                            </div>
+                            {order.delivery_date && (
+                                <div className="text-xs text-slate-500">
+                                    Delivery: {order.delivery_date}
+                                </div>
+                            )}
                             <Button asChild className="mt-2" size="sm" variant="outline"><Link to={`/support/orders/${order.id}`}>Open</Link></Button>
                         </div>
                     ))}
