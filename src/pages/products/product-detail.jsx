@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/button";
 import { StatusBadge } from "../../components/common/status-badge";
 import { ConfirmDialog } from "../../components/common/confirm-dialog";
 import { useToast } from "../../components/toast/toast-context";
-import { assetUrl } from "../../lib/utils";
+import { assetUrl, formatQuantity } from "../../lib/utils";
 import { ProductPacksManager } from "../../components/products/product-packs-manager";
 import { ImageSizeInfo } from "../../components/common/image-size-info";
 
@@ -114,7 +114,7 @@ export function ProductDetailPage() {
                 <Field label="Name" value={p.name} />
                 <Field label="Category" value={p.category?.name || "—"} />
                 <Field label="Unit" value={p.unit} />
-                <Field label="Base quantity" value={p.base_quantity} />
+                <Field label="Base quantity" value={formatQuantity(p.base_quantity)} />
                 <Field label="MRP" value={`₹${(Number(p.mrp_paise || 0) / 100).toFixed(2)}`} />
                 <Field label="Selling price" value={`₹${(Number(p.selling_price_paise || 0) / 100).toFixed(2)}`} />
                 <Field label="Active" value={<StatusBadge value={p.is_active ? "active" : "inactive"} />} />
@@ -153,7 +153,7 @@ export function ProductDetailPage() {
                         <StatusBadge value={pk.is_active ? "active" : "inactive"} />
                       </div>
                       <div className="mt-1 text-xs text-slate-500">
-                        {pk.base_quantity} {pk.base_unit} • ₹{(Number(pk.selling_price_paise || 0) / 100).toFixed(2)}
+                        {formatQuantity(pk.base_quantity)} {pk.base_unit} • ₹{(Number(pk.selling_price_paise || 0) / 100).toFixed(2)}
                       </div>
                     </div>
                   ))

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../../utils/date.util";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -25,13 +26,7 @@ import { Label } from "../../../components/ui/label";
 import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
 
-function todayISO() {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-}
+// todayISO is replaced by getIstYyyyMmDd from "../../utils/date.util"
 
 function toYyyyMmDd(date) {
     if (!date) return "";
@@ -66,17 +61,7 @@ function formatDateLabel(value) {
     return formatIndianDateTime(value);
 }
 
-function addDays(dateString, days) {
-    const [y, m, d] = String(dateString).split("-").map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
-
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(dt.getUTCDate()).padStart(2, "0");
-
-    return `${yy}-${mm}-${dd}`;
-}
+// addDays is replaced by addDaysYyyyMmDd from "../../utils/date.util"
 
 function SummaryStat({ title, value, subtitle, icon: Icon, tone = "default" }) {
     return (
@@ -419,7 +404,7 @@ function ProcurementMobileList({ rows }) {
 
 export function ProcurementPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [date, setDate] = useState(searchParams.get("delivery_date") || todayISO());
+    const [date, setDate] = useState(searchParams.get("delivery_date") || getIstYyyyMmDd());
 
     useEffect(() => {
         const qpDate = searchParams.get("delivery_date");
@@ -667,7 +652,7 @@ export function ProcurementPage() {
                         <Button
                             variant="outline"
                             onClick={() => {
-                                const today = todayISO();
+                                const today = getIstYyyyMmDd();
                                 setDate(today);
                                 setSearchParams({ delivery_date: today });
                             }}
@@ -678,7 +663,7 @@ export function ProcurementPage() {
                         <Button
                             variant="outline"
                             onClick={() => {
-                                const tomorrow = addDays(todayISO(), 1);
+                                const tomorrow = addDaysYyyyMmDd(getIstYyyyMmDd(), 1);
                                 setDate(tomorrow);
                                 setSearchParams({ delivery_date: tomorrow });
                             }}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../../utils/date.util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,13 +57,7 @@ function toYyyyMmDd(date) {
     return format(date, "yyyy-MM-dd");
 }
 
-function todayDate() {
-    return new Date();
-}
-
-function tomorrowDate() {
-    return addDays(new Date(), 1);
-}
+// Date helper functions todayDate and tomorrowDate are replaced by central imports
 
 function parseDateValue(value) {
     if (!value) return null;
@@ -1066,7 +1061,7 @@ export function OpsOrdersPage() {
         limit: 20,
         warehouse_id: "",
         delivery_partner_user_id: "",
-        delivery_date: paramDate || toYyyyMmDd(tomorrowDate()),
+        delivery_date: paramDate || addDaysYyyyMmDd(getIstYyyyMmDd(), 1),
         q: "",
     });
 
@@ -1339,17 +1334,17 @@ export function OpsOrdersPage() {
     }
 
     function handleQuickDate(type) {
-        const nextDate =
+        const nextDateStr =
             type === "today"
-                ? todayDate()
+                ? getIstYyyyMmDd()
                 : type === "tomorrow"
-                    ? tomorrowDate()
-                    : addDays(todayDate(), -1);
+                    ? addDaysYyyyMmDd(getIstYyyyMmDd(), 1)
+                    : addDaysYyyyMmDd(getIstYyyyMmDd(), -1);
 
         setFilters((prev) => ({
             ...prev,
             page: 1,
-            delivery_date: toYyyyMmDd(nextDate),
+            delivery_date: nextDateStr,
         }));
 
         if (type === "tomorrow") {
@@ -1684,7 +1679,7 @@ export function OpsOrdersPage() {
                         <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:flex xl:w-auto xl:flex-wrap">
                             <PDFDownloadLink
                                 document={<OpsOrdersListPdf orders={visibleRows} filters={{ ...filters, queue }} />}
-                                fileName={`ops_orders_${filters.delivery_date || new Date().toISOString().slice(0, 10)}.pdf`}
+                                fileName={`ops_orders_${filters.delivery_date || getIstYyyyMmDd()}.pdf`}
                             >
                                 {({ loading }) => (
                                     <Button className="gap-2" variant="outline" disabled={loading || !visibleRows.length}>

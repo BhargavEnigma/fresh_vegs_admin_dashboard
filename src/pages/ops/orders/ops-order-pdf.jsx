@@ -2,6 +2,7 @@ import React from "react";
 import { formatIndianDateTime, formatOrderStatusDateTime } from "../../../utils/date-formatter";
 import { getOrderStatusLabel, getOrderStatusSourceLabel } from "../../../utils/order-status-timeline";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
+import { formatQuantity } from "../../../lib/utils";
 import {
     Document,
     Page,
@@ -190,7 +191,7 @@ export function OpsOrderPdf({ order }) {
                                 <Text style={styles.tdName}>
                                     {it.product_name || "—"} {it.pack_label ? `(${it.pack_label})` : ""}
                                 </Text>
-                                <Text style={styles.tdQty}>{it.quantity || "0"}</Text>
+                                <Text style={styles.tdQty}>{formatQuantity(it.quantity, "0")}</Text>
                                 <Text style={styles.tdPrice}>{money(it.unit_price_paise)}</Text>
                                 <Text style={styles.tdTotal}>{money(it.line_total_paise)}</Text>
                             </View>

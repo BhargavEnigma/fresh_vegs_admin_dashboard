@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../../utils/date.util";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { OpsJobsService } from "../../../api/services/ops-jobs.service";
@@ -22,25 +23,7 @@ function getApiErrorMessage(e) {
     );
 }
 
-// Build YYYY-MM-DD in Asia/Kolkata without relying on browser locale.
-function formatIstDateYyyyMmDd(date = new Date()) {
-    const fmt = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    });
-    return fmt.format(date); // en-CA gives YYYY-MM-DD
-}
-
-function addDaysYyyyMmDd(yyyyMmDd, days) {
-    // yyyyMmDd: "2026-02-06"
-    const [y, m, d] = yyyyMmDd.split("-").map((v) => parseInt(v, 10));
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
-    // return in IST date format
-    return formatIstDateYyyyMmDd(dt);
-}
+// Date helper functions formatIstDateYyyyMmDd and addDaysYyyyMmDd are replaced by central imports
 
 // Parse "m h * * *" -> "HH:MM" (only for daily cron)
 function cronToTime(cronExpr) {
@@ -113,7 +96,7 @@ export function OpsJobsPage() {
     const [daysAhead, setDaysAhead] = useState("0"); // keep as string for input
     const [enabled, setEnabled] = useState(true);
 
-    const [runDate, setRunDate] = useState(formatIstDateYyyyMmDd(new Date())); // YYYY-MM-DD
+    const [runDate, setRunDate] = useState(getIstYyyyMmDd()); // YYYY-MM-DD
 
     const daysAheadInt = useMemo(() => {
         const n = parseInt(String(daysAhead), 10);
@@ -122,7 +105,7 @@ export function OpsJobsPage() {
 
     const derivedDeliveryDate = useMemo(() => {
         // For manual runs, default date = today IST + daysAhead
-        const todayIst = formatIstDateYyyyMmDd(new Date());
+        const todayIst = getIstYyyyMmDd();
         return addDaysYyyyMmDd(todayIst, daysAheadInt);
     }, [daysAheadInt]);
 
@@ -176,7 +159,7 @@ export function OpsJobsPage() {
             setEnabled(schedule.is_enabled ?? true);
 
             // also update runDate suggestion
-            const todayIst = formatIstDateYyyyMmDd(new Date());
+            const todayIst = getIstYyyyMmDd();
             const suggested = addDaysYyyyMmDd(todayIst, schedule.days_ahead ?? 0);
             setRunDate(suggested);
         }

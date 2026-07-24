@@ -21,7 +21,7 @@ import { Label } from "../../../components/ui/label";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { OrderStatusTimeline } from "../../../components/orders/order-status-timeline";
 import { getOrderStatusLabel } from "../../../utils/order-status-timeline";
-import { cn } from "../../../lib/utils";
+import { cn, formatQuantity } from "../../../lib/utils";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 
 function money(paise) {
@@ -258,7 +258,7 @@ export function OpsOrderDetailPage() {
             {
                 accessorKey: "quantity",
                 header: "Qty",
-                cell: ({ row }) => <span className="font-medium">{row.original.quantity}</span>,
+                cell: ({ row }) => <span className="font-medium">{formatQuantity(row.original.quantity)}</span>,
             },
             {
                 id: "unit_price_paise",

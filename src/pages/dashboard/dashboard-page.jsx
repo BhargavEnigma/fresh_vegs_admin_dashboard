@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../utils/date-formatter";
+import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../utils/date.util";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -46,32 +47,7 @@ function formatCount(value) {
     return Number(value || 0).toLocaleString("en-IN");
 }
 
-function todayIstYyyyMmDd(date = new Date()) {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).formatToParts(date);
-
-    const y = parts.find((p) => p.type === "year")?.value;
-    const m = parts.find((p) => p.type === "month")?.value;
-    const d = parts.find((p) => p.type === "day")?.value;
-
-    return `${y}-${m}-${d}`;
-}
-
-function addDaysYyyyMmDd(yyyyMmDd, days) {
-    const [y, m, d] = String(yyyyMmDd).split("-").map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    dt.setUTCDate(dt.getUTCDate() + Number(days || 0));
-
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(dt.getUTCDate()).padStart(2, "0");
-
-    return `${yy}-${mm}-${dd}`;
-}
+// date helper functions are imported from "../../utils/date.util"
 
 function formatDateLabel(value) {
     return formatIndianDateTime(value);
@@ -230,7 +206,7 @@ export function DashboardPage() {
     const { roles } = useAuth();
     const isAdmin = roles.includes("admin");
 
-    const [selectedDate, setSelectedDate] = useState(todayIstYyyyMmDd());
+    const [selectedDate, setSelectedDate] = useState(getIstYyyyMmDd());
 
     const kpisQuery = useQuery({
         queryKey: ["adminDashboardKpis", selectedDate],
@@ -393,7 +369,7 @@ export function DashboardPage() {
                         <DatePicker
                             selected={selectedDate ? new Date(selectedDate) : null}
                             onChange={(date) =>
-                                setSelectedDate(date ? todayIstYyyyMmDd(date) : null)
+                                setSelectedDate(date ? getIstYyyyMmDd(date) : null)
                             }
                             dateFormat="dd-MM-yyyy"
                             placeholderText="Select date"
@@ -408,13 +384,13 @@ export function DashboardPage() {
                             All numbers below are for <span className="font-semibold text-slate-900 dark:text-slate-50">{formatDateLabel(selectedDate)}</span>.
                         </p>
                         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-                            <Button variant="outline" onClick={() => setSelectedDate(todayIstYyyyMmDd())} className="w-full sm:w-auto">
+                            <Button variant="outline" onClick={() => setSelectedDate(getIstYyyyMmDd())} className="w-full sm:w-auto">
                                 Today
                             </Button>
 
                             <Button
                                 variant="outline"
-                                onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), 1))}
+                                onClick={() => setSelectedDate(addDaysYyyyMmDd(getIstYyyyMmDd(), 1))}
                                 className="w-full sm:w-auto"
                             >
                                 Tomorrow
@@ -422,7 +398,7 @@ export function DashboardPage() {
 
                             <Button
                                 variant="outline"
-                                onClick={() => setSelectedDate(addDaysYyyyMmDd(todayIstYyyyMmDd(), -1))}
+                                onClick={() => setSelectedDate(addDaysYyyyMmDd(getIstYyyyMmDd(), -1))}
                                 className="w-full sm:w-auto"
                             >
                                 Yesterday

@@ -19,6 +19,7 @@ import {
   Search,
   ShieldCheck,
   BarChart3,
+  CalendarCheck,
 } from "lucide-react";
 
 // Navigation is driven by backend capabilities.
@@ -29,6 +30,14 @@ export const NAV_ITEMS = [
     label: "Dashboard",
     icon: LayoutDashboard,
     to: "/",
+    roles: ["admin", "warehouse_manager"],
+  },
+
+  {
+    key: "dailyOperations",
+    label: "Daily Operations",
+    icon: CalendarCheck,
+    to: "/ops/daily-operations",
     roles: ["admin", "warehouse_manager"],
   },
 

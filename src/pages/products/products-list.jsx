@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { StatusBadge } from "../../components/common/status-badge";
-import { assetUrl, cn } from "../../lib/utils";
+import { assetUrl, cn, formatQuantity } from "../../lib/utils";
 import { Eye, LayoutGrid, Pencil, Power, Table2 } from "lucide-react";
 import {
   Dialog,
@@ -152,7 +152,7 @@ function ProductGridCard({ product, onToggleActive }) {
           <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-slate-500">
             <span className="truncate">{product.category?.name || "No category"}</span>
             <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300 dark:bg-slate-700" />
-            <span className="shrink-0">{product.base_quantity ?? "—"} {product.unit || ""}</span>
+            <span className="shrink-0">{formatQuantity(product.base_quantity)} {product.unit || ""}</span>
           </div>
         </div>
 
@@ -455,7 +455,7 @@ export function ProductsListPage() {
                         <div className="text-xs text-slate-500">{p.unit} • {p.packs?.length ? `${p.packs.length} packs` : "no packs"}</div>
                       </td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{p.category?.name || "—"}</td>
-                      <td className="px-4 py-3">{p.base_quantity ?? "—"}</td>
+                      <td className="px-4 py-3">{formatQuantity(p.base_quantity)}</td>
                       <td className="px-4 py-3">{p.unit ?? "—"}</td>
                       <td className="px-4 py-3">₹{(Number(p.mrp_paise || 0) / 100).toFixed(2)}</td>
                       <td className="px-4 py-3">₹{(Number(p.selling_price_paise || 0) / 100).toFixed(2)}</td>
@@ -516,17 +516,19 @@ export function ProductsListPage() {
                 Next
               </Button>
 
-              <select
+              <PremiumSelect
+                size="sm"
+                className="w-28"
                 value={limit}
-                onChange={(e) => set("limit", e.target.value)}
-                className={cn("h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-800 dark:bg-slate-950")}
-              >
-                {[10, 20, 50, 100].map((n) => (
-                  <option key={n} value={n}>
-                    {n}/page
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => set("limit", val)}
+                options={[
+                  { value: 10, label: "10/page" },
+                  { value: 20, label: "20/page" },
+                  { value: 50, label: "50/page" },
+                  { value: 100, label: "100/page" },
+                ]}
+                isSearchable={false}
+              />
             </div>
           </div>
         </div>

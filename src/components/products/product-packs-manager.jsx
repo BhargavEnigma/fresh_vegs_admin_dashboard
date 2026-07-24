@@ -17,6 +17,7 @@ import {
 } from "../../api/services/products.service";
 import { PremiumSelect } from "../ui/premium-select";
 import { Eye, LayoutGrid, Pencil, Power, Table2, Trash, PowerOff } from "lucide-react";
+import { formatQuantity } from "../../lib/utils";
 
 function paiseToRupees(paise) {
   return Number(paise || 0) / 100;
@@ -129,7 +130,7 @@ export function ProductPacksManager({ productId }) {
                   <div>
                     <div className="font-medium">{pk.label}</div>
                     <div className="mt-4 text-xs text-slate-500">
-                      {pk.base_quantity} {pk.base_unit} • MRP ₹{paiseToRupees(pk.mrp_paise).toFixed(2)} • Sell ₹
+                      {formatQuantity(pk.base_quantity)} {pk.base_unit} • MRP ₹{paiseToRupees(pk.mrp_paise).toFixed(2)} • Sell ₹
                       {paiseToRupees(pk.selling_price_paise).toFixed(2)}
                     </div>
                   </div>

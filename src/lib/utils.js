@@ -27,3 +27,14 @@ export function formatBytes(bytes, decimals = 1) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
+export function formatQuantity(value, fallback = "—") {
+  if (value === null || value === undefined || value === "") return fallback;
+  const num = Number(value);
+  if (Number.isNaN(num)) return fallback;
+  if (Number.isInteger(num)) {
+    return num.toLocaleString("en-IN");
+  }
+  return parseFloat(num.toFixed(3)).toLocaleString("en-IN");
+}
+
+

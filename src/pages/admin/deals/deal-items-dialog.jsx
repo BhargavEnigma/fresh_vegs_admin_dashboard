@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../compo
 import { Card } from "../../../components/ui/card";
 import { useToast } from "../../../components/toast/toast-context";
 import { ConfirmDialog } from "../../../components/common/confirm-dialog";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 
 function pricingLabel(t) {
     if (t === "fixed_price") return "Fixed price";
@@ -273,12 +274,9 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
                                         <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                                             <div>
                                                 <div className="mb-1 text-xs text-slate-500">Pricing type</div>
-                                                <select
-                                                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                                                <PremiumSelect
                                                     value={it.pricing_type}
-                                                    onChange={(e) => {
-                                                        const t = e.target.value;
-                                                        // reset fields for clarity
+                                                    onChange={(t) => {
                                                         if (t === "fixed_price") {
                                                             updateItem(idx, { pricing_type: t, deal_price_paise: base, discount_bps: null, discount_paise: null });
                                                         } else if (t === "percent_off") {
@@ -287,11 +285,12 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
                                                             updateItem(idx, { pricing_type: t, deal_price_paise: null, discount_bps: null, discount_paise: 0 });
                                                         }
                                                     }}
-                                                >
-                                                    <option value="fixed_price">{pricingLabel("fixed_price")}</option>
-                                                    <option value="percent_off">{pricingLabel("percent_off")}</option>
-                                                    <option value="amount_off">{pricingLabel("amount_off")}</option>
-                                                </select>
+                                                    options={[
+                                                        { value: "fixed_price", label: pricingLabel("fixed_price") },
+                                                        { value: "percent_off", label: pricingLabel("percent_off") },
+                                                        { value: "amount_off", label: pricingLabel("amount_off") },
+                                                    ]}
+                                                />
                                             </div>
 
                                             <div>
@@ -349,14 +348,14 @@ export function DealItemsDialog({ open, deal, onOpenChange, onClose }) {
 
                                             <div>
                                                 <div className="mb-1 text-xs text-slate-500">Active</div>
-                                                <select
-                                                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                                                <PremiumSelect
                                                     value={String(it.is_active !== false)}
-                                                    onChange={(e) => updateItem(idx, { is_active: e.target.value === "true" })}
-                                                >
-                                                    <option value="true">Active</option>
-                                                    <option value="false">Inactive</option>
-                                                </select>
+                                                    onChange={(val) => updateItem(idx, { is_active: val === "true" })}
+                                                    options={[
+                                                        { value: "true", label: "Active" },
+                                                        { value: "false", label: "Inactive" },
+                                                    ]}
+                                                />
                                             </div>
                                         </div>
                                     </div>

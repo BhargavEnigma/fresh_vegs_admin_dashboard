@@ -190,6 +190,51 @@ export const ENDPOINTS = {
       toggleActive: (id) => `/v1/ops/categories/${id}/toggle-active`,
       reorder: "/v1/ops/categories/reorder",
     },
+    dailyOperations: {
+      overview: "/v1/ops/daily-operations/overview",
+      open: "/v1/ops/daily-operations/open",
+      getById: (id) => `/v1/ops/daily-operations/${id}`,
+      refresh: (id) => `/v1/ops/daily-operations/${id}/refresh`,
+      notes: (id) => `/v1/ops/daily-operations/${id}/notes`,
+
+      procurement: (id) => `/v1/ops/daily-operations/${id}/procurement`,
+      updateProcurementItem: (id, itemId) => `/v1/ops/daily-operations/${id}/procurement/${itemId}`,
+      bulkProcurement: (id) => `/v1/ops/daily-operations/${id}/procurement/bulk`,
+
+      packing: (id) => `/v1/ops/daily-operations/${id}/packing`,
+      packingOrder: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}`,
+      startPackingOrder: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/start`,
+      updatePackingItem: (id, orderId, packingItemId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/items/${packingItemId}`,
+      completePackingOrder: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/complete`,
+      confirmCleanPacking: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/clean-confirm`,
+
+      deliveryRuns: (id) => `/v1/ops/daily-operations/${id}/delivery-runs`,
+      createDeliveryRun: (id) => `/v1/ops/daily-operations/${id}/delivery-runs`,
+      deliveryRunDetail: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}`,
+      updateDeliveryRun: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}`,
+      addRunOrders: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}/orders`,
+      removeRunOrder: (runId, orderId) => `/v1/ops/daily-operations/delivery-runs/${runId}/orders/${orderId}`,
+      reorderRunOrders: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}/reorder`,
+      handoverRun: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}/handover`,
+      reconcileRun: (runId) => `/v1/ops/daily-operations/delivery-runs/${runId}/reconcile`,
+      reconcileCodVariance: (id, runId) => `/v1/ops/daily-operations/${id}/delivery-runs/${runId}/reconcile-variance`,
+
+      exceptions: (id) => `/v1/ops/daily-operations/${id}/exceptions`,
+      createException: (id) => `/v1/ops/daily-operations/${id}/exceptions`,
+      updateException: (exceptionId) => `/v1/ops/daily-operations/exceptions/${exceptionId}`,
+
+      waste: (id) => `/v1/ops/daily-operations/${id}/waste`,
+      createWaste: (id) => `/v1/ops/daily-operations/${id}/waste`,
+
+      reconciliation: (id) => `/v1/ops/daily-operations/${id}/reconciliation`,
+      close: (id) => `/v1/ops/daily-operations/${id}/close`,
+      reopen: (id) => `/v1/ops/daily-operations/${id}/reopen`,
+      automationSummary: (id) => `/v1/ops/daily-operations/${id}/automation-summary`,
+      generateDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/generate`,
+      proposedDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/proposed`,
+      approveDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/approve`,
+      evaluateAutoClose: (id) => `/v1/ops/daily-operations/${id}/auto-close/evaluate`,
+    },
   },
 
   support: {

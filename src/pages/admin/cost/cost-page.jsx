@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { getIstYyyyMmDd } from "../../../utils/date.util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,7 @@ import { Badge } from "../../../components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { useToast } from "../../../components/toast/toast-context";
 import { PremiumSelect } from "../../../components/ui/premium-select";
+import { formatQuantity } from "../../../lib/utils";
 import { HiOutlineLightBulb } from "react-icons/hi";
 
 const CATEGORIES = [
@@ -53,7 +55,7 @@ function paiseToRupees(value) {
 }
 
 function today() {
-    return formatDateForApi(new Date());
+    return getIstYyyyMmDd();
 }
 
 function formatDateForApi(date) {
@@ -331,7 +333,7 @@ function ProcurementMobileCard({ item, onChange }) {
                 </div>
 
                 <div className="rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
-                    {item.ordered_quantity}
+                    {formatQuantity(item.ordered_quantity, "0")}
                 </div>
             </div>
 
@@ -1254,18 +1256,18 @@ export function CostPage() {
 
                                 <div>
                                     <Label>Warehouse</Label>
-                                    <select
-                                        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                                    <PremiumSelect
                                         value={procurementWarehouseId}
-                                        onChange={(e) => setProcurementWarehouseId(e.target.value)}
-                                    >
-                                        <option value="">All Warehouses</option>
-                                        {warehouses.map((warehouse) => (
-                                            <option key={warehouse.id} value={warehouse.id}>
-                                                {warehouse.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(value) => setProcurementWarehouseId(value)}
+                                        options={[
+                                            { value: "", label: "All Warehouses" },
+                                            ...warehouses.map((warehouse) => ({
+                                                value: warehouse.id,
+                                                label: warehouse.name,
+                                            })),
+                                        ]}
+                                        placeholder="All Warehouses"
+                                    />
                                 </div>
 
                                 <div className="flex items-end">
@@ -1340,7 +1342,7 @@ export function CostPage() {
                                             <tr key={item.key} className="border-t border-slate-100 bg-white/70 transition-colors hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950/60 dark:hover:bg-slate-900/80">
                                                 <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{item.product_name}</td>
                                                 <td className="px-4 py-3">{item.pack_label || "Base"}</td>
-                                                <td className="px-4 py-3">{item.ordered_quantity}</td>
+                                                <td className="px-4 py-3">{formatQuantity(item.ordered_quantity, "0")}</td>
                                                 <td className="px-4 py-3">
                                                     <Input
                                                         type="number"
