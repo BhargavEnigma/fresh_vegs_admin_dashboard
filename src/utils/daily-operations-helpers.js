@@ -95,7 +95,7 @@ export function mapEventToFriendlyLabel(eventType) {
 export const ERROR_CODE_MESSAGES = {
   WAREHOUSE_ID_REQUIRED: "Warehouse selection is required.",
   WAREHOUSE_SCOPE_MISSING: "No warehouse access assigned to your user account.",
-  FORBIDDEN: "You do not have permission to perform this action.",
+  FORBIDDEN: "You do not have access to this warehouse or action.",
   OPERATION_NOT_FOUND: "No daily operation record was found for the selected date and warehouse.",
   OPERATION_ALREADY_CLOSED: "This daily operation is closed. Reopen it first to make changes.",
   CLOSING_BLOCKED: "Cannot close operations due to open blockers.",
@@ -103,8 +103,10 @@ export const ERROR_CODE_MESSAGES = {
   OPERATION_NOT_CLOSED: "This operation is currently open and cannot be reopened.",
   REASON_REQUIRED: "Please provide a reason for reopening this operation.",
   PROCUREMENT_ITEM_NOT_FOUND: "Procurement item not found.",
+  VENDOR_MANAGED_PROCUREMENT_MANUAL_RECEIPT_FORBIDDEN: "Vendor-managed procurement must be received through Vendor Check-In.",
   QUANTITY_MISMATCH: "Quantity values provided do not match required metrics.",
   INVALID_QUANTITY: "Quantities cannot be negative or invalid.",
+  INVENTORY_IDEMPOTENCY_KEY_REQUIRED: "This inventory update is missing its retry-safe reference. Refresh and try again.",
   ORDER_NOT_LOCKED: "Order must be locked before starting packing.",
   ORDER_INVALID_STATUS: "Order is not in a valid state for this action.",
   PACKING_ITEM_NOT_FOUND: "Packing item record not found.",
@@ -149,6 +151,16 @@ export function filterEligibleRunOrders(opsOrders = [], allRunOrders = []) {
     const isPacked = status === "packed";
     return isPacked && !existingRunOrderIds.has(order.id);
   });
+}
+
+export function canReconcileRunCod(run = {}) {
+  return run.status === "completed";
+}
+
+export function canResolveRunCodVariance(run = {}) {
+  return canReconcileRunCod(run)
+    && run.cod_reconciliation_status === "variance"
+    && Number(run.cod_variance_paise || 0) !== 0;
 }
 
 export {

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PremiumWorkspaceHelper } from "../../../../components/common/premium-workspace-helper";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -17,6 +18,8 @@ import {
   Package,
   Cpu,
   RefreshCw,
+  Building2,
+  Eye,
 } from "lucide-react";
 import { Card } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
@@ -24,6 +27,7 @@ import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../components/ui/dialog";
 import { StatusBadge } from "../../../../components/common/status-badge";
+import { Badge } from "../../../../components/ui/badge";
 import { useToast } from "../../../../components/toast/toast-context";
 import {
   groupPackingItemsByOrder,
@@ -33,6 +37,12 @@ import { normalizeAutomationCapabilities, findOrderForPacking } from "../../../.
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../../utils/order-identifier";
 import { formatQuantity } from "../../../../lib/utils";
 import { PackingSlipPrint } from "../print/packing-slip-print";
+import { VendorService } from "../../../../api/services/vendor.service";
+import {
+  formatQuantityWithUnit,
+  formatVendorMoney,
+  getVendorAssignmentStatus,
+} from "../../../../utils/vendor-assignment";
 
 export function PackingTab({
   packingData,
@@ -56,6 +66,8 @@ export function PackingTab({
   
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [activePackingStage, setActivePackingStage] = useState("ready");
+  const [vendorDetail, setVendorDetail] = useState(null);
 
   const capabilities = useMemo(() => {
     return normalizeAutomationCapabilities(capabilitiesRaw || operation?.automation_capabilities);
@@ -85,6 +97,38 @@ export function PackingTab({
   const flatItems = packingData?.items || packingData || [];
   const orderGroups = useMemo(() => groupPackingItemsByOrder(flatItems), [flatItems]);
 
+  const vendorAssignmentsQuery = useQuery({
+    queryKey: ["admin", "vendorAssignments", operation?.id],
+    queryFn: () => VendorService.getAssignments(operation.id),
+    enabled: Boolean(operation?.id),
+  });
+
+  const vendorAssignmentsForItem = (item) => {
+    const embedded = item.vendor_assignments || item.assignments || [];
+    const allAssignments = embedded.length ? embedded : (vendorAssignmentsQuery.data || []);
+    const procurementCostId = item.procurement_cost_id || item.procurement?.id;
+    const productId = item.product_id || item.product?.id;
+    const packId = item.pack_id || item.pack?.id || item.product_pack_id;
+
+    return allAssignments.filter((assignment) => {
+      if (["cancelled", "rejected"].includes(String(assignment.status).toLowerCase())) return false;
+      if (procurementCostId && assignment.procurement_cost_id) {
+        return String(assignment.procurement_cost_id) === String(procurementCostId);
+      }
+      const assignmentProductId = assignment.product_id || assignment.product?.id;
+      if (!productId || String(assignmentProductId) !== String(productId)) return false;
+      const assignmentPackId = assignment.pack_id || assignment.pack?.id || assignment.product_pack_id;
+      return assignment.procurement_mode === "bulk" || !assignmentPackId || !packId || String(assignmentPackId) === String(packId);
+    });
+  };
+
+  const vendorName = (assignment) =>
+    assignment?.vendor?.vendor_profile?.company_name ||
+    assignment?.vendor?.company_name ||
+    assignment?.vendor?.full_name ||
+    assignment?.vendor_name ||
+    "Assigned vendor";
+
   // Create lookup for ops orders by ID to enrich details
   const opsOrdersMap = useMemo(() => {
     const map = new Map();
@@ -99,6 +143,10 @@ export function PackingTab({
 
     const matched = findOrderForPacking(orderGroups, searchTerm);
     if (matched) {
+      const matchedStage = ["ready", "inProgress", "exceptions", "packed"].find((stage) =>
+        queues[stage].some((group) => group.order_id === matched.order_id),
+      );
+      if (matchedStage) setActivePackingStage(matchedStage);
       setExpandedOrderId(matched.order_id);
       setSearchTerm("");
       toast.success(`Matched Order: ${getPrimaryOrderLabel(matched.order) || matched.order_id}`);
@@ -141,9 +189,17 @@ export function PackingTab({
     return { ready, inProgress, exceptions, packed };
   }, [filteredGroups, opsOrdersMap]);
 
+  const packingStages = [
+    { key: "ready", label: "Ready to Pack", icon: Box, count: queues.ready.length },
+    { key: "inProgress", label: "In Progress", icon: RefreshCw, count: queues.inProgress.length },
+    { key: "exceptions", label: "Exceptions", icon: AlertTriangle, count: queues.exceptions.length },
+    { key: "packed", label: "Packed & Verified", icon: CheckCircle2, count: queues.packed.length },
+  ];
+
   const handleStart = async (orderId) => {
     try {
       await onStartPacking(orderId);
+      setActivePackingStage("inProgress");
       toast.success("Packing started for order");
     } catch (err) {
       toast.error(err?.message || "Failed to start packing");
@@ -153,6 +209,7 @@ export function PackingTab({
   const handleCleanConfirm = async (orderId) => {
     try {
       await onConfirmCleanPacking(orderId);
+      setActivePackingStage("packed");
       toast.success("Clean packing confirmed for order");
       setExpandedOrderId(null);
     } catch (err) {
@@ -187,6 +244,7 @@ export function PackingTab({
         packingItemId: editingPackingItem.id,
         payload,
       });
+      if (isReportingException) setActivePackingStage("exceptions");
       toast.success("Packing item updated");
       setEditingPackingItem(null);
     } catch (err) {
@@ -218,6 +276,7 @@ export function PackingTab({
           override_reason: overrideReason ? overrideReason.trim() : null,
         },
       });
+      setActivePackingStage("packed");
       toast.success("Order packing completed!");
       setCompletingGroup(null);
       setOverrideReason("");
@@ -254,6 +313,10 @@ export function PackingTab({
     const status = String(order.status || opsOrder.status || "").toLowerCase();
     const dailyLabel = getDailyOrderLabel(order) || getDailyOrderLabel(opsOrder);
     const primaryLabel = getPrimaryOrderLabel(order) || getPrimaryOrderLabel(opsOrder) || group.order_id;
+    const itemVendorAssignments = new Map(
+      group.items.map((item) => [item.id, vendorAssignmentsForItem(item)]),
+    );
+    const showVendorColumn = Array.from(itemVendorAssignments.values()).some((assignments) => assignments.length > 0);
 
     // Check if there is an issue status
     const hasIssue = group.issue_count > 0 || status === "issue";
@@ -480,20 +543,24 @@ export function PackingTab({
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-slate-200/60 bg-white dark:border-slate-800 dark:bg-slate-950 scrollbar-thin">
-                <table className="w-full text-left border-collapse text-[13px] table-fixed min-w-[550px]">
+                <table className={`w-full text-left border-collapse text-[13px] table-fixed ${showVendorColumn ? "min-w-[760px]" : "min-w-[550px]"}`}>
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 font-bold uppercase tracking-wider">
-                      <th className="py-2.5 px-3 font-bold w-[32%]">Product & Pack</th>
-                      <th className="py-2.5 px-2 font-bold text-right w-[11%]">Ordered</th>
-                      <th className="py-2.5 px-2 font-bold text-right w-[11%]">Packed</th>
-                      <th className="py-2.5 px-2 font-bold text-right w-[10%] text-rose-600">Miss</th>
-                      <th className="py-2.5 px-2 font-bold text-right w-[10%] text-amber-600">Dmg</th>
-                      <th className="py-2.5 px-3 font-bold text-right w-[26%]">Action</th>
+                      <th className={`py-2.5 px-3 font-bold ${showVendorColumn ? "w-[24%]" : "w-[32%]"}`}>Product & Pack</th>
+                      {showVendorColumn && <th className="w-[20%] px-2 py-2.5 font-bold">Assigned Vendor</th>}
+                      <th className={`py-2.5 px-2 font-bold text-right ${showVendorColumn ? "w-[9%]" : "w-[11%]"}`}>Ordered</th>
+                      <th className={`py-2.5 px-2 font-bold text-right ${showVendorColumn ? "w-[9%]" : "w-[11%]"}`}>Packed</th>
+                      <th className={`py-2.5 px-2 font-bold text-right text-rose-600 ${showVendorColumn ? "w-[8%]" : "w-[10%]"}`}>Miss</th>
+                      <th className={`py-2.5 px-2 font-bold text-right text-amber-600 ${showVendorColumn ? "w-[8%]" : "w-[10%]"}`}>Dmg</th>
+                      <th className={`py-2.5 px-3 font-bold text-right ${showVendorColumn ? "w-[22%]" : "w-[26%]"}`}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {group.items.map((item) => (
-                      <tr key={item.id} className="border-b border-slate-100 dark:border-slate-900 last:border-b-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
+                    {group.items.map((item) => {
+                      const assignments = itemVendorAssignments.get(item.id) || [];
+                      const firstAssignment = assignments[0];
+                      return (
+                      <tr key={item.id} className="h-12 border-b border-slate-100 dark:border-slate-900 last:border-b-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
                         <td className="py-2.5 px-3 min-w-0">
                           <span className="font-bold text-slate-900 dark:text-white block truncate" title={item.product?.name || item.product_name}>
                             {item.product?.name || item.product_name}
@@ -502,6 +569,26 @@ export function PackingTab({
                             {item.pack?.pack_label || item.pack_label}
                           </span>
                         </td>
+                        {showVendorColumn && (
+                          <td className="px-2 py-1.5">
+                            {firstAssignment && (
+                              <button
+                                type="button"
+                                onClick={() => setVendorDetail({ item, assignments })}
+                                className="group flex h-8 w-full min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-violet-200/80 bg-gradient-to-r from-violet-50 to-indigo-50 px-2.5 text-left shadow-sm transition-all hover:border-violet-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 dark:border-violet-900/70 dark:from-violet-950/40 dark:to-indigo-950/40"
+                                title="Click to view complete vendor details"
+                              >
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white shadow-sm">
+                                  <Building2 className="h-3 w-3" />
+                                </span>
+                                <span className="min-w-0 flex-1 truncate text-[11px] font-extrabold text-violet-900 dark:text-violet-100">
+                                  {vendorName(firstAssignment)}{assignments.length > 1 ? ` +${assignments.length - 1}` : ""}
+                                </span>
+                                <Eye className="h-3 w-3 shrink-0 text-violet-500 opacity-70 transition-opacity group-hover:opacity-100" />
+                              </button>
+                            )}
+                          </td>
+                        )}
                         <td className="py-2.5 px-2 text-right font-semibold text-slate-700 dark:text-slate-300">
                           {formatQuantity(item.ordered_quantity || item.required_quantity)}
                         </td>
@@ -538,7 +625,7 @@ export function PackingTab({
                           )}
                         </td>
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
@@ -634,78 +721,92 @@ export function PackingTab({
         </form>
       </Card>
 
-      {/* Main Queues Workspaces Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Ready & Exceptions */}
-        <div className="space-y-6">
-          {/* Packing Exceptions */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
-              <AlertTriangle className="h-4.5 w-4.5" /> Packing Exceptions ({queues.exceptions.length})
-            </h4>
-            {queues.exceptions.length === 0 ? (
-              <p className="text-xs text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">No active packing exceptions.</p>
-            ) : (
-              <div className="space-y-3">
-                {queues.exceptions.map(renderOrderCard)}
-              </div>
-            )}
-          </div>
+      {/* Packing Stage Tabs */}
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70">
+          <div className="grid w-full grid-cols-2 gap-1.5 lg:grid-cols-4" role="tablist" aria-label="Packing stages">
+            {packingStages.map((stage) => {
+              const Icon = stage.icon;
+              const active = activePackingStage === stage.key;
 
-          {/* Ready to Pack */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Box className="h-4.5 w-4.5 text-dailyveg-600" /> Ready to Pack ({queues.ready.length})
-              </h4>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs font-bold gap-1 rounded-xl"
-                onClick={handleBatchPrint}
-              >
-                <Printer className="h-3 w-3" /> Batch Print Slips
-              </Button>
-            </div>
-            {queues.ready.length === 0 ? (
-              <p className="text-xs text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">No orders waiting to pack.</p>
-            ) : (
-              <div className="space-y-3">
-                {queues.ready.map(renderOrderCard)}
-              </div>
-            )}
+              return (
+                <button
+                  key={stage.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActivePackingStage(stage.key)}
+                  className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-200 ${active
+                    ? "bg-gradient-to-r from-dailyveg-500 via-dailyveg-600 to-emerald-600 text-white shadow-md shadow-dailyveg-500/25"
+                    : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white"
+                    }`}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 ${stage.key === "inProgress" && active ? "animate-spin" : ""}`} />
+                  <span className="truncate">{stage.label}</span>
+                  <span className={`flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${active
+                    ? "bg-white text-dailyveg-700"
+                    : stage.key === "exceptions" && stage.count > 0
+                      ? "bg-rose-500 text-white"
+                      : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                    }`}
+                  >
+                    {stage.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right: In Progress & Packed */}
-        <div className="space-y-6">
-          {/* Packing in Progress */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
-              <RefreshCw className="h-4.5 w-4.5 animate-spin" /> Packing in Progress ({queues.inProgress.length})
-            </h4>
-            {queues.inProgress.length === 0 ? (
-              <p className="text-xs text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 font-medium">No orders currently packing.</p>
-            ) : (
-              <div className="space-y-3">
-                {queues.inProgress.map(renderOrderCard)}
+        <div role="tabpanel" className="space-y-3">
+          {activePackingStage === "ready" && (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white">
+                  <Box className="h-4.5 w-4.5 text-dailyveg-600" /> Ready to Pack ({queues.ready.length})
+                </h4>
+                <Button size="sm" variant="outline" className="h-8 gap-1 rounded-xl text-xs font-bold" onClick={handleBatchPrint}>
+                  <Printer className="h-3 w-3" /> Batch Print Slips
+                </Button>
               </div>
-            )}
-          </div>
+              {queues.ready.length === 0
+                ? <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs italic text-slate-500 dark:border-slate-800 dark:bg-slate-900">No orders waiting to pack.</p>
+                : <div className="space-y-3">{queues.ready.map(renderOrderCard)}</div>}
+            </>
+          )}
 
-          {/* Packed */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
-              <CheckCircle2 className="h-4.5 w-4.5" /> Packed & Verified ({queues.packed.length})
-            </h4>
-            {queues.packed.length === 0 ? (
-              <p className="text-xs text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 font-medium">No packed orders recorded.</p>
-            ) : (
-              <div className="space-y-3">
-                {queues.packed.map(renderOrderCard)}
-              </div>
-            )}
-          </div>
+          {activePackingStage === "inProgress" && (
+            <>
+              <h4 className="flex items-center gap-1.5 text-sm font-bold text-indigo-600">
+                <RefreshCw className="h-4.5 w-4.5 animate-spin" /> Packing in Progress ({queues.inProgress.length})
+              </h4>
+              {queues.inProgress.length === 0
+                ? <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs italic text-slate-500 dark:border-slate-800 dark:bg-slate-900">No orders currently packing.</p>
+                : <div className="space-y-3">{queues.inProgress.map(renderOrderCard)}</div>}
+            </>
+          )}
+
+          {activePackingStage === "exceptions" && (
+            <>
+              <h4 className="flex items-center gap-1.5 text-sm font-bold text-rose-600">
+                <AlertTriangle className="h-4.5 w-4.5" /> Packing Exceptions ({queues.exceptions.length})
+              </h4>
+              {queues.exceptions.length === 0
+                ? <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs italic text-slate-500 dark:border-slate-800 dark:bg-slate-900">No active packing exceptions.</p>
+                : <div className="space-y-3">{queues.exceptions.map(renderOrderCard)}</div>}
+            </>
+          )}
+
+          {activePackingStage === "packed" && (
+            <>
+              <h4 className="flex items-center gap-1.5 text-sm font-bold text-emerald-600">
+                <CheckCircle2 className="h-4.5 w-4.5" /> Packed & Verified ({queues.packed.length})
+              </h4>
+              {queues.packed.length === 0
+                ? <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs italic text-slate-500 dark:border-slate-800 dark:bg-slate-900">No packed orders recorded.</p>
+                : <div className="space-y-3">{queues.packed.map(renderOrderCard)}</div>}
+            </>
+          )}
         </div>
       </div>
 

@@ -10,7 +10,19 @@ export const dailyOperationsKeys = {
     warehouseId || "none",
   ],
   operation: (operationId) => [...dailyOperationsKeys.all, "operation", operationId || "none"],
-  procurement: (operationId) => [...dailyOperationsKeys.all, "procurement", operationId || "none"],
+  procurement: (operationId, view, deliveryDate, warehouseId) => [
+    ...dailyOperationsKeys.all,
+    "procurement",
+    operationId || "none",
+    view || "active",
+    deliveryDate || "none",
+    warehouseId || "none",
+  ],
+  procurementScope: (operationId) => [
+    ...dailyOperationsKeys.all,
+    "procurement",
+    operationId || "none",
+  ],
   packing: (operationId) => [...dailyOperationsKeys.all, "packing", operationId || "none"],
   packingOrder: (operationId, orderId) => [
     ...dailyOperationsKeys.all,
@@ -52,10 +64,19 @@ export function useDailyOperationDetail(operationId, { enabled = true } = {}) {
   });
 }
 
-export function useDailyOperationsProcurement(operationId, { enabled = true } = {}) {
+export function useDailyOperationsProcurement(operationId, {
+  view = "active",
+  deliveryDate,
+  warehouseId,
+  enabled = true,
+} = {}) {
   return useQuery({
-    queryKey: dailyOperationsKeys.procurement(operationId),
-    queryFn: () => DailyOperationsService.getProcurement(operationId),
+    queryKey: dailyOperationsKeys.procurement(operationId, view, deliveryDate, warehouseId),
+    queryFn: () => DailyOperationsService.getProcurement(operationId, {
+      view,
+      deliveryDate,
+      warehouseId,
+    }),
     enabled: Boolean(enabled && operationId),
     staleTime: 60 * 1000,
   });
@@ -148,6 +169,8 @@ export function useDailyOperationsMutations(operationId) {
     queryClient.invalidateQueries({ queryKey: ["ops", "orders"] });
     queryClient.invalidateQueries({ queryKey: ["ops", "reports"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "vendorAttendance"] });
   };
 
   const refreshMutation = useMutation({
@@ -170,7 +193,15 @@ export function useDailyOperationsMutations(operationId) {
   const updateProcurementItemMutation = useMutation({
     mutationFn: ({ itemId, payload }) => DailyOperationsService.updateProcurementItem(operationId, itemId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurement(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.reconciliation(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
+      invalidateOverview();
+    },
+    onError: () => {
+      // A receipt is atomic on the server. Re-read every affected view after an
+      // error so a retry is always based on the rolled-back, authoritative row.
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.reconciliation(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
       invalidateOverview();
@@ -181,7 +212,7 @@ export function useDailyOperationsMutations(operationId) {
   const bulkProcurementMutation = useMutation({
     mutationFn: (payload) => DailyOperationsService.bulkUpdateProcurement(operationId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurement(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.reconciliation(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
       invalidateOverview();
@@ -355,7 +386,7 @@ export function useDailyOperationsMutations(operationId) {
     mutationFn: (payload) => DailyOperationsService.createWaste(operationId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.waste(operationId) });
-      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurement(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
       invalidateOverview();
     },
     meta: { globalLoaderMessage: "Recording waste entry..." },

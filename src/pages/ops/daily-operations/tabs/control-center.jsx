@@ -321,7 +321,7 @@ export function ControlCenter({
       </div>
 
       {/* Automation Capabilities Health Card */}
-      <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      {/* <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="flex items-center gap-2 border-b pb-3 mb-3 border-slate-100 dark:border-slate-900">
           <Cpu className="h-4.5 w-4.5 text-dailyveg-600" />
           <div>
@@ -352,7 +352,7 @@ export function ControlCenter({
             </div>
           ))}
         </div>
-      </Card>
+      </Card> */}
 
       {/* Workflow Stage Grid */}
       <div>

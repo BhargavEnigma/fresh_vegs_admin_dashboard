@@ -25,15 +25,15 @@ export function StatusBadge({ value, label, className }) {
   } else if (v === "cancelled") {
     badgeClass = "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/60";
   } else if (v === "refunded") {
-    badgeClass = "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:text-slate-200";
+    badgeClass = "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800";
   } else if (v === "active" || v === "true" || v === "in_stock") {
-    badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-200";
+    badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60";
   } else if (v === "inactive" || v === "false" || v === "out_of_stock") {
-    badgeClass = "bg-slate-100 text-slate-750 border-slate-200";
+    badgeClass = "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:text-slate-350 dark:border-slate-800";
   } else if (v.includes("pending") || v === "refund_pending") {
-    badgeClass = "bg-amber-50 text-amber-800 border-amber-200";
+    badgeClass = "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60";
   } else {
-    badgeClass = "bg-slate-50 text-slate-600 border-slate-200";
+    badgeClass = "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
   }
 
   return (

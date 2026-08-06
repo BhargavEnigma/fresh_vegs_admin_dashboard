@@ -38,6 +38,7 @@ import { Badge } from "../../../components/ui/badge";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { UserPasswordLoginDialog } from "./user-password-login-dialog";
 import { PasswordLoginStatusBadge } from "./password-login-status-badge";
+import { EditUserDialog } from "./edit-user-dialog";
 
 function RoleRadio({ value, active, name, onSelect }) {
     const id = `${name}-${value}`;
@@ -73,7 +74,7 @@ function RoleRadio({ value, active, name, onSelect }) {
 
 function RolesPicker({ value, onChange }) {
 
-    const all = ["admin", "warehouse_manager", "customer", "delivery_partner", "support_manager"];
+    const all = ["admin", "warehouse_manager", "vendor", "customer", "delivery_partner", "support_manager"];
 
     all.splice(0, 1)
 
@@ -113,6 +114,7 @@ function WarehouseMultiSelect({ warehouses, value, onChange }) {
 const ROLE_LABELS = {
     admin: "Admin",
     warehouse_manager: "Warehouse Manager",
+    vendor: "Vendor",
     delivery_partner: "Delivery Partner",
     customer: "Customer",
     support_manager: "Support Manager",
@@ -147,6 +149,7 @@ export function AdminUsersPage() {
     const toast = useToast();
     const [createdUser, setCreatedUser] = useState(null);
     const [securityUser, setSecurityUser] = useState(null);
+    const [editingUser, setEditingUser] = useState(null);
     const [listParams, setListParams] = useState({ page: 1, limit: 20, q: "", role: "", status: "" });
 
     const queryParams = useMemo(() => {
@@ -288,6 +291,7 @@ export function AdminUsersPage() {
                                 { value: "", label: "All Roles" },
                                 { value: "admin", label: "Admin" },
                                 { value: "warehouse_manager", label: "Warehouse Manager" },
+                                { value: "vendor", label: "Vendor" },
                                 { value: "delivery_partner", label: "Delivery Partner" },
                                 { value: "customer", label: "Customer" },
                                 { value: "support_manager", label: "Support Manager" },
@@ -393,6 +397,7 @@ export function AdminUsersPage() {
                                     <td className="px-5 py-4"><PasswordLoginStatusBadge user={u} /></td>
                                     <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500"><div className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" />{formatIndianDateTime(u.created_at)}</div></td>
                                     <td className="px-5 py-4 text-right"><div className="flex justify-end gap-1.5">
+                                        <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setEditingUser(u)}><UserRound className="h-3.5 w-3.5" /> Edit</Button>
                                         <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setSecurityUser(u)}><KeyRound className="h-3.5 w-3.5" /> Login</Button>
                                         <Button
                                             size="sm"
@@ -428,6 +433,7 @@ export function AdminUsersPage() {
                                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-900">
                                         <PasswordLoginStatusBadge user={u} />
                                         <div className="flex gap-1">
+                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setEditingUser(u)}><UserRound className="h-4 w-4" /><span className="sr-only">Edit details</span></Button>
                                             <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setSecurityUser(u)}><KeyRound className="h-4 w-4" /><span className="sr-only">Manage login</span></Button>
                                             <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5" onClick={() => { rolesForm.setValue("user_id", u.id, { shouldValidate: true }); rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true }); rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true }); toast.success("Loaded user into role editor"); }}><ShieldCheck className="h-3.5 w-3.5" /> Roles</Button>
                                         </div>
@@ -635,6 +641,7 @@ export function AdminUsersPage() {
                 </Card>
             </div>
             <UserPasswordLoginDialog user={securityUser} open={Boolean(securityUser)} onOpenChange={(open) => { if (!open) setSecurityUser(null); }} />
+            <EditUserDialog user={editingUser} open={Boolean(editingUser)} onOpenChange={(open) => { if (!open) setEditingUser(null); }} onSuccess={() => listQuery.refetch()} />
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { updateProductSchema } from "../../validations/products";
+import { updateProductSchema, PROCUREMENT_UNITS } from "../../validations/products";
 import { getAdminProductById, updateProduct, updateProductWithImages } from "../../api/services/products.service";
 import { listCategoriesOps } from "../../api/services/categories.service";
 import { deleteProductImage, uploadProductImages, reorderProductImages } from "../../api/services/products.service";
@@ -113,6 +113,8 @@ export function ProductEditPage() {
             selling_price_paise: 0,
             is_out_of_stock: false,
             is_active: true,
+            procurement_mode: "bulk",
+            procurement_unit: "kg",
         },
     });
 
@@ -130,6 +132,8 @@ export function ProductEditPage() {
             selling_price_paise: paiseToRupees(p.selling_price_paise),
             is_out_of_stock: !!p.is_out_of_stock,
             is_active: !!p.is_active,
+            procurement_mode: "bulk",
+            procurement_unit: p.procurement_unit ?? "kg",
         });
     }, [
         form,
@@ -144,6 +148,8 @@ export function ProductEditPage() {
         p?.selling_price_paise,
         p?.is_out_of_stock,
         p?.is_active,
+        p?.procurement_mode,
+        p?.procurement_unit,
     ]);
 
     const saveMut = useMutation({
@@ -325,6 +331,8 @@ export function ProductEditPage() {
                                 selling_price_paise: rupeesToPaise(v.selling_price_paise),
                                 is_out_of_stock: !!v.is_out_of_stock,
                                 is_active: v.is_active ?? true,
+                                procurement_mode: "bulk",
+                                procurement_unit: v.procurement_unit,
                             })
                         })}
                     >
@@ -435,6 +443,31 @@ export function ProductEditPage() {
                                 <p className="text-xs text-red-600">{form.formState.errors.base_quantity.message}</p>
                             ) : null}
                         </div>
+
+                        <div className="space-y-2">
+                            <Label>Procurement unit</Label>
+                            <Controller
+                                control={form.control}
+                                name="procurement_unit"
+                                render={({ field }) => (
+                                    <PremiumSelect
+                                        value={field.value || ""}
+                                        onChange={field.onChange}
+                                        options={PROCUREMENT_UNITS.map((unit) => ({
+                                            value: unit,
+                                            label: unit === "piece" ? "PC" : unit.toUpperCase(),
+                                        }))}
+                                    />
+                                )}
+                            />
+                            {form.formState.errors.procurement_unit ? (
+                                <p className="text-xs text-red-600">{form.formState.errors.procurement_unit.message}</p>
+                            ) : null}
+                        </div>
+
+                        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300 md:col-span-2">
+                            Products are procured in bulk by weight/loose units. Packing into retail packets is done inside the warehouse.
+                        </p>
 
                         <div className="space-y-2">
                             <Label>MRP (₹)</Label>

@@ -102,6 +102,15 @@ select {
     height: 3px;
 }
 
+/* Hide scrollbars but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 @layer components {
     .premium-table-shell {
         @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark;

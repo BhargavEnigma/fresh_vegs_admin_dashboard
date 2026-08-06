@@ -16,9 +16,11 @@ const badgeVariants = cva(
         success:
           "border-transparent bg-dailyveg-500 text-white dark:bg-dailyveg-600",
         warning:
-          "border-transparent bg-amber-500 text-white",
+          "border-transparent bg-amber-500 text-white dark:bg-amber-600",
         danger:
-          "border-transparent bg-red-600 text-white",
+          "border-transparent bg-red-600 text-white dark:bg-red-700",
+        destructive:
+          "border-transparent bg-red-600 text-white dark:bg-red-700",
       },
     },
     defaultVariants: { variant: "default" },

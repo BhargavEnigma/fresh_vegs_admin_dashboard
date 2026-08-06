@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { getIstYyyyMmDd } from "../../../utils/date.util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,9 +38,19 @@ import { useToast } from "../../../components/toast/toast-context";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { formatQuantity } from "../../../lib/utils";
 import { HiOutlineLightBulb } from "react-icons/hi";
+import {
+    buildManualProcurementItems,
+    isVendorManagedProcurement,
+    procurementDisplayCosts,
+    procurementDraftKey,
+} from "../../../utils/procurement-cost";
+import {
+    buildCostProcurementFilters,
+    procurementItemsFromResponse,
+} from "../../../utils/cost-procurement-filter";
 
 const CATEGORIES = [
-    { value: "procurement", label: "Procurement" },
+    { value: "procurement", label: "Manual / off-platform procurement" },
     { value: "delivery", label: "Delivery" },
     { value: "packaging", label: "Packaging" },
     { value: "misc", label: "Miscellaneous" },
@@ -322,6 +332,7 @@ function CostMobileCard({ cost, onArchive, onEdit, onView, onReactivate, isBusy 
 }
 
 function ProcurementMobileCard({ item, onChange }) {
+    const costs = procurementDisplayCosts(item);
     return (
         <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/80 to-white p-4 shadow-[0_12px_35px_-24px_rgba(15,23,42,0.32)] dark:border-slate-800 dark:from-slate-950 dark:via-slate-900/80 dark:to-slate-950">
             <div className="flex items-start justify-between gap-3">
@@ -332,19 +343,25 @@ function ProcurementMobileCard({ item, onChange }) {
                     </div>
                 </div>
 
-                <div className="rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
-                    {formatQuantity(item.ordered_quantity, "0")}
+                <div className="flex flex-col items-end gap-1">
+                    <Badge variant={costs.vendorManaged ? "success" : "secondary"}>
+                        {costs.vendorManaged ? "Vendor managed" : "Manual"}
+                    </Badge>
+                    <div className="rounded-full bg-dailyveg-50 px-3 py-1 text-sm font-semibold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
+                        {formatQuantity(item.required_quantity ?? item.ordered_quantity, "0")}
+                    </div>
                 </div>
             </div>
 
             <div className="mt-4 grid gap-3">
                 <div className="rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                    <Label>Unit Cost ₹</Label>
+                    <Label>{costs.vendorManaged ? "Weighted actual unit cost ₹" : "Unit Cost ₹"}</Label>
                     <Input
                         type="number"
                         step="0.01"
                         className="mt-2"
                         value={(Number(item.unit_cost_paise || 0) / 100).toString()}
+                        disabled={costs.vendorManaged}
                         onChange={(e) =>
                             onChange(item.key, {
                                 unit_cost_paise: rupeesToPaise(e.target.value),
@@ -358,6 +375,7 @@ function ProcurementMobileCard({ item, onChange }) {
                     <Input
                         className="mt-2"
                         value={item.notes}
+                        disabled={costs.vendorManaged}
                         onChange={(e) =>
                             onChange(item.key, {
                                 notes: e.target.value,
@@ -368,10 +386,18 @@ function ProcurementMobileCard({ item, onChange }) {
             </div>
 
             <div className="mt-4 rounded-xl border border-dailyveg-200/70 bg-dailyveg-50/80 p-3 dark:border-dailyveg-900/60 dark:bg-dailyveg-950/40">
-                <div className="text-xs text-slate-500 dark:text-slate-400">Total Cost</div>
-                <div className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {paiseToRupees(item.total_cost_paise)}
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {costs.vendorManaged ? "Actual accepted cost" : "Total Cost"}
                 </div>
+                <div className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {paiseToRupees(costs.actualCostPaise)}
+                </div>
+                {costs.vendorManaged ? (
+                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        Committed {paiseToRupees(costs.committedCostPaise)} · Confirmed{" "}
+                        {paiseToRupees(costs.confirmedCostPaise)}
+                    </div>
+                ) : null}
             </div>
         </div>
     );
@@ -448,20 +474,13 @@ export function CostPage() {
             filters.to_date,
             filters.warehouse_id,
         ],
-        queryFn: () => {
-            const params = {
-                warehouse_id: procurementWarehouseId || filters.warehouse_id || undefined,
-            };
-
-            if (procurementDate) {
-                params.delivery_date = procurementDate;
-            } else {
-                params.from_date = filters.from_date || undefined;
-                params.to_date = filters.to_date || undefined;
-            }
-
-            return CostsService.procurementItems(params);
-        },
+        queryFn: () => CostsService.procurementItems(buildCostProcurementFilters({
+            deliveryDate: procurementDate,
+            fromDate: filters.from_date,
+            toDate: filters.to_date,
+            procurementWarehouseId,
+            warehouseId: filters.warehouse_id,
+        })),
         enabled: activeTab === "procurement",
     });
 
@@ -581,16 +600,15 @@ export function CostPage() {
     const procurementSaveMutation = useMutation({
         mutationFn: (items) => {
             const payload = {
-                warehouse_id: procurementWarehouseId || filters.warehouse_id || null,
+                ...buildCostProcurementFilters({
+                    deliveryDate: procurementDate,
+                    fromDate: filters.from_date,
+                    toDate: filters.to_date,
+                    procurementWarehouseId,
+                    warehouseId: filters.warehouse_id,
+                }),
                 items,
             };
-
-            if (procurementDate) {
-                payload.delivery_date = procurementDate;
-            } else {
-                payload.from_date = filters.from_date || null;
-                payload.to_date = filters.to_date || null;
-            }
 
             return CostsService.bulkUpsertProcurement(payload);
         },
@@ -599,6 +617,7 @@ export function CostPage() {
         },
         onSuccess: () => {
             showSuccess("Procurement costs saved");
+            setProcurementDraft({});
             queryClient.invalidateQueries({ queryKey: ["procurement-cost-items"] });
             queryClient.invalidateQueries({ queryKey: ["costs-profit-overview"] });
         },
@@ -618,9 +637,13 @@ export function CostPage() {
     const summary = summaryQuery.data || {};
     const profit = profitQuery.data || {};
     const warehouses = warehousesQuery.data || [];
-    const procurementItems = procurementQuery.data?.items || [];
+    const procurementItems = procurementItemsFromResponse(procurementQuery.data);
 
     const [procurementDraft, setProcurementDraft] = useState({});
+
+    useEffect(() => {
+        setProcurementDraft({});
+    }, [procurementDate, procurementWarehouseId, filters.from_date, filters.to_date, filters.warehouse_id]);
 
     const filteredCosts = useMemo(() => {
         const q = search.trim().toLowerCase();
@@ -653,22 +676,32 @@ export function CostPage() {
 
     const procurementRows = useMemo(() => {
         return procurementItems.map((item) => {
-            const key = `${item.product_id}-${item.product_pack_id || "base"}`;
+            const key = procurementDraftKey(item);
             const draft = procurementDraft[key] || {};
+            const vendorManaged = isVendorManagedProcurement(item);
             const unitCostPaise =
                 draft.unit_cost_paise !== undefined
                     ? Number(draft.unit_cost_paise)
                     : Number(item.unit_cost_paise || 0);
+            const displayCosts = procurementDisplayCosts(item);
 
             return {
                 ...item,
                 key,
+                is_vendor_managed: vendorManaged,
                 unit_cost_paise: unitCostPaise,
-                total_cost_paise: Math.round(Number(item.ordered_quantity || 0) * unitCostPaise),
+                total_cost_paise: vendorManaged
+                    ? displayCosts.actualCostPaise
+                    : Math.round(Number(item.ordered_quantity || 0) * unitCostPaise),
                 notes: draft.notes !== undefined ? draft.notes : item.notes || "",
             };
         });
     }, [procurementItems, procurementDraft]);
+
+    const manualProcurementItemsToSave = useMemo(
+        () => buildManualProcurementItems(procurementRows, procurementDraft),
+        [procurementRows, procurementDraft]
+    );
 
     function updateProcurementDraft(key, patch) {
         setProcurementDraft((prev) => ({
@@ -681,17 +714,8 @@ export function CostPage() {
     }
 
     function saveProcurement() {
-        const items = procurementRows.map((item) => ({
-            product_id: item.product_id,
-            product_pack_id: item.product_pack_id || null,
-            product_name: item.product_name,
-            pack_label: item.pack_label || null,
-            ordered_quantity: Number(item.ordered_quantity || 0),
-            unit_cost_paise: Number(item.unit_cost_paise || 0),
-            notes: item.notes || null,
-        }));
-
-        procurementSaveMutation.mutate(items);
+        if (!manualProcurementItemsToSave.length) return;
+        procurementSaveMutation.mutate(manualProcurementItemsToSave);
     }
 
     return (
@@ -816,7 +840,7 @@ export function CostPage() {
 
             {activeTab === "overview" ? (
                 <>
-                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-4">
+                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-5">
                         <StatCard
                             title="Revenue"
                             value={paiseToRupees(profit.revenue_paise)}
@@ -827,26 +851,36 @@ export function CostPage() {
                         />
 
                         <StatCard
-                            title="Total Cost"
+                            title="Actual Cost"
                             value={paiseToRupees(profit.total_cost_paise)}
-                            subtitle="All recorded expenses"
+                            subtitle="Accepted procurement and recorded expenses"
                             icon={ReceiptText}
                             accent="amber"
                         />
 
                         <StatCard
-                            title="Net Profit"
+                            title="Actual Profit"
                             value={paiseToRupees(profit.profit_paise)}
-                            subtitle="Revenue minus expenses"
+                            subtitle={profit.profit_basis === "final" ? "Final for this period" : "Partial until procurement finishes"}
                             highlight
                             icon={Wallet}
                             accent="emerald"
                         />
 
                         <StatCard
-                            title="Margin"
+                            title="Projected Profit"
+                            value={paiseToRupees(profit.projected_profit_paise)}
+                            subtitle={`Lifecycle-adjusted vendor cost ${paiseToRupees(profit.projected_vendor_procurement_paise)}`}
+                            icon={TrendingUp}
+                            accent="amber"
+                        />
+
+                        <StatCard
+                            title="Actual Margin"
                             value={`${profit.margin_percent || 0}%`}
-                            subtitle="Profitability ratio"
+                            subtitle={Number(profit.pending_procurement_count || 0) > 0
+                                ? `${profit.pending_procurement_count} procurement item(s) pending`
+                                : "Final profitability ratio"}
                             icon={ShieldCheck}
                             accent="slate"
                         />
@@ -1234,7 +1268,7 @@ export function CostPage() {
                                 <div className="flex items-center gap-2">
                                     <HiOutlineLightBulb className="text-lg" />
                                     <span>
-                                        Procurement items load for the selected Delivery Date. If Delivery Date is empty, items will use the top From/To date range and warehouse filter.
+                                        Vendor-managed costs come from locked assignments and accepted warehouse receipts. Manual editing is available only for off-platform procurement.
                                     </span>
                                 </div>
                             </div>
@@ -1276,11 +1310,11 @@ export function CostPage() {
                                         className="w-full sm:w-auto"
                                         disabled={
                                             procurementSaveMutation.isPending ||
-                                            procurementRows.length === 0
+                                            manualProcurementItemsToSave.length === 0
                                         }
                                         onClick={saveProcurement}
                                     >
-                                        {procurementSaveMutation.isPending ? "Saving..." : "Save Procurement Costs"}
+                                        {procurementSaveMutation.isPending ? "Saving..." : "Save Manual Procurement Costs"}
                                     </Button>
                                 </div>
                             </div>
@@ -1293,7 +1327,7 @@ export function CostPage() {
                                 Procurement items
                             </div>
                             <div className="text-sm text-slate-500 dark:text-slate-400">
-                                Review quantity, unit cost, and notes in one place.
+                                Review vendor-derived committed and actual costs alongside manual procurement.
                             </div>
                         </div>
 
@@ -1320,10 +1354,12 @@ export function CostPage() {
                                 <thead className="bg-slate-50/90 dark:bg-slate-900/40">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Product</th>
+                                        <th className="px-4 py-3 text-left">Source</th>
                                         <th className="px-4 py-3 text-left">Pack</th>
-                                        <th className="px-4 py-3 text-left">Ordered Qty</th>
+                                        <th className="px-4 py-3 text-left">Required Qty</th>
                                         <th className="px-4 py-3 text-left">Unit Cost ₹</th>
-                                        <th className="px-4 py-3 text-left">Total Cost</th>
+                                        <th className="px-4 py-3 text-left">Committed</th>
+                                        <th className="px-4 py-3 text-left">Actual Cost</th>
                                         <th className="px-4 py-3 text-left">Notes</th>
                                     </tr>
                                 </thead>
@@ -1331,7 +1367,7 @@ export function CostPage() {
                                 <tbody>
                                     {procurementRows.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-10 text-center text-slate-500">
+                                            <td colSpan="9" className="px-4 py-10 text-center text-slate-500">
                                                 {procurementDate
                                                     ? "No order items found for this delivery date."
                                                     : "No procurement items found for the selected From/To date range."}
@@ -1341,13 +1377,19 @@ export function CostPage() {
                                         procurementRows.map((item) => (
                                             <tr key={item.key} className="border-t border-slate-100 bg-white/70 transition-colors hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950/60 dark:hover:bg-slate-900/80">
                                                 <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{item.product_name}</td>
+                                                <td className="px-4 py-3">
+                                                    <Badge variant={isVendorManagedProcurement(item) ? "success" : "secondary"}>
+                                                        {isVendorManagedProcurement(item) ? "Vendor managed" : "Manual"}
+                                                    </Badge>
+                                                </td>
                                                 <td className="px-4 py-3">{item.pack_label || "Base"}</td>
-                                                <td className="px-4 py-3">{formatQuantity(item.ordered_quantity, "0")}</td>
+                                                <td className="px-4 py-3">{formatQuantity(item.required_quantity ?? item.ordered_quantity, "0")}</td>
                                                 <td className="px-4 py-3">
                                                     <Input
                                                         type="number"
                                                         step="0.01"
                                                         value={(Number(item.unit_cost_paise || 0) / 100).toString()}
+                                                        disabled={isVendorManagedProcurement(item)}
                                                         onChange={(e) =>
                                                             updateProcurementDraft(item.key, {
                                                                 unit_cost_paise: rupeesToPaise(e.target.value),
@@ -1355,12 +1397,16 @@ export function CostPage() {
                                                         }
                                                     />
                                                 </td>
+                                                <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                                                    {paiseToRupees(procurementDisplayCosts(item).committedCostPaise)}
+                                                </td>
                                                 <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
-                                                    {paiseToRupees(item.total_cost_paise)}
+                                                    {paiseToRupees(procurementDisplayCosts(item).actualCostPaise)}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <Input
                                                         value={item.notes}
+                                                        disabled={isVendorManagedProcurement(item)}
                                                         onChange={(e) =>
                                                             updateProcurementDraft(item.key, {
                                                                 notes: e.target.value,

@@ -12,4 +12,9 @@ export const AdminOrdersService = {
         });
         return res.data?.data;
     },
+
+    async permanentlyDelete(orderId, payload) {
+        const res = await api.delete(`/v1/admin/orders/${orderId}`, { data: payload });
+        return res.data?.data;
+    },
 };

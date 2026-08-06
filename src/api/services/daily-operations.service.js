@@ -1,5 +1,23 @@
 import api from "../axios";
 import { ENDPOINTS } from "../endpoints";
+import { normalizeProcurementMode, normalizeProcurementUnit } from "../../utils/vendor-assignment";
+
+function normalizeProcurementPayload(data) {
+  const items = Array.isArray(data) ? data : (data?.items || []);
+  const normalized = items.map((item) => {
+    const mode = normalizeProcurementMode(item.procurement_mode);
+    return {
+      ...item,
+      procurement_mode: mode,
+      procurement_unit: normalizeProcurementUnit(
+        item.procurement_unit,
+        mode,
+        item.pack_label || item.pack?.pack_label || item.pack?.label
+      ),
+    };
+  });
+  return Array.isArray(data) ? normalized : { ...data, items: normalized };
+}
 
 export const DailyOperationsService = {
   async getOverview({ delivery_date, warehouse_id } = {}) {
@@ -32,9 +50,19 @@ export const DailyOperationsService = {
   },
 
   // Procurement
-  async getProcurement(operationId) {
-    const res = await api.get(ENDPOINTS.ops.dailyOperations.procurement(operationId));
-    return res.data?.data;
+  async getProcurement(operationId, {
+    view = "active",
+    deliveryDate,
+    warehouseId,
+  } = {}) {
+    const res = await api.get(ENDPOINTS.admin.cost.procurementItems, {
+      params: {
+        view,
+        ...(deliveryDate ? { delivery_date: deliveryDate } : {}),
+        ...(warehouseId ? { warehouse_id: warehouseId } : {}),
+      },
+    });
+    return normalizeProcurementPayload(res.data?.data);
   },
 
   async updateProcurementItem(operationId, itemId, payload) {

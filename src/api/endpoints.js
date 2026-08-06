@@ -121,6 +121,19 @@ export const ENDPOINTS = {
       getById: (id) => `/v1/admin/users/${id}`,
       passwordLogin: (id) => `/v1/admin/users/${id}/password-login`,
     },
+    vendor: {
+      list: "/v1/admin/vendor",
+      create: "/v1/admin/vendor",
+      getById: (id) => `/v1/admin/vendor/${id}`,
+      update: (id) => `/v1/admin/vendor/${id}`,
+      remove: (id) => `/v1/admin/vendor/${id}`,
+      products: (id) => `/v1/admin/vendor/${id}/products`,
+      updateProduct: (id, vendorProductId) => `/v1/admin/vendor/${id}/products/${vendorProductId}`,
+      removeProduct: (id, vendorProductId) => `/v1/admin/vendor/${id}/products/${vendorProductId}`,
+      assignments: "/v1/admin/vendor/assignments",
+      bulkAssignments: "/v1/admin/vendor/assignments/bulk",
+      autoAssignments: "/v1/admin/vendor/assignments/auto",
+    },
 
     banners: {
       list: "/v1/admin/banners",
@@ -158,6 +171,13 @@ export const ENDPOINTS = {
   },
 
   ops: {
+    vendor: {
+      vendors: "/v1/ops/vendor/vendors",
+      assignments: "/v1/ops/vendor/assignments",
+      checkIn: "/v1/ops/vendor/check-in",
+      checkIns: "/v1/ops/vendor/check-ins",
+      receive: (assignmentId) => `/v1/ops/vendor/assignments/${assignmentId}/receive`,
+    },
     orders: {
       list: "/v1/ops/orders",
       getById: (orderId) => `/v1/ops/orders/${orderId}`,

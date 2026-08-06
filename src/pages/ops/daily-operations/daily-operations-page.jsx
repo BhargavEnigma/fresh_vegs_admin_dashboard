@@ -99,12 +99,14 @@ const TABS = [
 ];
 
 export function DailyOperationsPage() {
-  const { roles, user } = useAuth();
+  const { roles, user, booting } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isAdmin = roles.includes("admin");
+  const isWarehouseManager = roles.includes("warehouse_manager") && !isAdmin;
+  const [procurementView, setProcurementView] = useState("active");
 
   // Read URL query params with defaults and tab mapping
   const dateFromUrl = searchParams.get("delivery_date");
@@ -157,14 +159,17 @@ export function DailyOperationsPage() {
 
   // Sync state back to URL on mount or query param absence
   useEffect(() => {
+    if (booting) return;
     const hasDate = searchParams.has("delivery_date");
     const hasWh = searchParams.has("warehouse_id");
     const hasTab = searchParams.has("tab");
 
-    if (!hasDate || !hasWh || !hasTab) {
+    const needsSync = !hasDate || !hasTab || (isAdmin && !hasWh);
+
+    if (needsSync) {
       updateUrlParams(selectedDate, selectedWarehouseId, activeTab);
     }
-  }, [searchParams, selectedDate, selectedWarehouseId, activeTab, updateUrlParams]);
+  }, [searchParams, selectedDate, selectedWarehouseId, activeTab, updateUrlParams, booting, isAdmin]);
 
   // Sync URL changes back to state and localStorage (e.g. browser back/forward navigation)
   useEffect(() => {
@@ -175,6 +180,7 @@ export function DailyOperationsPage() {
   }, [dateFromUrl, selectedDate]);
 
   useEffect(() => {
+    if (booting) return;
     if (warehouseIdFromUrl && warehouseIdFromUrl !== selectedWarehouseId) {
       setSelectedWarehouseId(warehouseIdFromUrl);
       if (warehouseIdFromUrl) {
@@ -183,7 +189,7 @@ export function DailyOperationsPage() {
         localStorage.removeItem("daily_ops_warehouse_id");
       }
     }
-  }, [warehouseIdFromUrl, selectedWarehouseId]);
+  }, [warehouseIdFromUrl, selectedWarehouseId, booting]);
 
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
@@ -256,7 +262,7 @@ export function DailyOperationsPage() {
   } = useDailyOperationsOverview({
     deliveryDate: selectedDate,
     warehouseId: isAdmin ? selectedWarehouseId : selectedWarehouseId || undefined,
-    enabled: Boolean(selectedDate && (!isAdmin || selectedWarehouseId)),
+    enabled: Boolean(!booting && selectedDate && (isAdmin ? selectedWarehouseId : true)),
     // Poll approximately every 30 seconds under specific conditions
     refetchInterval: (query) => {
       const status = query.state.data?.operation?.status;
@@ -276,6 +282,16 @@ export function DailyOperationsPage() {
     }
   }, [overview, selectedWarehouseId, selectedDate, activeTab, updateUrlParams]);
 
+  // Clear incorrect warehouse_id if request fails for a warehouse manager
+  useEffect(() => {
+    if (booting) return;
+    if (isWarehouseManager && overviewError) {
+      setSelectedWarehouseId("");
+      localStorage.removeItem("daily_ops_warehouse_id");
+      updateUrlParams(selectedDate, "", activeTab);
+    }
+  }, [overviewError, isWarehouseManager, selectedDate, activeTab, updateUrlParams, booting]);
+
   const operation = overview?.operation || {};
   const operationId = operation.id || null;
   const isClosed = operation.status === "closed";
@@ -283,7 +299,16 @@ export function DailyOperationsPage() {
   // Data Queries for sub-tabs
   const { data: operationDetail } = useDailyOperationDetail(operationId, { enabled: Boolean(operationId) });
 
-  const { data: procurementData, isLoading: isLoadingProcurement } = useDailyOperationsProcurement(operationId, {
+  const {
+    data: procurementData,
+    isLoading: isLoadingProcurement,
+    isError: isProcurementError,
+    refetch: refetchProcurement,
+  } = useDailyOperationsProcurement(operationId, {
+    // History must include received portions of products that also have new pending demand.
+    view: procurementView === "history" ? "all" : procurementView,
+    deliveryDate: selectedDate,
+    warehouseId: selectedWarehouseId,
     enabled: Boolean(operationId && activeTab === "procurement"),
   });
 
@@ -538,7 +563,7 @@ export function DailyOperationsPage() {
 
       {/* Navigation Tabs */}
       <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="grid w-full grid-cols-5 items-center gap-1.5">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -549,7 +574,7 @@ export function DailyOperationsPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => handleTabChange(tab.key)}
-                className={`group relative flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 whitespace-nowrap shrink-0 ${active
+                className={`group relative flex min-w-0 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${active
                   ? "bg-gradient-to-r from-dailyveg-500 via-dailyveg-600 to-emerald-600 text-white shadow-lg shadow-dailyveg-500/25 scale-[1.02]"
                   : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white"
                   }`}
@@ -596,8 +621,14 @@ export function DailyOperationsPage() {
           <ProcurementTab
             procurementData={procurementData}
             isLoading={isLoadingProcurement}
+            isError={isProcurementError}
+            onRetry={refetchProcurement}
+            workView={procurementView}
+            onWorkViewChange={setProcurementView}
             operation={operation}
             isClosed={isClosed}
+            isAdmin={isAdmin}
+            isWarehouseManager={isWarehouseManager}
             onUpdateItem={mutations.updateProcurementItemMutation.mutateAsync}
             onBulkUpdate={mutations.bulkProcurementMutation.mutateAsync}
             isUpdating={
@@ -670,9 +701,10 @@ export function DailyOperationsPage() {
             wasteData={wasteData}
             products={products}
             onCreateWaste={mutations.createWasteMutation.mutateAsync}
+            onReconcileRun={mutations.reconcileRunMutation.mutateAsync}
             onReconcileCodVariance={mutations.reconcileCodVarianceMutation.mutateAsync}
             isCreatingWaste={mutations.createWasteMutation.isPending}
-            isReconcilingCod={mutations.reconcileCodVarianceMutation.isPending}
+            isReconcilingCod={mutations.reconcileRunMutation.isPending || mutations.reconcileCodVarianceMutation.isPending}
 
             operationDetail={operationDetail}
             onSaveNotes={mutations.notesMutation.mutateAsync}

@@ -6,6 +6,10 @@ import {
   normalizeProductListResponse,
   findOrderForPacking,
 } from "../src/utils/daily-operations-normalizers.js";
+import {
+  canReconcileRunCod,
+  canResolveRunCodVariance,
+} from "../src/utils/daily-operations-helpers.js";
 
 // Helper to mock tab mapping (normally lives in page component)
 function mapTabKey(key) {
@@ -249,6 +253,17 @@ test("14. COD variance runs show manual reconciliation", () => {
   assert.strictEqual(hasVariance, true); // True, so variance input fields will be displayed
 });
 
+test("COD reconciliation is unavailable until every delivery in the run is terminal", () => {
+  assert.strictEqual(canReconcileRunCod({ status: "handed_over" }), false);
+  assert.strictEqual(canReconcileRunCod({ status: "in_progress" }), false);
+  assert.strictEqual(canReconcileRunCod({ status: "completed" }), true);
+  assert.strictEqual(canResolveRunCodVariance({
+    status: "completed",
+    cod_reconciliation_status: "variance",
+    cod_variance_paise: -5000,
+  }), true);
+});
+
 // 15. Auto-close capability fallback
 test("15. Auto-close capability fallback", () => {
   const capabilities = { automatic_operation_close: false };
@@ -298,3 +313,24 @@ test("18. Polling is disabled when the document is hidden or operation is closed
   // Case: valid active tab & open operation
   assert.strictEqual(checkPolling(true, true, true, true), 30000);
 });
+
+// 19. Warehouse manager self-healing warehouse resolution logic
+test("19. Warehouse manager self-healing warehouse resolution logic", () => {
+  const isQueryEnabled = (booting, selectedDate, isAdmin, selectedWarehouseId) => {
+    return Boolean(!booting && selectedDate && (isAdmin ? selectedWarehouseId : true));
+  };
+
+  // Warehouse manager query is enabled even if selectedWarehouseId is empty (to allow backend resolution)
+  assert.strictEqual(isQueryEnabled(false, "2026-08-07", false, ""), true);
+  // Admin query requires selectedWarehouseId to be present
+  assert.strictEqual(isQueryEnabled(false, "2026-08-07", true, ""), false);
+  assert.strictEqual(isQueryEnabled(false, "2026-08-07", true, "wh-1"), true);
+
+  // Self-healing state clearing if error occurs for manager
+  const shouldClearWarehouse = (isWarehouseManager, overviewError) => {
+    return isWarehouseManager && !!overviewError;
+  };
+  assert.strictEqual(shouldClearWarehouse(true, { code: "FORBIDDEN" }), true);
+  assert.strictEqual(shouldClearWarehouse(false, { code: "FORBIDDEN" }), false);
+});
+

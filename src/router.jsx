@@ -35,6 +35,8 @@ import { AdminSettingsPage } from "./pages/admin/settings/settings-page";
 import { AdminUsersPage } from "./pages/admin/users/admin-users-page";
 import { AdminBannersPage } from "./pages/admin/banners/banners-page";
 import { AdminDealsPage } from "./pages/admin/deals/deals-page";
+import { VendorsPage } from "./pages/admin/vendors/vendors-page";
+import { VendorCheckInPage } from "./pages/ops/vendor-check-in/vendor-check-in-page";
 import { NotificationsListPage } from "./pages/admin/notifications/notifications-list";
 import { NotificationsCreatePage } from "./pages/admin/notifications/notifications-create";
 import { NotificationsDetailPage } from "./pages/admin/notifications/notifications-detail";
@@ -78,6 +80,7 @@ export function AppRouter() {
             <Route path="ops/orders" element={<OpsOrdersPage />} />
             <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />
+            <Route path="ops/vendor-check-in" element={<VendorCheckInPage />} />
           </Route>
 
           {/* Admin Only Routes */}
@@ -96,6 +99,7 @@ export function AppRouter() {
 
             <Route path="admin/settings" element={<AdminSettingsPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/vendors" element={<VendorsPage />} />
             <Route path="admin/banners" element={<AdminBannersPage />} />
             <Route path="admin/deals" element={<AdminDealsPage />} />
             <Route path="notifications" element={<NotificationsListPage />} />

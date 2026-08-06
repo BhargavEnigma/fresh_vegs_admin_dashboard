@@ -3,7 +3,7 @@ import { formatIndianDateTime } from "../../../../utils/date-formatter";
 import { formatPaiseToRupees } from "../../../../utils/daily-operations-helpers";
 import { formatQuantity } from "../../../../lib/utils";
 
-export function calculateTotalWeight(qty, packLabel, packObj) {
+export function calculateTotalWeight(qty, packLabel, packObj, procurementUnit) {
   if (!qty || qty <= 0) return "—";
   
   let baseQty = packObj?.base_quantity;
@@ -16,19 +16,53 @@ export function calculateTotalWeight(qty, packLabel, packObj) {
       baseQty = parseFloat(match[1]);
       baseUnit = match[2].toLowerCase();
     } else {
-      return `${qty}pc`;
+      const u = String(procurementUnit || "pc").toLowerCase().trim();
+      if (u === "kg") {
+        if (qty < 1) {
+          return `${Math.round(qty * 1000)}g`;
+        }
+        return `${parseFloat(Number(qty).toFixed(3))}kg`;
+      }
+      if (u === "l") {
+        if (qty < 1) {
+          return `${Math.round(qty * 1000)}ml`;
+        }
+        return `${parseFloat(Number(qty).toFixed(3))}l`;
+      }
+      if (u === "g" || u === "gm") {
+        const total = qty;
+        if (total >= 1000) {
+          return `${parseFloat((total / 1000).toFixed(3))}kg`;
+        }
+        return `${parseFloat(total.toFixed(3))}g`;
+      }
+      return `${qty}${u}`;
     }
   }
 
   const total = qty * baseQty;
   
   if (baseUnit === "kg") {
+    if (total < 1) {
+      return `${Math.round(total * 1000)}g`;
+    }
     return `${parseFloat(total.toFixed(3))}kg`;
   } else if (baseUnit === "g" || baseUnit === "gm") {
     if (total >= 1000) {
       return `${parseFloat((total / 1000).toFixed(3))}kg`;
     } else {
       return `${parseFloat(total.toFixed(3))}g`;
+    }
+  } else if (baseUnit === "l") {
+    if (total < 1) {
+      return `${Math.round(total * 1000)}ml`;
+    }
+    return `${parseFloat(total.toFixed(3))}l`;
+  } else if (baseUnit === "ml") {
+    if (total >= 1000) {
+      return `${parseFloat((total / 1000).toFixed(3))}l`;
+    } else {
+      return `${parseFloat(total.toFixed(3))}ml`;
     }
   } else if (baseUnit === "pc" || baseUnit === "pcs") {
     return `${total}pc`;
@@ -86,7 +120,6 @@ export function ProcurementPrintSheet({ operation, items = [] }) {
               <th className="py-2 px-2 font-bold text-slate-800">#</th>
               <th className="py-2 px-2 font-bold text-slate-800">Product Name</th>
               <th className="py-2 px-2 font-bold text-slate-800">Pack</th>
-              <th className="py-2 px-2 font-bold text-slate-800 text-right">Target Stock</th>
               <th className="py-2 px-2 font-bold text-slate-800 text-right">Total Weight</th>
               <th className="py-2 px-2 font-bold text-slate-800 text-right">Bought</th>
               <th className="py-2 px-2 font-bold text-slate-800 text-right">Received</th>
@@ -101,10 +134,9 @@ export function ProcurementPrintSheet({ operation, items = [] }) {
               <tr key={item.id || idx} className="border-b border-slate-200">
                 <td className="py-2 px-2 font-mono text-slate-500">{idx + 1}</td>
                 <td className="py-2 px-2 font-semibold text-slate-900">{item.product_name || item.product?.name || "—"}</td>
-                <td className="py-2 px-2 text-slate-700">{item.pack_label || item.pack?.pack_label || "—"}</td>
-                <td className="py-2 px-2 text-right font-medium">{formatQuantity(item.required_quantity, "0")}</td>
+                <td className="py-2 px-2 text-slate-700">{item.ordered_packs || item.pack_label || item.pack?.pack_label || "—"}</td>
                 <td className="py-2 px-2 text-right font-medium">
-                  {calculateTotalWeight(item.required_quantity, item.pack_label || item.pack?.pack_label, item.pack)}
+                  {calculateTotalWeight(item.required_quantity, item.pack_label || item.pack?.pack_label, item.pack, item.procurement_unit)}
                 </td>
                 <td className="py-2 px-2 text-right font-medium">{formatQuantity(item.purchased_quantity, "0")}</td>
                 <td className="py-2 px-2 text-right font-medium">{formatQuantity(item.received_quantity, "0")}</td>
@@ -186,7 +218,6 @@ export function MandiBuyerPrintSheet({ operation, items = [] }) {
               <th className="py-2.5 px-2 font-black text-slate-950 border border-slate-300">#</th>
               <th className="py-2.5 px-3 font-black text-slate-950 border border-slate-300 text-sm">શાકભાજી નું નામ<br/><span className="text-[10px] text-slate-500 font-bold uppercase">Item Name</span></th>
               <th className="py-2.5 px-2 font-black text-slate-950 border border-slate-300">પેકિંગ<br/><span className="text-[10px] text-slate-500 font-bold uppercase">Pack</span></th>
-              <th className="py-2.5 px-2 font-black text-slate-950 border border-slate-300 text-right">જરૂરી વજન<br/><span className="text-[10px] text-slate-500 font-bold uppercase">Target</span></th>
               <th className="py-2.5 px-2 font-black text-slate-950 border border-slate-300 text-right">કુલ વજન<br/><span className="text-[10px] text-slate-500 font-bold uppercase">Total Weight</span></th>
               <th className="py-2.5 px-2 font-black text-slate-950 border border-slate-300 text-right">ખરીદેલું<br/><span className="text-[10px] text-slate-500 font-bold uppercase">Bought</span></th>
               <th className="py-2.5 px-3 font-black text-slate-950 border border-slate-300 text-right bg-amber-50/50">બાકી ખરીદી<br/><span className="text-[10px] text-amber-700 font-bold uppercase">To Buy</span></th>
@@ -208,16 +239,12 @@ export function MandiBuyerPrintSheet({ operation, items = [] }) {
                     {item.product_name || item.product?.name || "—"}
                   </td>
                   
-                  <td className="py-2.5 px-2 text-slate-800 border border-slate-200 font-bold text-center">
-                    {item.pack_label || item.pack?.pack_label || "—"}
+                  <td className="py-2.5 px-2 text-slate-800 border border-slate-200 font-bold text-center text-[10px]">
+                    {item.ordered_packs || item.pack_label || item.pack?.pack_label || "—"}
                   </td>
                   
-                  <td className="py-2.5 px-2 text-right border border-slate-200 text-slate-600 font-bold">
-                    {formatQuantity(reqQty, "0")}
-                  </td>
-
                   <td className="py-2.5 px-2 text-right border border-slate-200 text-slate-900 font-bold">
-                    {calculateTotalWeight(reqQty, item.pack_label || item.pack?.pack_label, item.pack)}
+                    {calculateTotalWeight(reqQty, item.pack_label || item.pack?.pack_label, item.pack, item.procurement_unit)}
                   </td>
                   
                   <td className="py-2.5 px-2 text-right border border-slate-200 text-emerald-800 font-bold">
@@ -228,12 +255,9 @@ export function MandiBuyerPrintSheet({ operation, items = [] }) {
                     {isCompleted ? (
                       <span className="text-emerald-700 text-xs font-black">ખરીદાઈ ગયું ✓</span>
                     ) : (
-                      <div className="flex flex-col items-end">
-                        <span className="text-rose-600 font-black">{formatQuantity(remainingQty, "0")}</span>
-                        <span className="text-[10px] text-rose-500 font-bold block">
-                          ({calculateTotalWeight(remainingQty, item.pack_label || item.pack?.pack_label, item.pack)})
-                        </span>
-                      </div>
+                      <span className="text-rose-600 font-black text-sm">
+                        {calculateTotalWeight(remainingQty, item.pack_label || item.pack?.pack_label, item.pack, item.procurement_unit)}
+                      </span>
                     )}
                   </td>
                   

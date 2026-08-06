@@ -29,4 +29,9 @@ export const AdminUsersService = {
         const res = await api.put(ENDPOINTS.admin.users.passwordLogin(userId), payload);
         return res.data?.data;
     },
+
+    async update(userId, payload) {
+        const res = await api.put(ENDPOINTS.admin.users.getById(userId), payload);
+        return res.data?.data;
+    },
 };

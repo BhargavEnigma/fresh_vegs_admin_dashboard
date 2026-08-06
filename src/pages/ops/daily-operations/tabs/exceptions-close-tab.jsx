@@ -30,7 +30,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../co
 import { StatusBadge } from "../../../../components/common/status-badge";
 import { useToast } from "../../../../components/toast/toast-context";
 import { PremiumSelect } from "../../../../components/ui/premium-select";
-import { formatPaiseToRupees, parseDecimal, mapEventToFriendlyLabel } from "../../../../utils/daily-operations-helpers";
+import {
+  canReconcileRunCod,
+  canResolveRunCodVariance,
+  formatPaiseToRupees,
+  parseDecimal,
+  mapEventToFriendlyLabel,
+} from "../../../../utils/daily-operations-helpers";
 import { normalizeAutomationCapabilities, normalizeProductListResponse } from "../../../../utils/daily-operations-normalizers";
 import { formatIndianDateTime } from "../../../../utils/date-formatter";
 import { ClosingSummaryPrint } from "../print/closing-summary-print";
@@ -60,6 +66,7 @@ export function ExceptionsCloseTab({
   wasteData,
   products = [],
   onCreateWaste,
+  onReconcileRun,
   onReconcileCodVariance,
   isCreatingWaste,
   isReconcilingCod,
@@ -257,15 +264,23 @@ export function ExceptionsCloseTab({
     const handedOverPaise = handedOverCodRupees !== "" ? Math.round(parseFloat(handedOverCodRupees) * 100) : null;
 
     try {
-      await onReconcileCodVariance({
-        runId: reconcilingRun.id,
-        payload: {
-          reported_cod_paise: reportedPaise,
-          handed_over_cod_paise: handedOverPaise,
-          notes: reconcileNotes || null,
-        },
-      });
-      toast.success("COD variance resolved successfully.");
+      if (canResolveRunCodVariance(reconcilingRun)) {
+        await onReconcileCodVariance({
+          runId: reconcilingRun.id,
+          payload: { notes: reconcileNotes || null },
+        });
+        toast.success("COD variance resolved successfully.");
+      } else {
+        await onReconcileRun({
+          runId: reconcilingRun.id,
+          payload: {
+            reported_cod_paise: reportedPaise,
+            handed_over_cod_paise: handedOverPaise,
+            notes: reconcileNotes || null,
+          },
+        });
+        toast.success("COD handover saved successfully.");
+      }
       setReconcilingRun(null);
     } catch (err) {
       toast.error(err?.message || "Failed to resolve COD variance");
@@ -607,6 +622,7 @@ export function ExceptionsCloseTab({
                   const hasVariance = run.cod_variance_paise !== null && run.cod_variance_paise !== 0;
                   const isNotEntered = run.reported_cod_paise === null || run.handed_over_cod_paise === null;
                   const isReconciled = (!isNotEntered && !hasVariance) || run.cod_reconciliation_status === "matched" || Number(run.expected_cod_paise || 0) === 0;
+                  const canReconcile = canReconcileRunCod(run);
 
                   return (
                     <div 
@@ -641,7 +657,7 @@ export function ExceptionsCloseTab({
                             <span className="px-2 py-0.5 text-[9px] font-black text-rose-800 bg-rose-100 dark:bg-rose-950/20 border border-rose-200/40 rounded-lg">
                               Variance: {formatPaiseToRupees(run.cod_variance_paise)}
                             </span>
-                            {!isClosed && (
+                            {!isClosed && canReconcile && (
                               <Button 
                                 variant="outline" 
                                 className="h-7 px-3 text-[10px] font-extrabold rounded-xl border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:scale-[1.03] transition-all duration-200 shadow-sm" 
@@ -653,14 +669,18 @@ export function ExceptionsCloseTab({
                           </div>
                         ) : (
                           // Pending entry
-                          !isClosed && (
+                          !isClosed && canReconcile ? (
                             <Button 
                               className="h-7.5 px-4 text-[10px] font-black rounded-xl bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 hover:from-dailyveg-600 hover:to-dailyveg-700 text-white shadow-sm hover:scale-[1.03] hover:shadow-md transition-all duration-200" 
                               onClick={() => handleOpenReconcile(run)}
                             >
                               Input Handovers
                             </Button>
-                          )
+                          ) : !isClosed ? (
+                            <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+                              Awaiting deliveries
+                            </span>
+                          ) : null
                         )}
                       </div>
                     </div>

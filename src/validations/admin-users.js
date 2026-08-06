@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const rolesEnum = z.enum(["admin", "warehouse_manager", "customer", "delivery_partner", "support_manager"]);
+const rolesEnum = z.enum(["admin", "warehouse_manager", "vendor", "customer", "delivery_partner", "support_manager"]);
 
 const requireWarehouseForStaffRoles = (data, ctx) => {
     const needsWarehouse =

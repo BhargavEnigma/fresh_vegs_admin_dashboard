@@ -115,6 +115,11 @@ export function ProductDetailPage() {
                 <Field label="Category" value={p.category?.name || "—"} />
                 <Field label="Unit" value={p.unit} />
                 <Field label="Base quantity" value={formatQuantity(p.base_quantity)} />
+                <Field label="Procurement mode" value={p.procurement_mode === "bulk" ? "Bulk" : "Ready-packed / Pack"} />
+                <Field
+                  label="Procurement unit"
+                  value={p.procurement_mode === "bulk" ? String(p.procurement_unit || "Not configured").toUpperCase() : "Pack-specific"}
+                />
                 <Field label="MRP" value={`₹${(Number(p.mrp_paise || 0) / 100).toFixed(2)}`} />
                 <Field label="Selling price" value={`₹${(Number(p.selling_price_paise || 0) / 100).toFixed(2)}`} />
                 <Field label="Active" value={<StatusBadge value={p.is_active ? "active" : "inactive"} />} />

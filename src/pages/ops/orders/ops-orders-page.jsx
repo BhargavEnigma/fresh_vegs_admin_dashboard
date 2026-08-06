@@ -8,12 +8,13 @@ import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, Copy, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, Copy, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight, Trash2, ShieldAlert } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useAuth } from "../../../auth/auth-context";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
+import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { OpsJobsService } from "../../../api/services/ops-jobs.service";
 import { opsOrdersFilterSchema } from "../../../validations/ops-orders";
 
@@ -721,6 +722,8 @@ function MobileOrderCard({
     isAssignPending,
     isUnassignPending,
     isUpdatePending,
+    canDelete,
+    onDelete,
 }) {
     const nextActions = getNextActions(order);
     const selected = selectedIds.includes(order.id);
@@ -846,6 +849,13 @@ function MobileOrderCard({
                         {action.label}
                     </Button>
                 ))}
+
+                {canDelete ? (
+                    <Button variant="redoutline" size="sm" onClick={() => onDelete(order)}>
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        Delete
+                    </Button>
+                ) : null}
             </div>
 
             <div className="mt-3 text-xs text-slate-500">
@@ -866,6 +876,8 @@ function OrderGridCard({
     isAssignPending,
     isUnassignPending,
     isUpdatePending,
+    canDelete,
+    onDelete,
 }) {
     const nextActions = getNextActions(order);
     const selected = selectedIds.includes(order.id);
@@ -1028,9 +1040,113 @@ function OrderGridCard({
                             {action.label}
                         </Button>
                     ))}
+
+                    {canDelete ? (
+                        <Button variant="redoutline" size="sm" onClick={() => onDelete(order)}>
+                            <Trash2 className="mr-1.5 h-4 w-4" />
+                            Delete
+                        </Button>
+                    ) : null}
                 </div>
             </div>
         </article>
+    );
+}
+
+function PermanentDeleteOrderDialog({
+    order,
+    open,
+    onOpenChange,
+    confirmation,
+    onConfirmationChange,
+    reason,
+    onReasonChange,
+    onConfirm,
+    isPending,
+}) {
+    const orderNumber = order?.order_number || "";
+    const confirmationMatches = confirmation === orderNumber;
+    const reasonIsValid = reason.trim().length >= 8;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="overflow-hidden border-0 p-0 sm:max-w-xl">
+                <div className="relative overflow-hidden bg-gradient-to-br from-rose-950 via-red-950 to-slate-950 px-6 pb-6 pt-7 text-white">
+                    <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-red-500/20 blur-3xl" />
+                    <div className="relative flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur">
+                            <ShieldAlert className="h-6 w-6 text-rose-200" />
+                        </div>
+                        <div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-rose-200">Admin-only danger zone</div>
+                            <DialogHeader className="mt-2 text-left">
+                                <DialogTitle className="text-2xl text-white">Permanently delete order?</DialogTitle>
+                            </DialogHeader>
+                            <p className="mt-2 text-sm leading-6 text-rose-100/80">
+                                This removes the order, items, payment records, timeline, packing links and run assignment. This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-5 px-6 pb-6 pt-5">
+                    <div className="flex justify-between rounded-2xl border border-rose-100 bg-rose-50/70 p-4 dark:border-rose-950 dark:bg-rose-950/20">
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Order</div>
+                            <div className="mt-1 font-mono text-sm font-bold text-slate-900 dark:text-white">{orderNumber || "—"}</div>
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Payment state</div>
+                            <div className="mt-1 text-sm font-semibold capitalize text-slate-900 dark:text-white">
+                                {String(order?.payment_status || "—").replaceAll("_", " ")}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="delete-order-reason">Deletion reason</Label>
+                        <textarea
+                            id="delete-order-reason"
+                            value={reason}
+                            onChange={(event) => onReasonChange(event.target.value)}
+                            placeholder="Explain why this order must be permanently removed"
+                            rows={3}
+                            maxLength={500}
+                            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 dark:border-slate-800 dark:bg-slate-950"
+                        />
+                        <div className="text-right text-[11px] text-slate-400">{reason.trim().length}/500 · minimum 8 characters</div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="delete-order-confirmation">
+                            Type <span className="select-all font-mono font-bold text-rose-600">{orderNumber}</span> to confirm
+                        </Label>
+                        <Input
+                            id="delete-order-confirmation"
+                            value={confirmation}
+                            onChange={(event) => onConfirmationChange(event.target.value)}
+                            placeholder={orderNumber}
+                            autoComplete="off"
+                            className="font-mono"
+                        />
+                    </div>
+
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+                            Keep order
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={onConfirm}
+                            disabled={!confirmationMatches || !reasonIsValid || isPending}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {isPending ? "Deleting permanently..." : "Delete permanently"}
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -1055,6 +1171,9 @@ export function OpsOrdersPage() {
     const [selectedPartnerId, setSelectedPartnerId] = useState("");
     const [bulkPartnerId, setBulkPartnerId] = useState("");
     const [viewMode, setViewMode] = useState(() => getSavedViewMode(OPS_ORDERS_VIEW_MODE_KEY));
+    const [deleteOrder, setDeleteOrder] = useState(null);
+    const [deleteConfirmation, setDeleteConfirmation] = useState("");
+    const [deleteReason, setDeleteReason] = useState("");
 
     const [filters, setFilters] = useState({
         page: 1,
@@ -1175,6 +1294,33 @@ export function OpsOrdersPage() {
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
             qc.invalidateQueries({ queryKey: ["procurement"] });
+        },
+    });
+
+    const permanentlyDeleteMut = useMutation({
+        mutationFn: ({ orderId, confirmation, reason }) =>
+            AdminOrdersService.permanentlyDelete(orderId, { confirmation, reason }),
+        meta: {
+            globalLoaderMessage: "Permanently deleting order...",
+        },
+        onSuccess: (data) => {
+            const removedCount = Object.values(data?.deleted_record_counts || {})
+                .reduce((totalCount, count) => totalCount + Number(count || 0), 0);
+            toast.success(
+                "Order permanently deleted",
+                removedCount ? `${removedCount} order-owned records were removed safely.` : undefined
+            );
+            setSelectedIds((current) => current.filter((id) => id !== deleteOrder?.id));
+            setDeleteOrder(null);
+            setDeleteConfirmation("");
+            setDeleteReason("");
+            qc.invalidateQueries({ queryKey: ["opsOrders"] });
+            qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
+            qc.invalidateQueries({ queryKey: ["procurement"] });
+            qc.invalidateQueries({ queryKey: ["dailyOperations"] });
+        },
+        onError: (error) => {
+            toast.error("Could not delete order", error?.message || "Please verify the confirmation and try again.");
         },
     });
 
@@ -1446,6 +1592,22 @@ export function OpsOrdersPage() {
         setAssignDialogOpen(true);
     }
 
+    function openDeleteDialog(order) {
+        if (!isAdmin) return;
+        setDeleteOrder(order);
+        setDeleteConfirmation("");
+        setDeleteReason("");
+    }
+
+    function confirmPermanentDelete() {
+        if (!deleteOrder?.id || permanentlyDeleteMut.isPending) return;
+        permanentlyDeleteMut.mutate({
+            orderId: deleteOrder.id,
+            confirmation: deleteConfirmation,
+            reason: deleteReason.trim(),
+        });
+    }
+
     async function handleAssignDeliveryPartner() {
         if (!assignOrder?.id) {
             toast.error("Order not found");
@@ -1588,7 +1750,7 @@ export function OpsOrdersPage() {
     const BadgeIcon = badgeProps.icon;
 
     return (
-        <div className="min-w-0">
+        <div className="w-full min-w-0 max-w-full">
             <PageHeader
                 title="Orders (Ops)"
                 subtitle="Daily delivery operations workspace for admin and warehouse team."
@@ -1799,8 +1961,9 @@ export function OpsOrdersPage() {
                             ) : null}
                         </div>
                         {/* </div> */}
+                    </div>
 
-                        <div className="mt-4 min-w-0 w-full">
+                    <div className="mt-4 min-w-0 w-full">
                             <div className={cn("grid gap-3", viewMode === VIEW_MODES.table ? "lg:hidden" : "sm:grid-cols-2 xl:grid-cols-3")}>
                                 {listQuery.isLoading ? (
                                     <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
@@ -1825,6 +1988,8 @@ export function OpsOrdersPage() {
                                                 isAssignPending={assignDeliveryPartnerMut.isPending}
                                                 isUnassignPending={unassignDeliveryPartnerMut.isPending}
                                                 isUpdatePending={updateStatusMut.isPending}
+                                                canDelete={isAdmin}
+                                                onDelete={openDeleteDialog}
                                             />
                                         ) : (
                                             <MobileOrderCard
@@ -1839,6 +2004,8 @@ export function OpsOrdersPage() {
                                                 isAssignPending={assignDeliveryPartnerMut.isPending}
                                                 isUnassignPending={unassignDeliveryPartnerMut.isPending}
                                                 isUpdatePending={updateStatusMut.isPending}
+                                                canDelete={isAdmin}
+                                                onDelete={openDeleteDialog}
                                             />
                                         )
                                     )
@@ -1990,6 +2157,17 @@ export function OpsOrdersPage() {
                                                                         {action.label}
                                                                     </Button>
                                                                 ))}
+
+                                                                {isAdmin ? (
+                                                                    <Button
+                                                                        variant="redoutline"
+                                                                        size="sm"
+                                                                        onClick={() => openDeleteDialog(order)}
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                        <span className="sr-only">Delete {getPrimaryOrderLabel(order)}</span>
+                                                                    </Button>
+                                                                ) : null}
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -2034,9 +2212,8 @@ export function OpsOrdersPage() {
                                 </Button>
                             </div>
                         </div>
-                    </div>
                 </Card>
-            </div >
+            </div>
 
             <OrderPreviewDialog
                 order={previewOrder}
@@ -2055,6 +2232,24 @@ export function OpsOrdersPage() {
                 onUnassignClick={handleUnassignDeliveryPartner}
                 isAssignPending={assignDeliveryPartnerMut.isPending}
                 isUnassignPending={unassignDeliveryPartnerMut.isPending}
+            />
+
+            <PermanentDeleteOrderDialog
+                order={deleteOrder}
+                open={!!deleteOrder}
+                onOpenChange={(open) => {
+                    if (!open && !permanentlyDeleteMut.isPending) {
+                        setDeleteOrder(null);
+                        setDeleteConfirmation("");
+                        setDeleteReason("");
+                    }
+                }}
+                confirmation={deleteConfirmation}
+                onConfirmationChange={setDeleteConfirmation}
+                reason={deleteReason}
+                onReasonChange={setDeleteReason}
+                onConfirm={confirmPermanentDelete}
+                isPending={permanentlyDeleteMut.isPending}
             />
 
             <AssignDeliveryPartnerDialog

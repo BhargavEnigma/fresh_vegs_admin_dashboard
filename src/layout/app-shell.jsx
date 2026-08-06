@@ -115,7 +115,7 @@ export function AppShell() {
         </Button>
       </div>
 
-      <div className="flex w-full">
+      <div className="flex min-h-screen w-full min-w-0 overflow-x-clip">
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r border-slate-200/80 bg-white/95 shadow-2xl shadow-slate-900/5 backdrop-blur-xl transition-[width,transform] duration-300 ease-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40",
@@ -399,13 +399,15 @@ export function AppShell() {
 
         <main
           className={cn(
-            "min-w-0 w-full flex-1 p-4 transition-[margin,width] duration-300 lg:p-8",
+            "min-w-0 max-w-full p-4 transition-[margin,width] duration-300 lg:p-8",
             sidebarOpen
-              ? "lg:ms-72 lg:w-[calc(100%-18rem)]"
-              : "lg:ms-24 lg:w-[calc(100%-6rem)]"
+              ? "lg:ms-72 lg:w-[calc(100vw-18rem)]"
+              : "lg:ms-24 lg:w-[calc(100vw-6rem)]"
           )}
         >
-          <Outlet />
+          <div className="w-full min-w-0 max-w-full">
+            <Outlet />
+          </div>
         </main>
       </div>
 

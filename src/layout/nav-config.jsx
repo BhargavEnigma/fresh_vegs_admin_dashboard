@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   BarChart3,
   CalendarCheck,
+  ClipboardCheck,
+  Store,
 } from "lucide-react";
 
 // Navigation is driven by backend capabilities.
@@ -63,6 +65,13 @@ export const NAV_ITEMS = [
     to: "/ops/procurement",
     roles: ["admin", "warehouse_manager"],
   },
+  {
+    key: "vendorCheckIn",
+    label: "Vendor Check-In",
+    icon: ClipboardCheck,
+    to: "/ops/vendor-check-in",
+    roles: ["admin", "warehouse_manager"],
+  },
 
   {
     key: "products",
@@ -99,6 +108,13 @@ export const NAV_ITEMS = [
     label: "Admin Users",
     icon: Users,
     to: "/admin/users",
+    roles: ["admin"],
+  },
+  {
+    key: "adminVendors",
+    label: "Vendors",
+    icon: Store,
+    to: "/admin/vendors",
     roles: ["admin"],
   },
   {
