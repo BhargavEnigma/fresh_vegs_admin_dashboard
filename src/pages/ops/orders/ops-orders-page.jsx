@@ -33,7 +33,7 @@ import { exportOrdersCsv } from "./ops-orders-export";
 import { downloadBlob } from "../../../utils/download";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { RiResetLeftFill } from "react-icons/ri";
-import { cn } from "../../../lib/utils";
+import { cn, formatQuantity } from "../../../lib/utils";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 
 
@@ -242,6 +242,11 @@ function getOrderItemsCount(order) {
     if (typeof order?.total_items === "number") return order.total_items;
     if (Array.isArray(order?.items)) return order.items.length;
     return "—";
+}
+
+function pickFirstImageUrl(item) {
+    const images = item?.product?.images || [];
+    return images.length ? images[0].image_url : null;
 }
 
 function getOrderArea(order) {
@@ -493,7 +498,18 @@ function OrderPreviewDialog({
     isAssignPending,
     isUnassignPending,
 }) {
+    const orderId = order?.id;
+
+    const { data: detailData, isLoading: isDetailLoading } = useQuery({
+        queryKey: ["opsOrder", orderId],
+        queryFn: () => OpsOrdersService.getById(orderId),
+        enabled: !!orderId && open,
+    });
+
     if (!order) return null;
+
+    const fullOrder = detailData?.order || order;
+    const items = fullOrder?.items || [];
 
     const deliveryPartnerText = order.delivery_partner
         ? `${getDeliveryPartnerName(order)}${getDeliveryPartnerPhone(order) ? ` (${getDeliveryPartnerPhone(order)})` : ""}`
@@ -515,30 +531,30 @@ function OrderPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="p-4 sm:p-5 gap-3 max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Order Preview</DialogTitle>
+                    <DialogTitle className="text-base sm:text-lg">Order Preview</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid gap-3 text-sm">
-                    <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800 space-y-1">
+                <div className="grid gap-2 text-xs sm:text-sm">
+                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800 space-y-0.5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-xs text-slate-500">Operational Order</div>
-                                <div className="font-semibold text-base text-slate-900 dark:text-white">{getPrimaryOrderLabel(order)}</div>
+                                <div className="text-[10px] sm:text-xs text-slate-500">Operational Order</div>
+                                <div className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{getPrimaryOrderLabel(order)}</div>
                             </div>
                             {getDailyOrderLabel(order) && (
-                                <div className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-1 text-sm font-bold text-dailyveg-700 dark:text-dailyveg-300">
+                                <div className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs font-bold text-dailyveg-700 dark:text-dailyveg-300">
                                     {getDailyOrderLabel(order)}
                                 </div>
                             )}
                         </div>
                         {order.order_number && (
-                            <div className="text-xs text-slate-500">
+                            <div className="text-[10px] sm:text-xs text-slate-500">
                                 Customer Reference: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
                             </div>
                         )}
-                        <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-1">
+                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
                             <span>UUID: {order.id}</span>
                             <button
                                 onClick={() => {
@@ -548,55 +564,101 @@ function OrderPreviewDialog({
                                 className="hover:text-slate-600 dark:hover:text-slate-200"
                                 title="Copy UUID"
                             >
-                                <Copy className="h-3.5 w-3.5 inline-block" />
+                                <Copy className="h-3 w-3 inline-block" />
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="text-xs text-slate-500">Customer</div>
-                            <div className="mt-1 font-medium">{getCustomerName(order)}</div>
+                    {/* Ordered Products Section */}
+                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800 overflow-x-auto">
+                        <div className="text-[10px] sm:text-xs text-slate-500 mb-1.5 font-medium">Ordered Products</div>
+                        {isDetailLoading ? (
+                            <div className="flex gap-3 overflow-x-auto pb-0.5 animate-pulse">
+                                {[1, 2, 3].map((n) => (
+                                    <div key={n} className="flex flex-col items-center gap-1 shrink-0">
+                                        <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800" />
+                                        <div className="h-2.5 w-10 rounded bg-slate-100 dark:bg-slate-800 mt-1" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : items.length > 0 ? (
+                            <div className="flex gap-3 overflow-x-auto pb-1.5 thin-scrollbar">
+                                {items.map((item) => {
+                                    const img = pickFirstImageUrl(item);
+                                    const packQtyText = `${item.pack_label || item.unit || "—"}-${formatQuantity(item.quantity)}x`;
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className="flex flex-col items-center gap-0.5 shrink-0 group relative cursor-help"
+                                            title={item.product_name}
+                                        >
+                                            <div className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm">
+                                                {img ? (
+                                                    <img
+                                                        src={img}
+                                                        alt={item.product_name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <Package className="h-5 w-5 text-slate-400 dark:text-slate-600" />
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 mt-1 max-w-[56px] truncate text-center" title={packQtyText}>
+                                                {packQtyText}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-[10px] sm:text-xs text-slate-400 italic">No products found in this order.</div>
+                        )}
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                            <div className="text-[10px] sm:text-xs text-slate-500">Customer</div>
+                            <div className="mt-0.5 font-medium">{getCustomerName(order)}</div>
                             <div className="text-slate-500 dark:text-slate-400">{getCustomerPhone(order)}</div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="text-xs text-slate-500">Delivery</div>
-                            <div className="mt-1 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
+                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                            <div className="text-[10px] sm:text-xs text-slate-500">Delivery</div>
+                            <div className="mt-0.5 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
                             <div className="text-slate-500 dark:text-slate-400">{getOrderArea(order)}</div>
                         </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="text-xs text-slate-500">Status</div>
-                            <div className="mt-2">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                            <div className="text-[10px] sm:text-xs text-slate-500">Status</div>
+                            <div className="mt-1">
                                 <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="text-xs text-slate-500">Payment</div>
-                            <div className="mt-1 font-medium">{order.payment_method || "—"}</div>
+                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                            <div className="text-[10px] sm:text-xs text-slate-500">Payment</div>
+                            <div className="mt-0.5 font-medium">{order.payment_method || "—"}</div>
                             <div className="text-slate-500 dark:text-slate-400">{order.payment_status || "—"}</div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                            <div className="text-xs text-slate-500">Total</div>
-                            <div className="mt-1 font-medium">{money(getOrderTotal(order))}</div>
+                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                            <div className="text-[10px] sm:text-xs text-slate-500">Total</div>
+                            <div className="mt-0.5 font-medium">{money(getOrderTotal(order))}</div>
                             <div className="text-slate-500 dark:text-slate-400">Items: {getOrderItemsCount(order)}</div>
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                        <div className="text-xs text-slate-500">Delivery Partner</div>
-                        <div className="mt-1 font-medium">{deliveryPartnerText}</div>
+                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
+                        <div className="text-[10px] sm:text-xs text-slate-500">Delivery Partner</div>
+                        <div className="mt-0.5 font-medium">{deliveryPartnerText}</div>
                         <div className="text-slate-500 dark:text-slate-400">
                             Assigned at: {order.delivery_assigned_at || "—"}
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
                         {canAssignDeliveryPartner(order) ? (
                             <Button variant="outline" onClick={() => onAssignClick(order)} disabled={isAssignPending}>
                                 {order.delivery_partner_user_id ? "Reassign Partner" : "Assign Partner"}

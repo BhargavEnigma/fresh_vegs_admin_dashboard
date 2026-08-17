@@ -22,6 +22,7 @@ import {
     UserRound,
     UserPlus,
     UsersRound,
+    Eye,
 } from "lucide-react";
 
 import { AdminUsersService } from "../../../api/services/admin-users.service";
@@ -39,6 +40,7 @@ import { PremiumSelect } from "../../../components/ui/premium-select";
 import { UserPasswordLoginDialog } from "./user-password-login-dialog";
 import { PasswordLoginStatusBadge } from "./password-login-status-badge";
 import { EditUserDialog } from "./edit-user-dialog";
+import { ViewUserDialog } from "./view-user-dialog";
 
 function RoleRadio({ value, active, name, onSelect }) {
     const id = `${name}-${value}`;
@@ -150,6 +152,7 @@ export function AdminUsersPage() {
     const [createdUser, setCreatedUser] = useState(null);
     const [securityUser, setSecurityUser] = useState(null);
     const [editingUser, setEditingUser] = useState(null);
+    const [viewingUser, setViewingUser] = useState(null);
     const [listParams, setListParams] = useState({ page: 1, limit: 20, q: "", role: "", status: "" });
 
     const queryParams = useMemo(() => {
@@ -339,7 +342,7 @@ export function AdminUsersPage() {
                     <table className="premium-table min-w-[1120px]">
                         <thead className="text-left">
                             <tr>
-                                {['User', 'Contact', 'Status', 'Roles & access', 'Login security', 'Joined', 'Actions'].map((heading) => (
+                                {['#', 'User', 'Contact', 'Status', 'Roles & access', 'Login security', 'Joined', 'Actions'].map((heading) => (
                                     <th key={heading} className={`whitespace-nowrap px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 ${heading === 'Actions' ? 'text-right' : ''}`}>{heading}</th>
                                 ))}
                             </tr>
@@ -347,7 +350,7 @@ export function AdminUsersPage() {
                         <tbody>
                             {listQuery.isLoading ? (
                                 <tr>
-                                    <td className="px-5 py-14 text-center text-slate-500" colSpan={7}>
+                                    <td className="px-5 py-14 text-center text-slate-500" colSpan={8}>
                                         <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin text-dailyveg-500" /> Loading users…
                                     </td>
                                 </tr>
@@ -355,7 +358,7 @@ export function AdminUsersPage() {
 
                             {listQuery.isError ? (
                                 <tr>
-                                    <td className="px-5 py-14 text-center text-red-600" colSpan={7}>
+                                    <td className="px-5 py-14 text-center text-red-600" colSpan={8}>
                                         Failed to load users.
                                     </td>
                                 </tr>
@@ -363,7 +366,7 @@ export function AdminUsersPage() {
 
                             {!listQuery.isLoading && !listQuery.isError && (listQuery.data?.items || []).length === 0 ? (
                                 <tr>
-                                    <td className="px-5 py-14 text-center text-slate-500" colSpan={7}>
+                                    <td className="px-5 py-14 text-center text-slate-500" colSpan={8}>
                                         <UserRound className="mx-auto mb-3 h-8 w-8 text-slate-300" />
                                         <span className="font-medium text-slate-700 dark:text-slate-200">No users found</span>
                                         <p className="mt-1 text-xs">Try changing your search or filters.</p>
@@ -371,50 +374,57 @@ export function AdminUsersPage() {
                                 </tr>
                             ) : null}
 
-                            {(listQuery.data?.items || []).map((u) => (
-                                <tr key={u.id} className="group border-t border-slate-100 transition-colors hover:bg-dailyveg-50/50 dark:border-slate-900 dark:hover:bg-dailyveg-950/30">
-                                    <td className="px-5 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <UserAvatar user={u} />
-                                            <div className="min-w-0">
-                                                <div className="max-w-[190px] truncate font-semibold text-slate-900 dark:text-white">{u.full_name || "Unnamed user"}</div>
-                                                <div className="mt-0.5 max-w-[190px] truncate font-mono text-[10px] text-slate-400" title={u.id}>ID · {u.id}</div>
+                            {(listQuery.data?.items || []).map((u, index) => {
+                                const serialNumber = ((listQuery.data?.page ?? listParams.page ?? 1) - 1) * (listParams.limit ?? 20) + index + 1;
+                                return (
+                                    <tr key={u.id} className="group border-t border-slate-100 transition-colors hover:bg-dailyveg-50/50 dark:border-slate-900 dark:hover:bg-dailyveg-950/30">
+                                        <td className="px-5 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                            {serialNumber}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <UserAvatar user={u} />
+                                                <div className="min-w-0">
+                                                    <div className="max-w-[190px] truncate font-semibold text-slate-900 dark:text-white">{u.full_name || "Unnamed user"}</div>
+                                                    <div className="mt-0.5 max-w-[190px] truncate font-mono text-[10px] text-slate-400" title={u.id}>ID · {u.id}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <div className="space-y-1.5 text-xs">
-                                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200"><Phone className="h-3.5 w-3.5 text-slate-400" />{u.phone || "—"}</div>
-                                            <div className="flex max-w-[210px] items-center gap-2 truncate text-slate-500" title={u.email || ""}><Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{u.email || "No email"}</span></div>
-                                        </div>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${u.status === "active" ? "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/70 dark:text-dailyveg-300" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300"}`}>
-                                            <span className={`h-1.5 w-1.5 rounded-full ${u.status === "active" ? "bg-dailyveg-500" : "bg-red-500"}`} />{u.status || "Unknown"}
-                                        </span>
-                                    </td>
-                                    <td className="max-w-[220px] px-5 py-4"><RoleBadges roles={u.roles} /></td>
-                                    <td className="px-5 py-4"><PasswordLoginStatusBadge user={u} /></td>
-                                    <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500"><div className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" />{formatIndianDateTime(u.created_at)}</div></td>
-                                    <td className="px-5 py-4 text-right"><div className="flex justify-end gap-1.5">
-                                        <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setEditingUser(u)}><UserRound className="h-3.5 w-3.5" /> Edit</Button>
-                                        <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setSecurityUser(u)}><KeyRound className="h-3.5 w-3.5" /> Login</Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="gap-1.5"
-                                            onClick={() => {
-                                                rolesForm.setValue("user_id", u.id, { shouldValidate: true });
-                                                rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true });
-                                                rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true });
-                                                toast.success("Loaded user into role editor");
-                                            }}
-                                        >
-                                            <ShieldCheck className="h-3.5 w-3.5" /> Roles
-                                        </Button>
-                                    </div></td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="space-y-1.5 text-xs">
+                                                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200"><Phone className="h-3.5 w-3.5 text-slate-400" />{u.phone || "—"}</div>
+                                                <div className="flex max-w-[210px] items-center gap-2 truncate text-slate-500" title={u.email || ""}><Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{u.email || "No email"}</span></div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${u.status === "active" ? "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/70 dark:text-dailyveg-300" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300"}`}>
+                                                <span className={`h-1.5 w-1.5 rounded-full ${u.status === "active" ? "bg-dailyveg-500" : "bg-red-500"}`} />{u.status || "Unknown"}
+                                            </span>
+                                        </td>
+                                        <td className="max-w-[220px] px-5 py-4"><RoleBadges roles={u.roles} /></td>
+                                        <td className="px-5 py-4"><PasswordLoginStatusBadge user={u} /></td>
+                                        <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-500"><div className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5" />{formatIndianDateTime(u.created_at)}</div></td>
+                                        <td className="px-5 py-4 text-right"><div className="flex justify-end gap-1.5">
+                                            <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setViewingUser(u)}><Eye className="h-3.5 w-3.5" /> View</Button>
+                                            <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setEditingUser(u)}><UserRound className="h-3.5 w-3.5" /> Edit</Button>
+                                            <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setSecurityUser(u)}><KeyRound className="h-3.5 w-3.5" /> Login</Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="gap-1.5"
+                                                onClick={() => {
+                                                    rolesForm.setValue("user_id", u.id, { shouldValidate: true });
+                                                    rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true });
+                                                    rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true });
+                                                    toast.success("Loaded user into role editor");
+                                                }}
+                                            >
+                                                <ShieldCheck className="h-3.5 w-3.5" /> Roles
+                                            </Button>
+                                        </div></td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -433,6 +443,7 @@ export function AdminUsersPage() {
                                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-900">
                                         <PasswordLoginStatusBadge user={u} />
                                         <div className="flex gap-1">
+                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setViewingUser(u)}><Eye className="h-4 w-4" /><span className="sr-only">View details</span></Button>
                                             <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setEditingUser(u)}><UserRound className="h-4 w-4" /><span className="sr-only">Edit details</span></Button>
                                             <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setSecurityUser(u)}><KeyRound className="h-4 w-4" /><span className="sr-only">Manage login</span></Button>
                                             <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5" onClick={() => { rolesForm.setValue("user_id", u.id, { shouldValidate: true }); rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true }); rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true }); toast.success("Loaded user into role editor"); }}><ShieldCheck className="h-3.5 w-3.5" /> Roles</Button>
@@ -642,6 +653,7 @@ export function AdminUsersPage() {
             </div>
             <UserPasswordLoginDialog user={securityUser} open={Boolean(securityUser)} onOpenChange={(open) => { if (!open) setSecurityUser(null); }} />
             <EditUserDialog user={editingUser} open={Boolean(editingUser)} onOpenChange={(open) => { if (!open) setEditingUser(null); }} onSuccess={() => listQuery.refetch()} />
+            <ViewUserDialog user={viewingUser} open={Boolean(viewingUser)} onOpenChange={(open) => { if (!open) setViewingUser(null); }} warehouses={warehousesQuery.data || []} />
         </div>
     );
 }

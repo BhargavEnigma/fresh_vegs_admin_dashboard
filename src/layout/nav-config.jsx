@@ -65,13 +65,7 @@ export const NAV_ITEMS = [
     to: "/ops/procurement",
     roles: ["admin", "warehouse_manager"],
   },
-  {
-    key: "vendorCheckIn",
-    label: "Vendor Check-In",
-    icon: ClipboardCheck,
-    to: "/ops/vendor-check-in",
-    roles: ["admin", "warehouse_manager"],
-  },
+
 
   {
     key: "products",

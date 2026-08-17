@@ -48,7 +48,16 @@ export function normalizeProcurementUnit(value, mode = "pack", packLabel = "") {
 }
 
 export function parseQuantityScaled(value, { allowEmpty = false } = {}) {
-  const raw = String(value ?? "").trim();
+  let cleanedValue = value;
+  if (typeof value === "number") {
+    cleanedValue = parseFloat(value.toFixed(3));
+  } else if (typeof value === "string" && value.trim() !== "") {
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      cleanedValue = parseFloat(parsed.toFixed(3));
+    }
+  }
+  const raw = String(cleanedValue ?? "").trim();
   if (allowEmpty && raw === "") return null;
   if (!/^\d+(?:\.\d{1,3})?$/.test(raw)) {
     throw new Error("Quantity must be non-negative with at most 3 decimal places");
@@ -127,6 +136,13 @@ function packMeasure(item = {}) {
 export function procurementQuantityForDisplay(item, value) {
   if (value === null || value === undefined || value === "") return null;
 
+  if (item?.quantities_normalized || item?.is_product_group) {
+    return {
+      quantity: Number(value),
+      unit: normalizeProcurementUnit(item?.procurement_unit, "bulk"),
+    };
+  }
+
   const mode = normalizeProcurementMode(item?.procurement_mode);
   const rawUnit = normalizeProcurementUnit(
     item?.procurement_unit,
@@ -198,7 +214,16 @@ export function acceptedPayoutPaise(quantity, unitCostPaise) {
 }
 
 export function rupeesToPaise(value) {
-  const raw = String(value ?? "").trim();
+  let cleanedValue = value;
+  if (typeof value === "number") {
+    cleanedValue = parseFloat(value.toFixed(2));
+  } else if (typeof value === "string" && value.trim() !== "") {
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      cleanedValue = parseFloat(parsed.toFixed(2));
+    }
+  }
+  const raw = String(cleanedValue ?? "").trim();
   if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) {
     throw new Error("Price must be non-negative with at most 2 decimal places");
   }

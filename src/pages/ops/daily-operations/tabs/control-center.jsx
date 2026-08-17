@@ -230,7 +230,7 @@ export function ControlCenter({
 
   return (
     <div className="space-y-6">
-      <PremiumWorkspaceHelper
+      {/* <PremiumWorkspaceHelper
         title="Control Center Step-by-Step Guide"
         description="Follow these easy steps to see what is happening in the store today."
         steps={[
@@ -251,12 +251,12 @@ export function ControlCenter({
             instruction: "Check the 'Timeline' box at the bottom to see who performed which action today.",
           },
         ]}
-      />
+      /> */}
 
       {/* Control Center Summary & Next Action Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
         {/* Recommended Next Action */}
-        <Card className="lg:col-span-2 p-5 border-dailyveg-200 bg-gradient-to-br from-white to-dailyveg-50/20 dark:border-dailyveg-800 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-between shadow-sm relative overflow-hidden">
+        {/* <Card className="lg:col-span-2 p-5 border-dailyveg-200 bg-gradient-to-br from-white to-dailyveg-50/20 dark:border-dailyveg-800 dark:from-slate-950 dark:to-slate-900 flex flex-col justify-between shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <Cpu className="h-24 w-24" />
           </div>
@@ -284,10 +284,10 @@ export function ControlCenter({
               </Button>
             )}
           </div>
-        </Card>
+        </Card> */}
 
         {/* Operational Flow Stats */}
-        <Card className="p-5 space-y-4">
+        {/* <Card className="p-5 space-y-4">
           <h4 className="font-bold text-slate-950 dark:text-white text-xs uppercase tracking-wider">
             Operational Checkpoints
           </h4>
@@ -317,8 +317,8 @@ export function ControlCenter({
               </span>
             </div>
           </div>
-        </Card>
-      </div>
+        </Card> */}
+      {/* </div> */}
 
       {/* Automation Capabilities Health Card */}
       {/* <Card className="p-4 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">

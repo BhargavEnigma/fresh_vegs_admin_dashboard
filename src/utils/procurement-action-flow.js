@@ -26,14 +26,14 @@ export function getProcurementActionFlow({
     vendorManaged &&
     !isTerminal &&
     assignments.some((assignment) =>
-      ["confirmed", "dispatched"].includes(assignment?.status)
+      assignment?.status === "dispatched"
     );
   const canMarkPurchasedExact = manualExecution && required > 0 && purchased !== required;
   const canMarkReceivedExact = manualExecution && purchased > 0;
   const canEditInline = manualExecution;
   const canEditDetails = manualExecution;
   const canAssignVendor =
-    canMutate && !isTerminal && !assignmentsLocked;
+    canMutate && !isTerminal && !assignmentsLocked && !item?.has_unlocked_orders;
 
   return {
     canMarkPurchasedExact,
@@ -52,20 +52,22 @@ export function getProcurementActionFlow({
             ? "Purchased quantity already matches the target"
             : "Set purchased quantity exactly to the target",
     receivedExactReason: vendorManaged
-      ? "Receive this item through Vendor Check-In"
+      ? "Receive this item through Receive Goods"
       : isTerminal
         ? "This procurement item is already finalized"
         : purchased <= 0
           ? "Confirm the purchased quantity first"
           : "Set received quantity to the purchased quantity and complete procurement",
     editReason: vendorManaged
-      ? "Vendor-managed execution is updated through Vendor Check-In"
+      ? "Vendor-managed execution is updated through Receive Goods"
       : isTerminal
         ? "This procurement item is already finalized"
         : "Edit procurement quantities",
-    assignReason: assignmentsLocked
-      ? "Vendor assignments are locked after vendor confirmation"
-      : isTerminal
+    assignReason: item?.has_unlocked_orders
+      ? "Orders containing this item must be locked before assigning vendor"
+      : assignmentsLocked
+        ? "Vendor assignments are locked after vendor confirmation"
+        : isTerminal
           ? "This procurement item is already finalized"
           : vendorManaged
             ? "Edit vendor assignment before confirmation"

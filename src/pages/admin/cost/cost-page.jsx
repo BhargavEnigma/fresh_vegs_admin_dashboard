@@ -122,7 +122,14 @@ function StatCard({ title, value, subtitle, highlight, icon: Icon, accent = "amb
 
                     <div
                         className={[
-                            "mt-3 break-words text-2xl font-semibold sm:text-3xl",
+                            "mt-3 font-semibold break-words",
+                            (() => {
+                                const len = String(value || "").length;
+                                if (len >= 11) return "text-base sm:text-lg";
+                                if (len >= 9) return "text-lg sm:text-xl";
+                                if (len >= 7) return "text-xl sm:text-2xl";
+                                return "text-2xl sm:text-3xl";
+                            })(),
                             highlight ? "text-dailyveg-600 dark:text-dailyveg-300" : "text-slate-900 dark:text-slate-100",
                         ].join(" ")}
                     >

@@ -132,6 +132,7 @@ export const ENDPOINTS = {
       removeProduct: (id, vendorProductId) => `/v1/admin/vendor/${id}/products/${vendorProductId}`,
       assignments: "/v1/admin/vendor/assignments",
       bulkAssignments: "/v1/admin/vendor/assignments/bulk",
+      groupedAssignments: "/v1/admin/vendor/assignments/grouped",
       autoAssignments: "/v1/admin/vendor/assignments/auto",
     },
 
@@ -175,7 +176,7 @@ export const ENDPOINTS = {
       vendors: "/v1/ops/vendor/vendors",
       assignments: "/v1/ops/vendor/assignments",
       checkIn: "/v1/ops/vendor/check-in",
-      checkIns: "/v1/ops/vendor/check-ins",
+      // checkIns: "/v1/ops/vendor/check-ins",
       receive: (assignmentId) => `/v1/ops/vendor/assignments/${assignmentId}/receive`,
     },
     orders: {

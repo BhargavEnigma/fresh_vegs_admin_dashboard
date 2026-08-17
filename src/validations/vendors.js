@@ -26,14 +26,14 @@ const nullableMaximum = z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? null : value),
   z.coerce.number()
     .positive("Maximum quantity must be greater than 0")
-    .refine((value) => Number.isInteger(value * 1000), "Use at most 3 decimal places")
+    .refine((value) => Math.abs(value * 1000 - Math.round(value * 1000)) < 1e-9, "Use at most 3 decimal places")
     .nullable()
 );
 const optionalQuantity = z.preprocess(
   (value) => (value === "" || value === null || value === undefined ? null : value),
   z.coerce.number()
     .min(0, "Quantity cannot be negative")
-    .refine((value) => Number.isInteger(value * 1000), "Use at most 3 decimal places")
+    .refine((value) => Math.abs(value * 1000 - Math.round(value * 1000)) < 1e-9, "Use at most 3 decimal places")
     .nullable()
 );
 const optionalLeadTime = z.preprocess(

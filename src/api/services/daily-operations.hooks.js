@@ -171,6 +171,8 @@ export function useDailyOperationsMutations(operationId) {
     queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "vendorAttendance"] });
+    queryClient.invalidateQueries({ queryKey: ["ops", "vendorCheckIn"] });
+    queryClient.invalidateQueries({ queryKey: ["ops", "vendorAttendance"] });
   };
 
   const refreshMutation = useMutation({

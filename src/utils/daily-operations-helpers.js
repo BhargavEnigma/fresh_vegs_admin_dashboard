@@ -37,6 +37,7 @@ export function groupPackingItemsByOrder(packingItems = []) {
         pending_count: 0,
         progress_percent: 0,
         is_complete: false,
+        sourcing_status: "ready",
       });
     }
 
@@ -53,6 +54,14 @@ export function groupPackingItemsByOrder(packingItems = []) {
       group.issue_count += 1;
     } else {
       group.pending_count += 1;
+    }
+
+    // Aggregate sourcing status from checklist items
+    const itemSourcing = item.sourcing_status || "ready";
+    if (itemSourcing === "not_assigned") {
+      group.sourcing_status = "not_assigned";
+    } else if (itemSourcing === "pending_dispatch" && group.sourcing_status !== "not_assigned") {
+      group.sourcing_status = "pending_dispatch";
     }
   }
 

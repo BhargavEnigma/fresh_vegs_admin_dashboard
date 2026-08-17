@@ -237,7 +237,7 @@ export function DispatchTab({
 
   return (
     <div className="space-y-4">
-      <PremiumWorkspaceHelper
+      {/* <PremiumWorkspaceHelper
         title="Rider Dispatch Guide (Step-by-Step)"
         description="Follow these easy steps to group customer boxes and hand them over to delivery riders."
         steps={[
@@ -258,7 +258,7 @@ export function DispatchTab({
             instruction: "Select a run, print the sheet (manifest) for the rider, and click 'Rider Handover' when they collect.",
           },
         ]}
-      />
+      /> */}
 
       {/* Hidden Print Layout */}
       {printingRunDetail && <RunManifestPrint runDetail={printingRunDetail} />}
@@ -304,7 +304,7 @@ export function DispatchTab({
       {/* WORKSPACE 1: Proposed Planning Mode */}
       {isPlanningMode && (
         <div className="space-y-6">
-          <Card className="p-5 border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white dark:border-slate-800 dark:bg-slate-950">
+          <Card className="p-5 border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white dark:from-slate-900/60 dark:to-slate-950 dark:border-indigo-950/40">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h3 className="font-extrabold text-base text-slate-950 dark:text-white flex items-center gap-1.5">

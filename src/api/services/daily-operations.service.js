@@ -58,6 +58,7 @@ export const DailyOperationsService = {
     const res = await api.get(ENDPOINTS.admin.cost.procurementItems, {
       params: {
         view,
+        grouping: "product",
         ...(deliveryDate ? { delivery_date: deliveryDate } : {}),
         ...(warehouseId ? { warehouse_id: warehouseId } : {}),
       },

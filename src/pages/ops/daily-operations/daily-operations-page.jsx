@@ -21,12 +21,13 @@ import {
   ShieldCheck,
   CheckCircle2,
   Calendar,
+  ClipboardCheck,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useAuth } from "../../../auth/auth-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WarehousesService } from "../../../api/services/warehouses.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { listProducts } from "../../../api/services/products.service";
@@ -59,6 +60,7 @@ import { ProcurementTab } from "./tabs/procurement-tab";
 import { PackingTab } from "./tabs/packing-tab";
 import { DispatchTab } from "./tabs/dispatch-tab";
 import { ExceptionsCloseTab } from "./tabs/exceptions-close-tab";
+import { VendorCheckInTab } from "./tabs/vendor-check-in-tab";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
 
 function toYyyyMmDd(date) {
@@ -82,6 +84,7 @@ function mapTabKey(key) {
   const val = String(key).toLowerCase();
   if (val === "overview" || val === "control") return "control";
   if (val === "procurement") return "procurement";
+  if (val === "vendor-check-in" || val === "check-in" || val === "vendorcheckin" || val === "checkin") return "vendor-check-in";
   if (val === "packing") return "packing";
   if (val === "dispatch") return "dispatch";
   if (val === "exceptions" || val === "reconciliation" || val === "closing" || val === "exceptions-close") {
@@ -91,14 +94,16 @@ function mapTabKey(key) {
 }
 
 const TABS = [
-  { key: "control", label: "1. Control Center", icon: Layers },
-  { key: "procurement", label: "2. Procurement", icon: ShoppingCart },
-  { key: "packing", label: "3. Packing Station", icon: PackageCheck },
-  { key: "dispatch", label: "4. Dispatch Board", icon: Truck },
-  { key: "exceptions-close", label: "5. Exceptions & Close", icon: AlertTriangle },
+  { key: "control", label: "Overview", shortLabel: "Overview", icon: Layers },
+  { key: "procurement", label: "Purchase", shortLabel: "Buy", icon: ShoppingCart },
+  { key: "vendor-check-in", label: "Receive", shortLabel: "Receive", icon: ClipboardCheck },
+  { key: "packing", label: "Pack", shortLabel: "Pack", icon: PackageCheck },
+  { key: "dispatch", label: "Dispatch", shortLabel: "Dispatch", icon: Truck },
+  { key: "exceptions-close", label: "Close Day", shortLabel: "Close", icon: AlertTriangle },
 ];
 
 export function DailyOperationsPage() {
+  const queryClient = useQueryClient();
   const { roles, user, booting } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -368,6 +373,9 @@ export function DailyOperationsPage() {
   const mutations = useDailyOperationsMutations(operationId);
 
   const handleRefresh = async () => {
+    queryClient.invalidateQueries({ queryKey: ["ops", "vendorCheckIn"] });
+    queryClient.invalidateQueries({ queryKey: ["ops", "vendorAttendance"] });
+
     if (!operationId) {
       refetchOverview();
       return;
@@ -562,43 +570,81 @@ export function DailyOperationsPage() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70">
-        <div className="grid w-full grid-cols-5 items-center gap-1.5">
-          {TABS.map((tab) => {
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 overflow-x-auto no-scrollbar">
+        <div className="flex lg:grid lg:grid-cols-6 min-w-max lg:min-w-0 items-center gap-3">
+          {TABS.map((tab, index) => {
             const Icon = tab.icon;
-            const active = activeTab === tab.key;
+            const activeIndex = TABS.findIndex((t) => t.key === activeTab);
+            const active = activeIndex === index;
+            const completed = index < activeIndex;
             const badge = getTabBadge(tab.key);
 
             return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => handleTabChange(tab.key)}
-                className={`group relative flex min-w-0 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${active
-                  ? "bg-gradient-to-r from-dailyveg-500 via-dailyveg-600 to-emerald-600 text-white shadow-lg shadow-dailyveg-500/25 scale-[1.02]"
-                  : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white"
-                  }`}
-              >
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-lg transition-transform group-hover:scale-110 ${active ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              <div key={tab.key} className="relative flex items-center justify-center flex-1 lg:flex-none min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange(tab.key)}
+                  className={`group relative flex flex-1 items-center justify-center gap-1.5 xl:gap-2.5 px-2 xl:px-4 py-2 xl:py-2.5 text-xs xl:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap min-w-0 ${active
+                    ? "bg-gradient-to-r from-dailyveg-500 to-emerald-600 text-white shadow-md shadow-dailyveg-500/20 scale-[1.02] border border-emerald-500/20"
+                    : completed
+                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-500/10 hover:bg-emerald-100/40 dark:hover:bg-emerald-950/30"
+                      : "text-slate-500 hover:bg-white/80 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white border border-transparent"
                     }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-
-                <span>{tab.label}</span>
-
-                {badge && (
+                  {/* Step Circle Badge */}
                   <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black ${active
-                      ? "bg-white text-dailyveg-700"
-                      : "bg-rose-500 text-white shadow-sm"
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black transition-all ${active
+                      ? "bg-white text-dailyveg-700 shadow-sm"
+                      : completed
+                        ? "bg-emerald-500 text-white"
+                        : "bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 group-hover:bg-slate-300 dark:group-hover:bg-slate-700"
                       }`}
                   >
-                    {badge}
+                    {completed ? "✓" : `0${index + 1}`}
                   </span>
+
+                  {/* Icon */}
+                  <Icon
+                    className={`h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110 ${active
+                      ? "text-white"
+                      : completed
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                      }`}
+                  />
+
+                  {/* Label */}
+                  <span className="truncate">
+                    <span className="hidden xl:inline">{tab.label}</span>
+                    <span className="inline xl:hidden">{tab.shortLabel}</span>
+                  </span>
+
+                  {/* Notification Badge */}
+                  {badge && (
+                    <span
+                      className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black shrink-0 ${active
+                        ? "bg-white text-dailyveg-700"
+                        : "bg-rose-500 text-white shadow-sm"
+                        }`}
+                    >
+                      {badge}
+                    </span>
+                  )}
+
+                  {/* Pulse Indicator on Active */}
+                  {active && (
+                    <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    </span>
+                  )}
+                </button>
+
+                {/* Chevron Connector */}
+                {index < TABS.length - 1 && (
+                  <ChevronRight className="absolute left-full ml-[6px] -translate-x-1/2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 dark:text-slate-700 shrink-0 hidden xl:block pointer-events-none z-10" />
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -625,6 +671,7 @@ export function DailyOperationsPage() {
             onRetry={refetchProcurement}
             workView={procurementView}
             onWorkViewChange={setProcurementView}
+            onSelectTab={handleTabChange}
             operation={operation}
             isClosed={isClosed}
             isAdmin={isAdmin}
@@ -636,6 +683,15 @@ export function DailyOperationsPage() {
               mutations.bulkProcurementMutation.isPending
             }
             capabilitiesRaw={automationSummary}
+          />
+        )}
+
+        {activeTab === "vendor-check-in" && (
+          <VendorCheckInTab
+            deliveryDate={selectedDate}
+            isClosed={isClosed}
+            isAdmin={isAdmin}
+            isWarehouseManager={isWarehouseManager}
           />
         )}
 

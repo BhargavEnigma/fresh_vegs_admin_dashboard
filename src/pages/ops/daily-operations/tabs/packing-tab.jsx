@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Building2,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { Card } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
@@ -68,6 +69,7 @@ export function PackingTab({
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [activePackingStage, setActivePackingStage] = useState("ready");
   const [vendorDetail, setVendorDetail] = useState(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState(null);
 
   const capabilities = useMemo(() => {
     return normalizeAutomationCapabilities(capabilitiesRaw || operation?.automation_capabilities);
@@ -208,12 +210,15 @@ export function PackingTab({
 
   const handleCleanConfirm = async (orderId) => {
     try {
+      setConfirmingOrderId(orderId);
       await onConfirmCleanPacking(orderId);
       setActivePackingStage("packed");
       toast.success("Clean packing confirmed for order");
       setExpandedOrderId(null);
     } catch (err) {
       toast.error(err?.message || "Clean packing confirmation failed");
+    } finally {
+      setConfirmingOrderId(null);
     }
   };
 
@@ -362,6 +367,16 @@ export function PackingTab({
                     {primaryLabel}
                   </span>
                   <StatusBadge value={status || "locked"} />
+                  {group.sourcing_status === "not_assigned" && (
+                    <span className="px-2 py-0.5 text-[10px] font-black text-white bg-rose-600 rounded-lg flex items-center gap-0.5 shrink-0">
+                      <AlertTriangle className="h-3 w-3" /> Sourcing Pending Assignment
+                    </span>
+                  )}
+                  {group.sourcing_status === "pending_dispatch" && (
+                    <span className="px-2 py-0.5 text-[10px] font-black text-slate-900 bg-amber-400 rounded-lg flex items-center gap-0.5 shrink-0">
+                      <Building2 className="h-3 w-3" /> Awaiting Sourcing Dispatch
+                    </span>
+                  )}
                   {hasIssue && (
                     <span className="px-2 py-0.5 text-[10px] font-black text-white bg-rose-500 rounded-lg flex items-center gap-0.5 shrink-0 animate-pulse">
                       <AlertTriangle className="h-3 w-3" /> Exception
@@ -419,7 +434,7 @@ export function PackingTab({
                   size="xs"
                   className="h-8 px-3.5 text-[11px] font-black uppercase tracking-wider gap-1.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-[0.97] transition-all duration-200 cursor-pointer"
                   onClick={() => handleStart(group.order_id)}
-                  disabled={isStarting}
+                  disabled={isStarting || group.sourcing_status !== "ready"}
                 >
                   <Play className="h-3 w-3 fill-current stroke-[3]" /> Start Packing
                 </Button>
@@ -429,9 +444,17 @@ export function PackingTab({
                   size="xs"
                   className="h-8 px-3.5 text-[11px] font-black uppercase tracking-wider gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.97] transition-all duration-200 cursor-pointer"
                   onClick={() => handleCleanConfirm(group.order_id)}
-                  disabled={isConfirmingClean}
+                  disabled={isConfirmingClean || group.sourcing_status !== "ready"}
                 >
-                  <Check className="h-3 w-3 stroke-[3]" /> Clean Confirm
+                  {isConfirmingClean && confirmingOrderId === group.order_id ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin stroke-[3]" /> Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3 w-3 stroke-[3]" /> Clean Confirm
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -441,6 +464,16 @@ export function PackingTab({
         {/* Collapsible details */}
         {isExpanded && (
           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-900 space-y-4 animate-in fade-in duration-200 min-w-0">
+            {group.sourcing_status !== "ready" && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-2 shadow-sm animate-pulse">
+                <AlertTriangle className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                <span>
+                  {group.sourcing_status === "not_assigned"
+                    ? "Packing is locked because sourcing for this order's items has not yet been assigned to any vendor."
+                    : "Packing is locked because the vendor has not yet shipped/dispatched the required items."}
+                </span>
+              </div>
+            )}
             {/* Clean packing workflow summary if capability is available */}
             {capabilities.atomic_clean_packing ? (
               <div className="bg-slate-50/70 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-3">
@@ -481,9 +514,15 @@ export function PackingTab({
                       size="sm"
                       className="flex-1 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:via-emerald-700 hover:to-teal-700 text-white font-black rounded-xl shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 text-[13px] h-9.5 active:scale-[0.98] transition-all"
                       onClick={() => handleCleanConfirm(group.order_id)}
-                      disabled={isConfirmingClean}
+                      disabled={isConfirmingClean || group.sourcing_status !== "ready"}
                     >
-                      Confirm Clean Packing
+                      {isConfirmingClean && confirmingOrderId === group.order_id ? (
+                        <span className="flex items-center justify-center gap-1.5">
+                          <Loader2 className="h-4 w-4 animate-spin stroke-[3]" /> Confirming Clean Packing...
+                        </span>
+                      ) : (
+                        "Confirm Clean Packing"
+                      )}
                     </Button>
                   )}
                   {!isClosed && (
@@ -609,7 +648,7 @@ export function PackingTab({
                                 variant="ghost"
                                 className="h-7 px-2 text-[10px] font-black text-dailyveg-600 hover:bg-dailyveg-50 hover:text-dailyveg-700"
                                 onClick={() => handlePackedExactShortcut(item, group)}
-                                disabled={isUpdatingItem}
+                                disabled={isUpdatingItem || group.sourcing_status !== "ready"}
                               >
                                 Exact
                               </Button>
@@ -618,6 +657,7 @@ export function PackingTab({
                                 variant="outline"
                                 className="h-7 px-2 text-[10px] font-bold"
                                 onClick={() => handleOpenEditItem(item, group, false)}
+                                disabled={group.sourcing_status !== "ready"}
                               >
                                 Edit
                               </Button>
@@ -651,7 +691,7 @@ export function PackingTab({
 
   return (
     <div className="space-y-4">
-      <PremiumWorkspaceHelper
+      {/* <PremiumWorkspaceHelper
         title="Vegetable Packing Guide (Step-by-Step)"
         description="Follow these easy steps to pack and verify customer vegetable boxes."
         steps={[
@@ -672,7 +712,7 @@ export function PackingTab({
             instruction: "If any vegetable is missing or spoiled, click 'Report Missing/Damaged' and save the issue.",
           },
         ]}
-      />
+      /> */}
 
       {/* Printable Slips */}
       {printingGroup && (
@@ -828,6 +868,11 @@ export function PackingTab({
                 <p className="text-slate-500 font-medium mt-0.5">
                   {editingPackingItem.pack?.pack_label || editingPackingItem.pack_label}
                 </p>
+              </div>
+
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-350 p-2.5 rounded-xl border border-emerald-100/60 dark:border-emerald-900/40 text-[11px] font-bold leading-relaxed flex items-start gap-1.5 shadow-sm">
+                <span className="text-emerald-600 font-extrabold shrink-0 mt-0.5">ℹ</span>
+                <span>Quantities entered here will automatically calculate the inventory delta and update the bulk stock ledger accordingly.</span>
               </div>
 
               {!isReportingException ? (

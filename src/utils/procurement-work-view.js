@@ -33,7 +33,11 @@ export function autoAssignableProcurementCostIds(items = []) {
   return Array.from(new Set(items.flatMap((item) => {
     if (item?.work_view && item.work_view !== PROCUREMENT_VIEWS.ACTIVE) return [];
     if (item?.next_action_code !== "assign_vendor") return [];
+    if (item?.has_unlocked_orders) return [];
     if (Number(item.quantity_to_assign ?? item.outstanding_quantity ?? 0) <= 0) return [];
+    if (item.is_product_group && Array.isArray(item.child_procurement_cost_ids)) {
+      return item.child_procurement_cost_ids.map(String);
+    }
     const id = item.procurement_cost_id || item.id;
     return id ? [String(id)] : [];
   })));

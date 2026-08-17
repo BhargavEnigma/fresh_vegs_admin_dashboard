@@ -15,6 +15,13 @@ export const VendorService = {
     return Array.isArray(data) ? data : data?.vendors ?? [];
   },
 
+  async listForWarehouse(warehouseId) {
+    const data = unwrap(await api.get(ENDPOINTS.ops.vendor.vendors, {
+      params: { warehouse_id: warehouseId },
+    }));
+    return Array.isArray(data) ? data : data?.vendors ?? [];
+  },
+
   async create(payload) {
     return unwrap(await api.post(ENDPOINTS.admin.vendor.create, payload));
   },
@@ -60,18 +67,26 @@ export const VendorService = {
     );
   },
 
-  async getAssignments(dailyOperationId) {
+  async getAssignments(dailyOperationId, { logical = false } = {}) {
     const data = unwrap(
       await api.get(ENDPOINTS.ops.vendor.assignments, {
         params: { daily_operation_id: dailyOperationId },
       })
     );
-    const rows = Array.isArray(data) ? data : data?.assignments ?? [];
+    const rows = Array.isArray(data)
+      ? data
+      : logical
+        ? data?.logical_assignments ?? data?.assignments ?? []
+        : data?.assignments ?? [];
     return rows.map(normalizeVendorAssignment);
   },
 
   async bulkAssign(payload) {
     return unwrap(await api.post(ENDPOINTS.admin.vendor.bulkAssignments, payload));
+  },
+
+  async groupedAssign(payload) {
+    return unwrap(await api.post(ENDPOINTS.admin.vendor.groupedAssignments, payload));
   },
 
   async autoAssign(payload) {
@@ -93,14 +108,14 @@ export const VendorService = {
     return rows.map(normalizeVendorAssignment);
   },
 
-  async getAttendance(date) {
-    const data = unwrap(
-      await api.get(ENDPOINTS.ops.vendor.checkIns, {
-        params: { date },
-      })
-    );
-    return Array.isArray(data) ? data : data?.check_ins ?? data?.checkIns ?? [];
-  },
+  // async getAttendance(date) {
+  //   const data = unwrap(
+  //     await api.get(ENDPOINTS.ops.vendor.checkIns, {
+  //       params: { date },
+  //     })
+  //   );
+  //   return Array.isArray(data) ? data : data?.check_ins ?? data?.checkIns ?? [];
+  // },
 
   async receive(assignmentId, payload) {
     return unwrap(await api.post(ENDPOINTS.ops.vendor.receive(assignmentId), payload));

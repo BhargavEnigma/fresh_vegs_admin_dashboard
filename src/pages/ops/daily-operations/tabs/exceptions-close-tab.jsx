@@ -376,7 +376,7 @@ export function ExceptionsCloseTab({
 
   return (
     <div className="space-y-6">
-      <PremiumWorkspaceHelper
+      {/* <PremiumWorkspaceHelper
         title="Exceptions & Closing Guide (Step-by-Step)"
         description="Follow these easy steps to resolve issues, match rider cash, and close the store for today."
         steps={[
@@ -397,7 +397,7 @@ export function ExceptionsCloseTab({
             instruction: "Look at the Checklist. If everything is green, click the 'Close Store Daily Operations' button.",
           },
         ]}
-      />
+      /> */}
 
       {/* Printable summary */}
       {printingSummary && (
@@ -489,7 +489,12 @@ export function ExceptionsCloseTab({
             </div>
 
             {filteredExceptions.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 font-semibold italic text-xs">No active exceptions in inbox.</div>
+              <div className="py-8 text-center text-slate-400 font-semibold italic text-xs">
+                No active exceptions in inbox.
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 normal-case not-italic font-medium mt-1">
+                  Note: System exceptions are automatically generated when a Dispatch Plan is generated.
+                </div>
+              </div>
             ) : (
               <div className="space-y-3 max-h-[300px] overflow-y-auto thin-scrollbar pr-1">
                 {filteredExceptions.map((item) => {
@@ -638,6 +643,9 @@ export function ExceptionsCloseTab({
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 font-semibold mt-0.5">
                           <span>Expected: <span className="font-extrabold text-slate-850 dark:text-slate-200">{formatPaiseToRupees(run.expected_cod_paise)}</span></span>
+                          {Number(run.failed_cod_paise || 0) > 0 && (
+                            <span>Returned (Failed): <span className="font-extrabold text-rose-600 dark:text-rose-400">{formatPaiseToRupees(run.failed_cod_paise)}</span></span>
+                          )}
                           {!isNotEntered && (
                             <>
                               <span>Reported: <span className="font-extrabold text-slate-800 dark:text-slate-300">{formatPaiseToRupees(run.reported_cod_paise)}</span></span>
@@ -909,13 +917,20 @@ export function ExceptionsCloseTab({
               <DialogTitle>Reconcile COD Variance</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border space-y-1">
+              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border space-y-1.5">
                 <p className="font-bold text-slate-900 dark:text-white">
                   {reconcilingRun.run_code || `RUN #${reconcilingRun.id.slice(0, 6)}`}
                 </p>
-                <p className="text-slate-500">
-                  Expected COD: <span className="font-bold text-slate-900 dark:text-white">{formatPaiseToRupees(reconcilingRun.expected_cod_paise)}</span>
-                </p>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-slate-500 font-semibold">
+                  <span>Expected COD (Delivered):</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-right">{formatPaiseToRupees(reconcilingRun.expected_cod_paise)}</span>
+                  {Number(reconcilingRun.failed_cod_paise || 0) > 0 && (
+                    <>
+                      <span>Failed (Returned):</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-450 text-right">+{formatPaiseToRupees(reconcilingRun.failed_cod_paise)}</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

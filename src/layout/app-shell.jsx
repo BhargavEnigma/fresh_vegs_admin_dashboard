@@ -255,8 +255,8 @@ export function AppShell() {
                         "overflow-hidden transition-all duration-300",
                         isGroupOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0",
                         sidebarOpen
-                          ? "ml-5 space-y-1 border-l border-dailyveg-300 pt-1 pl-3 dark:border-dailyveg-800"
-                          : "mt-1 space-y-1"
+                          ? "ml-5 space-y-1 border-l border-dailyveg-300 py-1 pl-3 pr-1 dark:border-dailyveg-800"
+                          : "py-1 mt-1 space-y-1"
                       )}
                     >
                       {item.children.map((child) => (
@@ -399,10 +399,10 @@ export function AppShell() {
 
         <main
           className={cn(
-            "min-w-0 max-w-full p-4 transition-[margin,width] duration-300 lg:p-8",
+            "w-0 min-w-0 max-w-full flex-1 overflow-x-clip p-4 transition-[margin,width] duration-300 lg:p-8",
             sidebarOpen
-              ? "lg:ms-72 lg:w-[calc(100vw-18rem)]"
-              : "lg:ms-24 lg:w-[calc(100vw-6rem)]"
+              ? "lg:ms-72"
+              : "lg:ms-24"
           )}
         >
           <div className="w-full min-w-0 max-w-full">
