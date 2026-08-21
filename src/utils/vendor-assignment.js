@@ -207,6 +207,13 @@ export function remainingAssignmentQuantity(requiredQuantity, assignments = []) 
   return covered >= required ? 0n : required - covered;
 }
 
+export function maxAllocationWithExtraScaled(remainingQuantity, extraPercent = 25n) {
+  const remaining = typeof remainingQuantity === "bigint"
+    ? remainingQuantity
+    : parseQuantityScaled(remainingQuantity || "0");
+  return (remaining * (100n + extraPercent)) / 100n;
+}
+
 export function acceptedPayoutPaise(quantity, unitCostPaise) {
   const scaled = parseQuantityScaled(quantity);
   const cost = BigInt(String(unitCostPaise ?? 0));

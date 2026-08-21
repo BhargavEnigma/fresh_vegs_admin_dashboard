@@ -18,10 +18,12 @@ import { Input } from "../../../../components/ui/input";
 import { Skeleton } from "../../../../components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../components/ui/dialog";
 import { cn } from "../../../../lib/utils";
+import { ProductAvatar } from "../../../../components/common/product-avatar";
 import { formatPaiseToRupees } from "../../../../utils/daily-operations-helpers";
 import {
   PROCUREMENT_VIEWS,
   canStartVendorAssignment,
+  completedUnitCostPerKgPaise,
   completedProcurementPortions,
   groupFullyConfirmedProductRows,
   procurementDisplayTotals,
@@ -102,70 +104,6 @@ function ProductPackRequirements({ item }) {
       {breakdown}
     </p>
   );
-}
-
-function getOriginalCostDisplay(item) {
-  const cost = item.unit_cost_paise || 0;
-  const mode = item?.procurement_mode || item?.product?.procurement_mode;
-
-  if (mode === "pack") {
-    const pack = item.pack || item.product_pack || item.product?.pack || {};
-    let quantityVal = Number(pack.base_quantity);
-    let unitVal = String(pack.base_unit || "").trim().toLowerCase();
-
-    if (!Number.isFinite(quantityVal) || quantityVal <= 0 || !unitVal) {
-      const label = String(
-        item.pack_label || pack.pack_label || pack.label || ""
-      ).trim();
-      const match = label.match(/(\d+(?:\.\d+)?)\s*(kg|kilograms?|g|gm|grams?)\b/i);
-      if (match) {
-        quantityVal = Number(match[1]);
-        unitVal = match[2].toLowerCase();
-      }
-    }
-
-    const WEIGHT_UNIT_IN_KG = {
-      kg: 1,
-      kilogram: 1,
-      kilograms: 1,
-      g: 0.001,
-      gm: 0.001,
-      gram: 0.001,
-      grams: 0.001,
-    };
-
-    if (quantityVal > 0 && unitVal && WEIGHT_UNIT_IN_KG[unitVal]) {
-      const packSizeKg = quantityVal * WEIGHT_UNIT_IN_KG[unitVal];
-      if (packSizeKg > 0) {
-        const costPerKg = Math.round(cost / packSizeKg);
-        return `${formatPaiseToRupees(costPerKg)} / KG`;
-      }
-    }
-
-    // Check for pieces
-    const label = String(item.pack_label || pack.pack_label || pack.label || "").trim().toLowerCase();
-    const isPiece = label.includes("pc") || label.includes("piece") || label.includes("bundle");
-    if (isPiece) {
-      const pcMatch = label.match(/(\d+)\s*(pcs?|pieces?|bundles?)\b/i);
-      if (pcMatch) {
-        const piecesCount = Number(pcMatch[1]);
-        if (piecesCount > 0) {
-          const costPerPc = Math.round(cost / piecesCount);
-          return `${formatPaiseToRupees(costPerPc)} / PC`;
-        }
-      }
-      return `${formatPaiseToRupees(cost)} / PC`;
-    }
-    return `${formatPaiseToRupees(cost)} / PACK`;
-  }
-
-  // Bulk mode
-  const rawUnit = String(item?.procurement_unit || "").trim().toLowerCase();
-  const isPiece = ["piece", "pieces", "pcs", "pc"].includes(rawUnit);
-  if (isPiece) {
-    return `${formatPaiseToRupees(cost)} / PC`;
-  }
-  return `${formatPaiseToRupees(cost)} / KG`;
 }
 
 function StepBadge({ item }) {
@@ -371,8 +309,13 @@ export function ProcurementWorkTable({
                       : vendorAssignmentsByCost[String(item.procurement_cost_id || item.id)] || []);
                   return <tr key={item.id || item.procurement_cost_id} className={cn("bg-white dark:bg-slate-950", isHistory && "bg-emerald-50/20 dark:bg-emerald-950/5")}>
                     <td className="px-5 py-4">
-                      <p className="font-bold text-slate-950 dark:text-white">{item.product_name || item.product?.name || "Product"}</p>
-                      <ProductPackRequirements item={item} />
+                      <div className="flex items-center gap-3">
+                        <ProductAvatar item={item} size="md" />
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-950 dark:text-white">{item.product_name || item.product?.name || "Product"}</p>
+                          <ProductPackRequirements item={item} />
+                        </div>
+                      </div>
                     </td>
                     {isHistory ? (
                       <>
@@ -393,7 +336,7 @@ export function ProcurementWorkTable({
                           )}
                         </td>
                         <td className="px-4 py-4 text-right font-semibold text-slate-600 dark:text-slate-400">
-                          {getOriginalCostDisplay(item)}
+                          {formatPaiseToRupees(completedUnitCostPerKgPaise(item))} / KG
                         </td>
                         <td className="px-4 py-4 text-right font-bold text-slate-950 dark:text-white">{formatPaiseToRupees(item.total_cost_paise)}</td>
                       </>
@@ -439,11 +382,11 @@ export function ProcurementWorkTable({
         <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden rounded-2xl p-0">
           <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-emerald-50 px-6 py-5 dark:border-slate-800 dark:from-indigo-950/40 dark:via-slate-950 dark:to-emerald-950/30">
             <DialogTitle className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/70 dark:text-indigo-300"><Users className="h-4 w-4" /></span>
-              <span>
+              <ProductAvatar item={vendorDetails?.item} size="md" fallbackIcon={Package} />
+              <div>
                 <span className="block">Assigned Vendor Details</span>
                 <span className="mt-0.5 block text-xs font-medium text-slate-500">{vendorDetails?.item?.product_name || vendorDetails?.item?.product?.name || "Procurement item"}</span>
-              </span>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[calc(85vh-90px)] space-y-3 overflow-y-auto p-5 thin-scrollbar">
@@ -458,9 +401,10 @@ export function ProcurementWorkTable({
                 (a) => String(a.procurement_cost_id) === String(assignment.procurement_cost_id) && !["cancelled", "rejected"].includes(a.status)
               );
               const totalAllocatedForThisItem = assignmentsForThisItem.reduce((sum, a) => sum + Number(a.allocated_quantity || 0), 0);
-              const requiredQtyDisplay = procurementQuantityForDisplay(assignmentItem, assignmentItem?.required_quantity);
-              const requiredQty = requiredQtyDisplay ? requiredQtyDisplay.quantity : Number(assignmentItem?.required_quantity || 0);
-              const excessQty = totalAllocatedForThisItem - requiredQty;
+              const rawOriginalReq = Number(assignmentItem?.ordered_quantity || assignmentItem?.live_forecast_quantity || assignmentItem?.required_quantity || 0);
+              const requiredQtyDisplay = procurementQuantityForDisplay(assignmentItem, rawOriginalReq);
+              const requiredQty = requiredQtyDisplay ? requiredQtyDisplay.quantity : rawOriginalReq;
+              const excessQty = Math.max(0, totalAllocatedForThisItem - requiredQty);
               
               return (
                 <div key={assignment.id || `${assignment.vendor_user_id}-${assignment.allocated_quantity}`} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950 space-y-4">
@@ -491,10 +435,15 @@ export function ProcurementWorkTable({
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Allocated</p>
                       <p className="mt-1 text-sm font-extrabold">{assignmentQuantity(assignment, assignment.allocated_quantity)}</p>
-                      {excessQty > 0.0001 && (
-                        <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">
-                          (+{Number(excessQty.toFixed(3))} {assignment?.procurement_unit || "unit"} extra)
-                        </span>
+                      {excessQty > 0.0001 && requiredQty > 0 && (
+                        <>
+                          <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                            (+{Number(excessQty.toFixed(3))} {unit} extra)
+                          </span>
+                          <p className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            Orig. Required: {formatProcurementQuantity(assignmentItem, requiredQty)}
+                          </p>
+                        </>
                       )}
                     </div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplied</p><p className="mt-1 text-sm font-extrabold">{assignmentQuantity(assignment, assignment.supplied_quantity)}</p></div>

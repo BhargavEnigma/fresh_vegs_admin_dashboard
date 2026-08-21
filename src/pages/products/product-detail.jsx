@@ -11,6 +11,7 @@ import { useToast } from "../../components/toast/toast-context";
 import { assetUrl, formatQuantity } from "../../lib/utils";
 import { ProductPacksManager } from "../../components/products/product-packs-manager";
 import { ImageSizeInfo } from "../../components/common/image-size-info";
+import { ProductFreshnessPolicyCard } from "../../components/products/product-freshness-policy-card";
 
 export function ProductDetailPage() {
   const { productId } = useParams();
@@ -133,6 +134,10 @@ export function ProductDetailPage() {
                   <div className="mt-2">{p.description}</div>
                 </div>
               ) : null}
+
+              <div className="mt-4">
+                <ProductFreshnessPolicyCard productId={p.id} product={p} />
+              </div>
             </CardContent>
           </Card>
 

@@ -63,15 +63,17 @@ export function getProcurementActionFlow({
       : isTerminal
         ? "This procurement item is already finalized"
         : "Edit procurement quantities",
-    assignReason: item?.has_unlocked_orders
-      ? "Orders containing this item must be locked before assigning vendor"
-      : assignmentsLocked
-        ? "Vendor assignments are locked after vendor confirmation"
-        : isTerminal
-          ? "This procurement item is already finalized"
-          : vendorManaged
-            ? "Edit vendor assignment before confirmation"
-            : "Assign a vendor",
+    assignReason: (required <= 0 || status === "not_required")
+      ? "Stock from warehouse fresh inventory already covers this requirement"
+      : item?.has_unlocked_orders
+        ? "Orders containing this item must be locked before assigning vendor"
+        : assignmentsLocked
+          ? "Vendor assignments are locked after vendor confirmation"
+          : isTerminal
+            ? "This procurement item is already finalized"
+            : vendorManaged
+              ? "Edit vendor assignment before confirmation"
+              : "Assign a vendor",
   };
 }
 

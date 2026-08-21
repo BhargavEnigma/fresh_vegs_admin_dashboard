@@ -18,7 +18,22 @@ export function procurementItemsForView(items = [], view = PROCUREMENT_VIEWS.ACT
 }
 
 export function completedProcurementPortions(items = []) {
-  return items.filter((item) => Number(item.received_quantity || 0) > 0);
+  return items.filter((item) =>
+    Number(item.received_quantity || 0) > 0 &&
+    (item.work_view === PROCUREMENT_VIEWS.HISTORY || item.next_action_code === "completed")
+  );
+}
+
+export function completedUnitCostPerKgPaise(item = {}) {
+  const totalCost = Number(item.total_cost_paise || 0);
+  const purchasedKg = Number(item.purchased_quantity || 0);
+  const receivedKg = Number(item.received_quantity || 0);
+  const quantityKg = purchasedKg > 0 ? purchasedKg : receivedKg;
+
+  if (totalCost > 0 && quantityKg > 0) {
+    return Math.round(totalCost / quantityKg);
+  }
+  return Number(item.unit_cost_paise || 0);
 }
 
 export function procurementStepLabel(item) {

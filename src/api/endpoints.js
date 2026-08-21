@@ -88,6 +88,9 @@ export const ENDPOINTS = {
       uploadImages: (productId) => `/v1/admin/product/${productId}/images/upload`,
       deleteImage: (imageId) => `/v1/admin/product/images/${imageId}`,
       reorderImages: (productId) => `/v1/admin/product/${productId}/images/reorder`,
+      // Freshness Policy
+      setFreshnessPolicy: (productId) => `/v1/admin/product/${productId}/freshness-policy`,
+
       list: "/v1/admin/product",
       getById: (productId) => `/v1/admin/product/${productId}`,
     },
@@ -255,7 +258,21 @@ export const ENDPOINTS = {
       proposedDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/proposed`,
       approveDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/approve`,
       evaluateAutoClose: (id) => `/v1/ops/daily-operations/${id}/auto-close/evaluate`,
+
+      // Fresh Inventory & Stock
+      warehouseInventorySummary: "/v1/ops/daily-operations/inventory/summary",
+      inventorySummary: (id) => `/v1/ops/daily-operations/${id}/inventory-summary`,
+      replanInventory: (id) => `/v1/ops/daily-operations/${id}/inventory/replan`,
+      listLots: (productId) => `/v1/ops/daily-operations/inventory/products/${productId}/lots`,
+      addStock: (productId) => `/v1/ops/daily-operations/inventory/products/${productId}/inward`,
+      getLot: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}`,
+      getLotMovements: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}/movements`,
+      wasteLot: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}/waste`,
+      quarantineLot: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}/quarantine`,
+      releaseQuarantineLot: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}/release-quarantine`,
+      adjustLot: (lotId) => `/v1/ops/daily-operations/inventory/lots/${lotId}/adjust`,
     },
+
   },
 
   support: {

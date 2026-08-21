@@ -8,6 +8,9 @@ import {
   mapEventToFriendlyLabel,
   mapErrorCodeToUserMessage,
   filterEligibleRunOrders,
+  isDeliveryRunDispatched,
+  canHandoverDeliveryRun,
+  canReconcileRunCod,
   FRIENDLY_EVENT_LABELS,
   ERROR_CODE_MESSAGES,
 } from "../src/utils/daily-operations-helpers.js";
@@ -107,6 +110,36 @@ test("6. Eligible run orders filtering excludes orders already assigned to any r
   const eligible = filterEligibleRunOrders(opsOrders, runOrders);
   assert.strictEqual(eligible.length, 1);
   assert.strictEqual(eligible[0].id, "o2");
+});
+
+test("6a. Rider-started orders make a stale ready run dispatched and not handover eligible", () => {
+  const riderStartedRun = {
+    status: "ready",
+    run_orders: [{ order: { id: "o1", status: "out_for_delivery" } }],
+  };
+  const packedRun = {
+    status: "ready",
+    orders: [{ id: "o2", status: "packed" }],
+  };
+
+  assert.strictEqual(isDeliveryRunDispatched(riderStartedRun), true);
+  assert.strictEqual(canHandoverDeliveryRun(riderStartedRun), false);
+  assert.strictEqual(isDeliveryRunDispatched(packedRun), false);
+  assert.strictEqual(canHandoverDeliveryRun(packedRun), true);
+});
+
+test("6b. A stale run with all terminal orders can proceed to COD reconciliation", () => {
+  assert.strictEqual(canReconcileRunCod({
+    status: "ready",
+    orders: [
+      { status: "delivered" },
+      { status: "delivered" },
+    ],
+  }), true);
+  assert.strictEqual(canReconcileRunCod({
+    status: "in_progress",
+    orders: [{ status: "out_for_delivery" }],
+  }), false);
 });
 
 test("7. Endpoints configuration includes dailyOperations endpoints with expected patterns", () => {

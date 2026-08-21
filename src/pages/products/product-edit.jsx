@@ -23,6 +23,7 @@ import { PremiumSelect } from "../../components/ui/premium-select";
 import { generateProductDescription } from "../../api/services/ai.service";
 import { RiGeminiFill } from "react-icons/ri";
 import { ImageSizeInfo } from "../../components/common/image-size-info";
+import { ProductFreshnessPolicyCard } from "../../components/products/product-freshness-policy-card";
 
 function paiseToRupees(paise) {
     return Number(paise || 0) / 100;
@@ -686,6 +687,13 @@ export function ProductEditPage() {
                     </Dialog>
                 </CardContent>
             </Card>
+
+            {/* Freshness & Inventory Policy */}
+            {p && (
+                <div className="mt-6">
+                    <ProductFreshnessPolicyCard productId={productId} product={p} />
+                </div>
+            )}
         </div>
     );
 }

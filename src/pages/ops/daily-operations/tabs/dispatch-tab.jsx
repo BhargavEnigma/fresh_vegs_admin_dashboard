@@ -30,6 +30,7 @@ import { useToast } from "../../../../components/toast/toast-context";
 import {
   formatPaiseToRupees,
   filterEligibleRunOrders,
+  canHandoverDeliveryRun,
 } from "../../../../utils/daily-operations-helpers";
 import { normalizeAutomationCapabilities } from "../../../../utils/daily-operations-normalizers";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../../utils/order-identifier";
@@ -474,7 +475,7 @@ export function DispatchTab({
                       </div>
 
                       <div className="flex justify-end gap-1.5 mt-3">
-                        {run.status === "ready" || run.status === "draft" ? (
+                        {canHandoverDeliveryRun(run) ? (
                           <Button
                             size="sm"
                             className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm"
@@ -524,7 +525,7 @@ export function DispatchTab({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {!isClosed && runDetail.status !== "handed_over" && (
+                        {!isClosed && canHandoverDeliveryRun(runDetail) && (
                           <Button
                             size="sm"
                             variant="outline"

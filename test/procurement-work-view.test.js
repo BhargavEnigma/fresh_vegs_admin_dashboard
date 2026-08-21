@@ -7,6 +7,7 @@ import {
   canStartVendorAssignment,
   autoAssignableProcurementCostIds,
   completedProcurementPortions,
+  completedUnitCostPerKgPaise,
   groupFullyConfirmedProductRows,
   procurementDisplayTotals,
   procurementItemsForView,
@@ -29,13 +30,25 @@ test("completed rows are kept in History and excluded from Active Work", () => {
   assert.equal(procurementItemsForView(rows, "active").some((row) => row.id === "done"), false);
 });
 
-test("Completed keeps received portions visible when the same product has new pending demand", () => {
+test("Completed excludes a previously received product when it has new pending demand", () => {
   const allRows = [
-    { id: "tomato", work_view: "active", received_quantity: "1", outstanding_quantity: "2" },
-    { id: "onion", work_view: "active", received_quantity: "1", outstanding_quantity: "2" },
+    { id: "lemon", work_view: "active", received_quantity: "6.25", outstanding_quantity: "2.75", next_action_code: "assign_vendor" },
+    { id: "onion", work_view: "history", received_quantity: "1", outstanding_quantity: "0", next_action_code: "completed" },
     { id: "new", work_view: "active", received_quantity: "0", outstanding_quantity: "1" },
   ];
-  assert.deepEqual(completedProcurementPortions(allRows).map((row) => row.id), ["tomato", "onion"]);
+  assert.deepEqual(completedProcurementPortions(allRows).map((row) => row.id), ["onion"]);
+});
+
+test("Completed unit cost is always derived per KG from final cost and purchased quantity", () => {
+  assert.equal(completedUnitCostPerKgPaise({
+    total_cost_paise: 150000,
+    purchased_quantity: 5,
+    unit_cost_paise: 40000,
+  }), 30000);
+  assert.equal(completedUnitCostPerKgPaise({
+    total_cost_paise: 6250,
+    purchased_quantity: 6.25,
+  }), 1000);
 });
 
 test("active display totals use outstanding quantity and backend next actions", () => {

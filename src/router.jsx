@@ -24,6 +24,7 @@ import { OpsOrdersPage } from "./pages/ops/orders/ops-orders-page";
 import { OpsOrderDetailPage } from "./pages/ops/orders/ops-order-detail-page";
 import { ProcurementPage } from "./pages/ops/procurement/procurement-page";
 import { DailyOperationsPage } from "./pages/ops/daily-operations/daily-operations-page";
+import { InventoryPage } from "./pages/ops/inventory/inventory-page";
 import { OpsJobsPage } from "./pages/ops/jobs/jobs-page";
 
 import { DeliverySlotsAdminPage } from "./pages/admin/delivery-slots/delivery-slots-page";
@@ -77,6 +78,7 @@ export function AppRouter() {
             <Route path="categories/:id/edit" element={<CategoryEditPage />} />
 
             <Route path="ops/daily-operations" element={<DailyOperationsPage />} />
+            <Route path="ops/inventory" element={<InventoryPage />} />
             <Route path="ops/orders" element={<OpsOrdersPage />} />
             <Route path="ops/orders/:orderId" element={<OpsOrderDetailPage />} />
             <Route path="ops/procurement" element={<ProcurementPage />} />

@@ -144,3 +144,8 @@ export async function getAdminProductById(productId) {
   const res = await api.get(ENDPOINTS.admin.product.getById(productId));
   return res.data;
 }
+
+export async function setProductFreshnessPolicy(productId, payload) {
+  const res = await api.put(ENDPOINTS.admin.product.setFreshnessPolicy(productId), payload);
+  return res.data;
+}

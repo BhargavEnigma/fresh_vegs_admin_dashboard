@@ -44,6 +44,14 @@ export const NAV_ITEMS = [
   },
 
   {
+    key: "inventory",
+    label: "Inventory",
+    icon: Package,
+    to: "/ops/inventory",
+    roles: ["admin", "warehouse_manager"],
+  },
+
+  {
     key: "categories",
     label: "Categories",
     icon: Tags,

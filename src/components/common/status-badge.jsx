@@ -26,6 +26,8 @@ export function StatusBadge({ value, label, className }) {
     badgeClass = "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/60";
   } else if (v === "refunded") {
     badgeClass = "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800";
+  } else if (v === "not_required" || v === "covered_from_fresh_stock" || v === "covered_from_stock" || v === "covered") {
+    badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800";
   } else if (v === "active" || v === "true" || v === "in_stock") {
     badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60";
   } else if (v === "inactive" || v === "false" || v === "out_of_stock") {

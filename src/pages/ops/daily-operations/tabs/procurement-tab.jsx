@@ -37,6 +37,7 @@ import { StatusBadge } from "../../../../components/common/status-badge";
 import { useToast } from "../../../../components/toast/toast-context";
 import { formatPaiseToRupees, parseDecimal } from "../../../../utils/daily-operations-helpers";
 import { cn, formatQuantity } from "../../../../lib/utils";
+import { ProductAvatar } from "../../../../components/common/product-avatar";
 import { ProcurementPrintSheet, MandiBuyerPrintSheet } from "../print/procurement-print";
 import { PremiumSelect } from "../../../../components/ui/premium-select";
 import {
@@ -57,6 +58,7 @@ import {
   getVendorAssignmentStatus,
   parseQuantityScaled,
   remainingAssignmentQuantity,
+  maxAllocationWithExtraScaled,
   vendorUnitCostPaise,
   formatScaledQuantity,
 } from "../../../../utils/vendor-assignment";
@@ -412,6 +414,11 @@ export function ProcurementTab({
     );
   const remainingForItem = (item) =>
     remainingAssignmentQuantity(item.required_quantity || "0", itemAssignments(item));
+  const stillToAssignForItem = (item) => item?.is_product_group
+    ? parseQuantityScaled(item.unassigned_quantity || item.quantity_to_assign || "0")
+    : remainingForItem(item);
+  const maxNewAllocationForItem = (item) =>
+    maxAllocationWithExtraScaled(stillToAssignForItem(item));
 
   const hasUnassignedPending = useMemo(() => {
     return items.some((item) => {
@@ -528,14 +535,15 @@ export function ProcurementTab({
       return;
     }
     const allocated = addQuantities(allocationRows.map((row) => row.allocated_quantity));
-    const requiredScaled = parseQuantityScaled(assigningItem?.required_quantity || "0");
-    const maxAllowedScaled = (requiredScaled * 125n) / 100n;
-    const allocatedScaled = assigningItem?.is_product_group
-      ? parseQuantityScaled(assigningItem?.effective_allocated_quantity || "0")
-      : completedTotal;
-    const availableScaled = maxAllowedScaled > allocatedScaled ? maxAllowedScaled - allocatedScaled : 0n;
-    if (allocated > availableScaled) {
-      toast.warning(`New allocation cannot exceed the remaining ${formatQuantityWithUnit(formatScaledQuantity(availableScaled), itemUnit(assigningItem))}`);
+    const maxAllowedScaled = maxNewAllocationForItem(assigningItem);
+    if (maxAllowedScaled > 0n && allocated > maxAllowedScaled) {
+      toast.warning(
+        `New allocation cannot exceed the maximum allowed ${formatQuantityWithUnit(formatScaledQuantity(maxAllowedScaled), itemUnit(assigningItem))}`
+      );
+      return;
+    }
+    if (maxAllowedScaled === 0n && allocated > 0n) {
+      toast.warning("No unassigned quantity remains for this item");
       return;
     }
     const outOfRange = allocationRows.find((row) => {
@@ -1091,33 +1099,36 @@ export function ProcurementTab({
                       <div className="p-4 space-y-4">
                         {/* Header: Title and Badges */}
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h4 className="font-extrabold text-slate-950 dark:text-slate-50 text-sm leading-snug">
-                              {item.product_name || item.product?.name || "—"}
-                            </h4>
-                            <div className="mt-1 flex items-center gap-1.5">
-                              <Badge variant={itemMode(item) === "bulk" ? "success" : "outline"} className="text-[10px] px-1.5 py-0 font-semibold">
-                                {itemMode(item) === "bulk" ? "Bulk" : "Pack"}
-                              </Badge>
-                              {vendorManaged ? (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
-                                  Vendor managed
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ProductAvatar item={item} size="md" />
+                            <div className="min-w-0">
+                              <h4 className="font-extrabold text-slate-950 dark:text-slate-50 text-sm leading-snug truncate">
+                                {item.product_name || item.product?.name || "—"}
+                              </h4>
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                <Badge variant={itemMode(item) === "bulk" ? "success" : "outline"} className="text-[10px] px-1.5 py-0 font-semibold">
+                                  {itemMode(item) === "bulk" ? "Bulk" : "Pack"}
                                 </Badge>
-                              ) : null}
-                              {item.has_unlocked_orders ? (
-                                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] px-1.5 py-0 font-semibold gap-1">
-                                  <Lock className="h-2.5 w-2.5" />
-                                  Unlocked orders
-                                </Badge>
-                              ) : null}
-                              <span className="text-[10px] text-slate-505 dark:text-slate-400 font-bold">
-                                {itemMode(item) === "bulk"
-                                  ? (item.ordered_packs || `Product-level · ${itemUnit(item).toUpperCase()}`)
-                                  : (item.pack_label || item.pack?.pack_label || "Pack")}
-                              </span>
+                                {vendorManaged ? (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
+                                    Vendor managed
+                                  </Badge>
+                                ) : null}
+                                {item.has_unlocked_orders ? (
+                                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] px-1.5 py-0 font-semibold gap-1">
+                                    <Lock className="h-2.5 w-2.5" />
+                                    Unlocked orders
+                                  </Badge>
+                                ) : null}
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                                  {itemMode(item) === "bulk"
+                                    ? (item.ordered_packs || `Product-level · ${itemUnit(item).toUpperCase()}`)
+                                    : (item.pack_label || item.pack?.pack_label || "Pack")}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-col items-end gap-1 shrink-0">
                             <StatusBadge value={displayStatus} />
                             {isDirty && (
                               <span className="text-[9px] font-bold text-amber-600 bg-amber-100/50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-md">
@@ -1472,50 +1483,53 @@ export function ProcurementTab({
                           className={`align-middle transition-colors [&>td]:border-b [&>td]:border-slate-100 dark:[&>td]:border-slate-900 ${isDirty ? "bg-amber-50/40 dark:bg-amber-950/20" : "hover:bg-slate-50/70 dark:hover:bg-slate-900/30"
                             }`}
                         >
-                          <td className="min-w-[220px] px-5 py-3.5">
-                            <div className="mx-auto flex max-w-[210px] flex-col items-center">
-                              <div
-                                className="max-w-full truncate text-[13px] font-extrabold tracking-[-0.01em] text-slate-950 dark:text-white"
-                                title={item.product_name || item.product?.name || "—"}
-                              >
-                                {item.product_name || item.product?.name || "—"}
-                              </div>
-                              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
-                                <Badge
-                                  variant={itemMode(item) === "bulk" ? "success" : "outline"}
-                                  className="h-5 rounded-full px-2 text-[9px] font-bold"
+                          <td className="min-w-[240px] px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <ProductAvatar item={item} size="md" />
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className="max-w-full truncate text-[13px] font-extrabold tracking-[-0.01em] text-slate-950 dark:text-white"
+                                  title={item.product_name || item.product?.name || "—"}
                                 >
-                                  {itemMode(item) === "bulk" ? "Bulk purchase" : "Retail pack"}
-                                </Badge>
-                                {vendorManaged ? (
+                                  {item.product_name || item.product?.name || "—"}
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1">
                                   <Badge
-                                    variant="secondary"
+                                    variant={itemMode(item) === "bulk" ? "success" : "outline"}
                                     className="h-5 rounded-full px-2 text-[9px] font-bold"
                                   >
-                                    Vendor managed
+                                    {itemMode(item) === "bulk" ? "Bulk purchase" : "Retail pack"}
                                   </Badge>
-                                ) : null}
-                                {item.has_unlocked_orders ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="h-5 rounded-full border-amber-200 bg-amber-50 px-2 text-[9px] font-bold text-amber-700 gap-1 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
-                                  >
-                                    <Lock className="h-2.5 w-2.5" />
-                                    Unlocked orders
-                                  </Badge>
-                                ) : null}
-                              </div>
-                              <div
-                                className="mt-1.5 max-w-full truncate rounded-md bg-slate-100/80 px-2 py-1 text-[9px] font-semibold text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-                                title={
-                                  itemMode(item) === "bulk"
+                                  {vendorManaged ? (
+                                    <Badge
+                                      variant="secondary"
+                                      className="h-5 rounded-full px-2 text-[9px] font-bold"
+                                    >
+                                      Vendor managed
+                                    </Badge>
+                                  ) : null}
+                                  {item.has_unlocked_orders ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-5 rounded-full border-amber-200 bg-amber-50 px-2 text-[9px] font-bold text-amber-700 gap-1 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                                    >
+                                      <Lock className="h-2.5 w-2.5" />
+                                      Unlocked orders
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <div
+                                  className="mt-1 max-w-full truncate rounded-md bg-slate-100/80 px-2 py-0.5 text-[9px] font-semibold text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+                                  title={
+                                    itemMode(item) === "bulk"
+                                      ? (item.ordered_packs || `Product-level · ${itemUnit(item).toUpperCase()}`)
+                                      : (item.pack_label || item.pack?.pack_label || "Pack")
+                                  }
+                                >
+                                  {itemMode(item) === "bulk"
                                     ? (item.ordered_packs || `Product-level · ${itemUnit(item).toUpperCase()}`)
-                                    : (item.pack_label || item.pack?.pack_label || "Pack")
-                                }
-                              >
-                                {itemMode(item) === "bulk"
-                                  ? (item.ordered_packs || `Product-level · ${itemUnit(item).toUpperCase()}`)
-                                  : (item.pack_label || item.pack?.pack_label || "Pack")}
+                                    : (item.pack_label || item.pack?.pack_label || "Pack")}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -1731,11 +1745,14 @@ export function ProcurementTab({
             </DialogHeader>
 
             <div className="space-y-3 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border">
-                <p className="font-semibold text-sm text-slate-900 dark:text-white">
-                  {editingItem.product_name || editingItem.product?.name}
-                </p>
-                <p className="text-slate-500">{editingItem.pack_label || editingItem.pack?.pack_label}</p>
+              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border flex items-center gap-3">
+                <ProductAvatar item={editingItem} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                    {editingItem.product_name || editingItem.product?.name}
+                  </p>
+                  <p className="text-slate-500 text-xs">{editingItem.pack_label || editingItem.pack?.pack_label}</p>
+                </div>
               </div>
               {isVendorManagedItem(editingItem) ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -1878,37 +1895,38 @@ export function ProcurementTab({
             <DialogHeader>
               <DialogTitle>Assign Vendors</DialogTitle>
             </DialogHeader>
-            <div className="rounded-xl border bg-slate-50 p-3 dark:bg-slate-900">
-              <p className="font-semibold">{assigningItem.product_name || assigningItem.product?.name || "Product"}</p>
-              <p className="text-sm text-slate-500">
-                {itemMode(assigningItem) === "bulk"
-                  ? `Product-level bulk supply · ${itemUnit(assigningItem).toUpperCase()}`
-                  : (assigningItem.pack_label || assigningItem.pack?.pack_label || "Pack")}
-              </p>
-              <p className="text-sm text-slate-500">
-                Total required quantity:{" "}
-                <strong>{formatProcurementQuantity(assigningItem, assigningItem.required_quantity)}</strong>{" "}
-                · Still to assign:{" "}
-                <strong>
-                  {formatProcurementQuantity(
-                    assigningItem,
-                    formatScaledQuantity(
-                      assigningItem.is_product_group
-                        ? parseQuantityScaled(assigningItem.unassigned_quantity || "0")
-                        : remainingForItem(assigningItem)
-                    )
-                  )}
-                </strong>{" "}
-                · Max allowed (incl. 25% extra):{" "}
-                <strong className="text-emerald-600 dark:text-emerald-400">
-                  {formatProcurementQuantity(
-                    assigningItem,
-                    formatScaledQuantity(
-                      (parseQuantityScaled(assigningItem.required_quantity || "0") * 125n) / 100n
-                    )
-                  )}
-                </strong>
-              </p>
+            <div className="rounded-xl border bg-slate-50 p-3.5 dark:bg-slate-900 flex items-start gap-3.5">
+              <ProductAvatar item={assigningItem} size="xl" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-950 dark:text-white truncate">{assigningItem.product_name || assigningItem.product?.name || "Product"}</p>
+                <p className="text-sm text-slate-500">
+                  {itemMode(assigningItem) === "bulk"
+                    ? `Product-level bulk supply · ${itemUnit(assigningItem).toUpperCase()}`
+                    : (assigningItem.pack_label || assigningItem.pack?.pack_label || "Pack")}
+                </p>
+                <p className="text-sm text-slate-500 mt-1">
+                  Total required quantity:{" "}
+                  <strong>{formatProcurementQuantity(assigningItem, assigningItem.required_quantity)}</strong>{" "}
+                  · Still to assign:{" "}
+                  <strong>
+                    {formatProcurementQuantity(
+                      assigningItem,
+                      formatScaledQuantity(
+                        stillToAssignForItem(assigningItem)
+                      )
+                    )}
+                  </strong>{" "}
+                  · Max allowed (incl. 25% extra):{" "}
+                  <strong className="text-emerald-600 dark:text-emerald-400">
+                    {formatProcurementQuantity(
+                      assigningItem,
+                      formatScaledQuantity(
+                        maxNewAllocationForItem(assigningItem)
+                      )
+                    )}
+                  </strong>
+                </p>
+              </div>
             </div>
 
             {completedAssignments.length > 0 && (
@@ -2067,12 +2085,14 @@ export function ProcurementTab({
                   <Plus className="mr-2 h-4 w-4" /> Add vendor
                 </Button>
                 <div className="mt-2 space-y-1 text-xs text-slate-500">
-                  <div>
-                    Previously completed:{" "}
-                    <strong className="text-slate-800 dark:text-slate-200">
-                      {formatProcurementQuantity(assigningItem, formatScaledQuantity(completedTotal))}
-                    </strong>
-                  </div>
+                  {completedAssignments.length > 0 && (
+                    <div>
+                      Previously completed:{" "}
+                      <strong className="text-slate-800 dark:text-slate-200">
+                        {formatProcurementQuantity(assigningItem, formatScaledQuantity(completedTotal))}
+                      </strong>
+                    </div>
+                  )}
                   <div>
                     New allocation:{" "}
                     <strong className="text-slate-800 dark:text-slate-200">
@@ -2087,15 +2107,14 @@ export function ProcurementTab({
                     </strong>
                   </div>
                   <div className="border-t border-slate-200 dark:border-slate-800 pt-1 mt-1 font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                    <span>Total coverage:</span>
+                    <span>New cycle coverage:</span>
                     <span>
                       {formatProcurementQuantity(
                         assigningItem,
                         formatScaledQuantity(
-                          completedTotal +
-                          (allocationRows.every((row) => row.allocated_quantity && /^\d+(?:\.\d{1,3})?$/.test(row.allocated_quantity))
+                          allocationRows.every((row) => row.allocated_quantity && /^\d+(?:\.\d{1,3})?$/.test(row.allocated_quantity))
                             ? addQuantities(allocationRows.map((row) => row.allocated_quantity))
-                            : 0n)
+                            : 0n
                         )
                       )}
                     </span>
@@ -2103,11 +2122,11 @@ export function ProcurementTab({
                   </div>
                   <div className="mt-1 text-[10px] text-slate-500">
                     Max allowed allocation (incl. 25% extra):{" "}
-                    <strong>
+                    <strong className="text-emerald-600 dark:text-emerald-400">
                       {formatProcurementQuantity(
                         assigningItem,
                         formatScaledQuantity(
-                          (parseQuantityScaled(assigningItem.required_quantity || "0") * 125n) / 100n
+                          maxNewAllocationForItem(assigningItem)
                         )
                       )}
                     </strong>
@@ -2227,7 +2246,12 @@ export function ProcurementTab({
                           const vendorUnits = (entry.available_vendor_units || []).map((unit) => String(unit).toUpperCase());
                           return (
                             <tr key={entry.procurement_cost_id} className="align-top">
-                              <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{entry.product_name || "Product"}</td>
+                              <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
+                                <div className="flex items-center gap-2.5">
+                                  <ProductAvatar item={procurementItem || entry} size="sm" />
+                                  <span className="truncate">{entry.product_name || "Product"}</span>
+                                </div>
+                              </td>
                               <td className="px-4 py-3.5 font-semibold">
                                 {procurementItem
                                   ? formatItemQuantity(procurementItem, entry.remaining_quantity)

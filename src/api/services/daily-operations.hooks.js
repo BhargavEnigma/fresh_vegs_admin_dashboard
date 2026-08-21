@@ -42,6 +42,16 @@ export const dailyOperationsKeys = {
   reconciliation: (operationId) => [...dailyOperationsKeys.all, "reconciliation", operationId || "none"],
   automationSummary: (operationId) => [...dailyOperationsKeys.all, "automationSummary", operationId || "none"],
   proposedDeliveryPlan: (operationId) => [...dailyOperationsKeys.all, "proposedDeliveryPlan", operationId || "none"],
+  inventorySummary: (operationId) => [...dailyOperationsKeys.all, "inventorySummary", operationId || "none"],
+  lots: (productId, warehouseId, status) => [
+    ...dailyOperationsKeys.all,
+    "lots",
+    productId || "none",
+    warehouseId || "none",
+    status || "all",
+  ],
+  lot: (lotId) => [...dailyOperationsKeys.all, "lot", lotId || "none"],
+  lotMovements: (lotId) => [...dailyOperationsKeys.all, "lotMovements", lotId || "none"],
 };
 
 export function useDailyOperationsOverview({ deliveryDate, warehouseId, enabled = true, ...options }) {
@@ -157,6 +167,46 @@ export function useDailyOperationsProposedDeliveryPlan(operationId, { enabled = 
     queryKey: dailyOperationsKeys.proposedDeliveryPlan(operationId),
     queryFn: () => DailyOperationsService.getProposedDeliveryPlan(operationId),
     enabled: Boolean(enabled && operationId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useDailyOperationsInventorySummary(operationId, { enabled = true } = {}) {
+  const isValidId = Boolean(operationId && operationId !== "null" && operationId !== "undefined");
+  return useQuery({
+    queryKey: dailyOperationsKeys.inventorySummary(operationId),
+    queryFn: () => {
+      if (!isValidId) return null;
+      return DailyOperationsService.getInventorySummary(operationId);
+    },
+    enabled: Boolean(enabled && isValidId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useInventoryLots(productId, { warehouseId, status, expiringBefore, enabled = true } = {}) {
+  return useQuery({
+    queryKey: dailyOperationsKeys.lots(productId, warehouseId, status),
+    queryFn: () => DailyOperationsService.listLots(productId, { warehouseId, status, expiringBefore }),
+    enabled: Boolean(enabled && productId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useInventoryLotDetail(lotId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: dailyOperationsKeys.lot(lotId),
+    queryFn: () => DailyOperationsService.getLot(lotId),
+    enabled: Boolean(enabled && lotId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useInventoryLotMovements(lotId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: dailyOperationsKeys.lotMovements(lotId),
+    queryFn: () => DailyOperationsService.getLotMovements(lotId),
+    enabled: Boolean(enabled && lotId),
     staleTime: 30 * 1000,
   });
 }
@@ -422,6 +472,74 @@ export function useDailyOperationsMutations(operationId) {
     meta: { globalLoaderMessage: "Requesting auto-close evaluation..." },
   });
 
+  const replanInventoryMutation = useMutation({
+    mutationFn: () => DailyOperationsService.replanInventory(operationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Optimizing inventory allocation..." },
+  });
+
+  const wasteLotMutation = useMutation({
+    mutationFn: ({ lotId, quantity, reason }) => DailyOperationsService.wasteLot(lotId, { quantity, reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lots"] });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lot"] });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Recording lot waste..." },
+  });
+
+  const quarantineLotMutation = useMutation({
+    mutationFn: ({ lotId, reason }) => DailyOperationsService.quarantineLot(lotId, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lots"] });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lot"] });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Quarantining lot..." },
+  });
+
+  const releaseQuarantineLotMutation = useMutation({
+    mutationFn: ({ lotId, reason }) => DailyOperationsService.releaseQuarantineLot(lotId, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lots"] });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lot"] });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Releasing lot quarantine..." },
+  });
+
+  const adjustLotMutation = useMutation({
+    mutationFn: ({ lotId, quantity, reason }) => DailyOperationsService.adjustLot(lotId, { quantity, reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lots"] });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lot"] });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Adjusting lot quantity..." },
+  });
+
+  const addStockMutation = useMutation({
+    mutationFn: ({ productId, payload }) => DailyOperationsService.addStock(productId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.procurementScope(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lots"] });
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "lot"] });
+      invalidateOverview();
+    },
+    meta: { globalLoaderMessage: "Adding stock to warehouse..." },
+  });
+
   return {
     refreshMutation,
     notesMutation,
@@ -447,5 +565,13 @@ export function useDailyOperationsMutations(operationId) {
     closeOperationMutation,
     reopenOperationMutation,
     evaluateAutoCloseMutation,
+    replanInventoryMutation,
+    wasteLotMutation,
+    quarantineLotMutation,
+    releaseQuarantineLotMutation,
+    adjustLotMutation,
+    addStockMutation,
   };
 }
+
+

@@ -236,4 +236,73 @@ export const DailyOperationsService = {
     const res = await api.post(ENDPOINTS.ops.dailyOperations.evaluateAutoClose(operationId));
     return res.data?.data;
   },
+
+  // Fresh Inventory & Lots
+  async getWarehouseInventorySummary(warehouseId) {
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.warehouseInventorySummary, {
+      params: warehouseId ? { warehouse_id: warehouseId } : {},
+    });
+    return res.data?.data;
+  },
+
+  async getInventorySummary(operationId) {
+    if (!operationId || operationId === "null" || operationId === "undefined") {
+      return null;
+    }
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.inventorySummary(operationId));
+    return res.data?.data;
+  },
+
+  async replanInventory(operationId) {
+    if (!operationId || operationId === "null" || operationId === "undefined") {
+      throw new Error("Cannot replan inventory without an active daily operation session");
+    }
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.replanInventory(operationId));
+    return res.data?.data;
+  },
+
+  async listLots(productId, { warehouseId, status, expiringBefore } = {}) {
+    const params = {};
+    if (warehouseId) params.warehouse_id = warehouseId;
+    if (status) params.status = status;
+    if (expiringBefore) params.expiring_before = expiringBefore;
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.listLots(productId), { params });
+    return res.data?.data?.lots || res.data?.lots || [];
+  },
+
+  async addStock(productId, payload) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.addStock(productId), payload);
+    return res.data?.data?.lot;
+  },
+
+
+  async getLot(lotId) {
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.getLot(lotId));
+    return res.data?.data?.lot;
+  },
+
+  async getLotMovements(lotId) {
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.getLotMovements(lotId));
+    return res.data?.data?.movements || [];
+  },
+
+  async wasteLot(lotId, { quantity, reason } = {}) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.wasteLot(lotId), { quantity, reason });
+    return res.data?.data?.lot;
+  },
+
+  async quarantineLot(lotId, { reason } = {}) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.quarantineLot(lotId), { reason });
+    return res.data?.data?.lot;
+  },
+
+  async releaseQuarantineLot(lotId, { reason } = {}) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.releaseQuarantineLot(lotId), { reason });
+    return res.data?.data?.lot;
+  },
+
+  async adjustLot(lotId, { quantity, reason } = {}) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.adjustLot(lotId), { quantity, reason });
+    return res.data?.data?.lot;
+  },
 };

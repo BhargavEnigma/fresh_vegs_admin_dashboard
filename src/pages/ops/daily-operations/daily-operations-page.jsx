@@ -57,11 +57,13 @@ import {
 
 import { ControlCenter } from "./tabs/control-center";
 import { ProcurementTab } from "./tabs/procurement-tab";
+import { FreshStockTab } from "./tabs/fresh-stock-tab";
 import { PackingTab } from "./tabs/packing-tab";
 import { DispatchTab } from "./tabs/dispatch-tab";
 import { ExceptionsCloseTab } from "./tabs/exceptions-close-tab";
 import { VendorCheckInTab } from "./tabs/vendor-check-in-tab";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
+import { Boxes } from "lucide-react";
 
 function toYyyyMmDd(date) {
   if (!date || !isValid(date)) return addDaysYyyyMmDd(getIstYyyyMmDd(), 1);
@@ -84,6 +86,7 @@ function mapTabKey(key) {
   const val = String(key).toLowerCase();
   if (val === "overview" || val === "control") return "control";
   if (val === "procurement") return "procurement";
+  if (val === "stock" || val === "fresh-stock" || val === "inventory") return "stock";
   if (val === "vendor-check-in" || val === "check-in" || val === "vendorcheckin" || val === "checkin") return "vendor-check-in";
   if (val === "packing") return "packing";
   if (val === "dispatch") return "dispatch";
@@ -96,6 +99,7 @@ function mapTabKey(key) {
 const TABS = [
   { key: "control", label: "Overview", shortLabel: "Overview", icon: Layers },
   { key: "procurement", label: "Purchase", shortLabel: "Buy", icon: ShoppingCart },
+  { key: "stock", label: "Stock", shortLabel: "Stock", icon: Boxes },
   { key: "vendor-check-in", label: "Receive", shortLabel: "Receive", icon: ClipboardCheck },
   { key: "packing", label: "Pack", shortLabel: "Pack", icon: PackageCheck },
   { key: "dispatch", label: "Dispatch", shortLabel: "Dispatch", icon: Truck },
@@ -415,7 +419,7 @@ export function DailyOperationsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Sticky Header and Filters Panel */}
       <div className="sticky top-[61px] lg:top-0 z-30 -mx-4 px-4 sm:-mx-8 sm:px-8 py-3.5 bg-slate-50/80 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
         <div className="max-w-full flex flex-col md:flex-row md:items-center justify-between gap-3 min-w-0">
@@ -571,7 +575,7 @@ export function DailyOperationsPage() {
 
       {/* Navigation Tabs */}
       <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 overflow-x-auto no-scrollbar">
-        <div className="flex lg:grid lg:grid-cols-6 min-w-max lg:min-w-0 items-center gap-3">
+        <div className="grid grid-cols-7 min-w-[720px] lg:min-w-0 items-center gap-1.5 xl:gap-2">
           {TABS.map((tab, index) => {
             const Icon = tab.icon;
             const activeIndex = TABS.findIndex((t) => t.key === activeTab);
@@ -580,11 +584,11 @@ export function DailyOperationsPage() {
             const badge = getTabBadge(tab.key);
 
             return (
-              <div key={tab.key} className="relative flex items-center justify-center flex-1 lg:flex-none min-w-0">
+              <div key={tab.key} className="relative flex items-center justify-center min-w-0">
                 <button
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
-                  className={`group relative flex flex-1 items-center justify-center gap-1.5 xl:gap-2.5 px-2 xl:px-4 py-2 xl:py-2.5 text-xs xl:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap min-w-0 ${active
+                  className={`group relative flex w-full items-center justify-center gap-1.5 xl:gap-2 px-2 py-2 xl:px-3 xl:py-2.5 text-xs xl:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap min-w-0 ${active
                     ? "bg-gradient-to-r from-dailyveg-500 to-emerald-600 text-white shadow-md shadow-dailyveg-500/20 scale-[1.02] border border-emerald-500/20"
                     : completed
                       ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-500/10 hover:bg-emerald-100/40 dark:hover:bg-emerald-950/30"
@@ -639,11 +643,6 @@ export function DailyOperationsPage() {
                     </span>
                   )}
                 </button>
-
-                {/* Chevron Connector */}
-                {index < TABS.length - 1 && (
-                  <ChevronRight className="absolute left-full ml-[6px] -translate-x-1/2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 dark:text-slate-700 shrink-0 hidden xl:block pointer-events-none z-10" />
-                )}
               </div>
             );
           })}
@@ -683,6 +682,14 @@ export function DailyOperationsPage() {
               mutations.bulkProcurementMutation.isPending
             }
             capabilitiesRaw={automationSummary}
+          />
+        )}
+
+        {activeTab === "stock" && (
+          <FreshStockTab
+            operationId={operation?.id}
+            warehouseId={selectedWarehouseId || operation?.warehouse_id}
+            isClosed={isClosed}
           />
         )}
 

@@ -12,6 +12,7 @@ import {
   normalizeVendorAssignment,
   parseQuantityScaled,
   remainingAssignmentQuantity,
+  maxAllocationWithExtraScaled,
   referenceUnitCostPaise,
   vendorUnitCostPaise,
   formatVendorPriceUpdatedAt,
@@ -141,4 +142,13 @@ test("remaining assignment quantity follows assignment lifecycle coverage", () =
 
   assert.equal(assignmentCoverageScaled(assignments[0]), 20000n);
   assert.equal(remainingAssignmentQuantity("100", assignments), 23000n);
+});
+
+test("new allocation extra is calculated from still-to-assign quantity", () => {
+  const remaining = remainingAssignmentQuantity("4", [
+    { status: "dispatched", supplied_quantity: "2.5" },
+  ]);
+
+  assert.equal(remaining, 1500n);
+  assert.equal(maxAllocationWithExtraScaled(remaining), 1875n);
 });

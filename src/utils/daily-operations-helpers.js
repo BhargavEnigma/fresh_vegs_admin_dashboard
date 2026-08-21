@@ -162,8 +162,28 @@ export function filterEligibleRunOrders(opsOrders = [], allRunOrders = []) {
   });
 }
 
+const DISPATCHED_ORDER_STATUSES = new Set(["out_for_delivery", "delivered", "delivery_failed"]);
+
+export function isDeliveryRunDispatched(run = {}) {
+  const status = String(run.status || "").toLowerCase();
+  if (["handed_over", "in_progress", "completed"].includes(status)) return true;
+
+  const orders = run.orders || (run.run_orders || []).map((item) => item.order).filter(Boolean);
+  return orders.some((order) => DISPATCHED_ORDER_STATUSES.has(String(order?.status || "").toLowerCase()));
+}
+
+export function canHandoverDeliveryRun(run = {}) {
+  const status = String(run.status || "").toLowerCase();
+  return ["ready", "draft"].includes(status) && !isDeliveryRunDispatched(run);
+}
+
 export function canReconcileRunCod(run = {}) {
-  return run.status === "completed";
+  if (String(run.status || "").toLowerCase() === "completed") return true;
+
+  const orders = run.orders || (run.run_orders || []).map((item) => item.order).filter(Boolean);
+  if (!orders.length) return false;
+  const terminalStatuses = new Set(["delivered", "delivery_failed", "cancelled", "refunded"]);
+  return orders.every((order) => terminalStatuses.has(String(order?.status || "").toLowerCase()));
 }
 
 export function canResolveRunCodVariance(run = {}) {
