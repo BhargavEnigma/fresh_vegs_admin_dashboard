@@ -5,6 +5,8 @@ import {
   formatPaiseToRupees,
   parseDecimal,
   groupPackingItemsByOrder,
+  orderedPackForPackingItem,
+  isPackingGroupExactlyPacked,
   mapEventToFriendlyLabel,
   mapErrorCodeToUserMessage,
   filterEligibleRunOrders,
@@ -13,6 +15,7 @@ import {
   canReconcileRunCod,
   FRIENDLY_EVENT_LABELS,
   ERROR_CODE_MESSAGES,
+  matchesStockFilter,
 } from "../src/utils/daily-operations-helpers.js";
 import { ENDPOINTS } from "../src/api/endpoints.js";
 
@@ -30,6 +33,23 @@ test("2. Paise to Rupees currency formatting converts integers safely", () => {
   assert.strictEqual(formatPaiseToRupees(2550), "₹25.50");
   assert.strictEqual(formatPaiseToRupees(0), "₹0.00");
   assert.strictEqual(formatPaiseToRupees(null), "—");
+});
+
+test("stock tab filters use stock, demand, expiry, and vendor shortfall semantics", () => {
+  const inStock = { opening_usable_stock_quantity: "3", available_stock_quantity: "0" };
+  const covered = { gross_order_demand_quantity: "5", net_vendor_required_quantity: "0", next_action_code: "covered_from_fresh_stock" };
+  const noDemand = { gross_order_demand_quantity: "0", net_vendor_required_quantity: "0", next_action_code: "covered_from_fresh_stock" };
+  const expired = { expired_stock_quantity: "1.5" };
+  const expiringSoon = { expiring_soon_stock_quantity: "0.25" };
+  const toProcure = { net_vendor_required_quantity: "2", next_action_code: "vendor_purchase_needed" };
+
+  assert.equal(matchesStockFilter(inStock, "in_stock"), true);
+  assert.equal(matchesStockFilter(covered, "covered"), true);
+  assert.equal(matchesStockFilter(noDemand, "covered"), false);
+  assert.equal(matchesStockFilter(expired, "expiry_attention"), true);
+  assert.equal(matchesStockFilter(expiringSoon, "expiry_attention"), true);
+  assert.equal(matchesStockFilter(toProcure, "to_procure"), true);
+  assert.equal(matchesStockFilter({ ...toProcure, net_vendor_required_quantity: 0 }, "to_procure"), false);
 });
 
 test("3. Flat packing items list is correctly grouped by order_id with progress calculation", () => {
@@ -70,6 +90,22 @@ test("3. Flat packing items list is correctly grouped by order_id with progress 
   assert.strictEqual(g2.packed_count, 1);
   assert.strictEqual(g2.progress_percent, 100);
   assert.strictEqual(g2.is_complete, true);
+});
+
+test("packing edit details show only the selected packing row", () => {
+  assert.deepStrictEqual(
+    orderedPackForPackingItem({ pack: { label: "2kg" }, required_quantity: "1" }),
+    { label: "2kg", quantity: 1 },
+  );
+});
+
+test("resolved manual checklist is recognized as ready for finalization", () => {
+  assert.strictEqual(isPackingGroupExactlyPacked({
+    items: [{ status: "packed", required_quantity: "2.000", packed_quantity: "2.000", missing_quantity: "0", damaged_quantity: "0" }],
+  }), true);
+  assert.strictEqual(isPackingGroupExactlyPacked({
+    items: [{ status: "issue", required_quantity: "2", packed_quantity: "1", missing_quantity: "1", damaged_quantity: "0" }],
+  }), false);
 });
 
 test("4. Audit event types map to friendly user labels", () => {

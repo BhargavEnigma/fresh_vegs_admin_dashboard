@@ -81,50 +81,52 @@ export function VendorCheckInTab({
     enabled: Boolean(date && vendorUserId),
   });
 
+  const refreshReceiptData = async () => {
+    await assignmentsQuery.refetch();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["ops", "dailyOperations"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments"] }),
+      queryClient.invalidateQueries({ queryKey: ["inventory"] }),
+      queryClient.invalidateQueries({ queryKey: ["procurement-cost-items"] }),
+      queryClient.invalidateQueries({ queryKey: ["costs-profit-overview"] }),
+      queryClient.invalidateQueries({ queryKey: ["costs-summary"] }),
+    ]);
+  };
 
   const receiveMutation = useMutation({
-    mutationFn: async (entries) => {
-      const results = [];
-      for (const entry of entries) {
-        try {
-          await VendorService.receive(entry.id, {
-            received_quantity: entry.received_quantity || "0",
-            rejected_quantity: entry.rejected_quantity || "0",
-            admin_override: entry.admin_override || false,
-          });
-          results.push({ id: entry.id, success: true });
-        } catch (error) {
-          results.push({ id: entry.id, success: false, error });
-        }
-      }
-      const successes = results.filter((result) => result.success);
-      const failures = results.filter((result) => !result.success);
-      if (!successes.length && failures.length) throw failures[0].error;
-      return { successes, failures };
-    },
-    onSuccess: async ({ successes, failures }) => {
-      if (failures.length) {
-        toast.warning(
-          `${successes.length} delivery item(s) received; ${failures.length} item(s) need retry`
-        );
-      } else {
-        toast.success("Vendor delivery checked in");
-      }
+    mutationFn: (entries) => VendorService.receiveMany(
+      entries.map((entry) => ({
+        id: entry.id,
+        received_quantity: entry.received_quantity || "0",
+        rejected_quantity: entry.rejected_quantity || "0",
+      }))
+    ),
+    onSuccess: async () => {
+      toast.success("Vendor delivery checked in");
       setDrafts({});
-      await Promise.all([
-        assignmentsQuery.refetch(),
-      ]);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["ops", "dailyOperations"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments"] }),
-        queryClient.invalidateQueries({ queryKey: ["inventory"] }),
-        queryClient.invalidateQueries({ queryKey: ["procurement-cost-items"] }),
-        queryClient.invalidateQueries({ queryKey: ["costs-profit-overview"] }),
-        queryClient.invalidateQueries({ queryKey: ["costs-summary"] }),
-      ]);
+      await refreshReceiptData();
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || error?.message || "Failed to receive delivery");
+    },
+  });
+
+  const singleReceiveMutation = useMutation({
+    mutationFn: (entry) => VendorService.receive(entry.id, {
+      received_quantity: entry.received_quantity || "0",
+      rejected_quantity: entry.rejected_quantity || "0",
+    }),
+    onSuccess: async (_result, entry) => {
+      toast.success(`${entry.product?.name || "Product"} received`);
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[entry.id];
+        return next;
+      });
+      await refreshReceiptData();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || error?.message || "Failed to receive product");
     },
   });
 
@@ -237,6 +239,28 @@ export function VendorCheckInTab({
     receiveMutation.mutate(entries);
   };
 
+  const submitSingle = (assignment) => {
+    const entry = {
+      ...assignment,
+      received_quantity: drafts[assignment.id]?.received_quantity ?? "",
+      rejected_quantity: drafts[assignment.id]?.rejected_quantity ?? "",
+    };
+    if (entry.received_quantity === "" && entry.rejected_quantity === "") {
+      toast.warning(`Enter received or rejected quantity for ${assignment.product?.name || "this product"}`);
+      return;
+    }
+    const validationMessage = validateReceiptQuantities(
+      entry.received_quantity || "0",
+      entry.rejected_quantity || "0",
+      entry.supplied_quantity || "0"
+    );
+    if (validationMessage) {
+      toast.warning(`${assignment.product?.name || "Product"}: ${validationMessage}`);
+      return;
+    }
+    singleReceiveMutation.mutate(entry);
+  };
+
   return (
     <div>
       <Card className="mb-5 p-4">
@@ -347,7 +371,7 @@ export function VendorCheckInTab({
                             size="sm"
                             variant="outline"
                             onClick={() => setDrafts({})}
-                            disabled={receiveMutation.isPending}
+                            disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
                           >
                             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                             Clear
@@ -358,7 +382,7 @@ export function VendorCheckInTab({
                             type="button"
                             size="sm"
                             onClick={acceptAllSupplied}
-                            disabled={receiveMutation.isPending}
+                            disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
                             className="bg-emerald-600 text-white hover:bg-emerald-700"
                           >
                             <CheckCircle2 className="mr-1.5 h-4 w-4" />
@@ -395,11 +419,10 @@ export function VendorCheckInTab({
                   }
 
                   return (
-                    <Card key={assignment.id} className={cn("p-6 border-l-4 border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-br bg-white/80 dark:bg-slate-950/70 backdrop-blur-md shadow-sm hover:shadow-xl hover:scale-[1.006] transition-all duration-300 rounded-2xl relative overflow-hidden space-y-5", accentColor)}>
-                      <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-bl opacity-[0.03] dark:opacity-[0.05] pointer-events-none rounded-bl-full" />
+                    <Card key={assignment.id} className={cn("relative overflow-hidden rounded-2xl border border-l-[3px] border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)] dark:border-slate-800/80 dark:bg-slate-950/80", accentColor)}>
                       
                       {/* Top Header Row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-900">
+                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">{assignment.product?.name || "Unknown product"}</h3>
@@ -443,34 +466,34 @@ export function VendorCheckInTab({
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Allocation ID</span>
-                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-350 mt-0.5 block">#{assignment.id}</span>
+                          <span title={assignment.id} className="mt-0.5 block font-mono text-xs font-bold text-slate-600 dark:text-slate-400">…{assignment.id.slice(-8)}</span>
                         </div>
                       </div>
 
                       {/* Content Grid */}
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-end">
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
+                      <div className="mt-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Allocated</Label>
                           <p className="mt-1.5 text-base font-black text-slate-800 dark:text-slate-200">{formatQuantityWithUnit(assignment.allocated_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
+                        <div className="rounded-xl bg-indigo-50/60 p-3 dark:bg-indigo-950/20">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Vendor Supplied</Label>
                           <p className="mt-1.5 text-base font-black text-indigo-700 dark:text-indigo-400">{formatQuantityWithUnit(assignment.supplied_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Locked Price</Label>
                           <p className="mt-1.5 text-base font-black text-slate-800 dark:text-slate-200">{formatVendorMoney(assignment.unit_cost_paise)}/{unit.toUpperCase()}</p>
                         </div>
 
                         {/* Interactive Quantity Inputs */}
-                        <div className="rounded-2xl border border-emerald-100/50 bg-emerald-50/10 p-3.5 dark:border-emerald-950/20 dark:bg-emerald-950/5">
+                        <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/40 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
                           <Label htmlFor={`received-${assignment.id}`} className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1.5">Received ({unit.toUpperCase()})</Label>
                           <Input
                             id={`received-${assignment.id}`}
                             type="number"
                             min="0"
                             step="0.001"
-                            disabled={!enabled}
+                            disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
                             placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending dispatch" : "N/A")}
                             value={draft.received_quantity ?? ""}
                             onChange={(event) => updateDraft(assignment.id, "received_quantity", event.target.value)}
@@ -478,14 +501,14 @@ export function VendorCheckInTab({
                           />
                         </div>
 
-                        <div className="rounded-2xl border border-rose-100/50 bg-rose-50/10 p-3.5 dark:border-rose-950/20 dark:bg-rose-950/5">
+                        <div className="rounded-xl border border-rose-200/70 bg-rose-50/40 p-3 dark:border-rose-900/40 dark:bg-rose-950/10">
                           <Label htmlFor={`rejected-${assignment.id}`} className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 block mb-1.5">Rejected ({unit.toUpperCase()})</Label>
                           <Input
                             id={`rejected-${assignment.id}`}
                             type="number"
                             min="0"
                             step="0.001"
-                            disabled={!enabled}
+                            disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
                             placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending dispatch" : "N/A")}
                             value={draft.rejected_quantity ?? ""}
                             onChange={(event) => updateDraft(assignment.id, "rejected_quantity", event.target.value)}
@@ -495,7 +518,7 @@ export function VendorCheckInTab({
                       </div>
 
                       {/* Footer Actions & Payout Box */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-900">
+                      <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-slate-500 dark:text-slate-450">
                             {showActualPayout ? "Final received payout: " : "Estimated accepted payout: "}
@@ -528,7 +551,7 @@ export function VendorCheckInTab({
                               variant="outline"
                               className="h-auto rounded-xl border-emerald-250 bg-white py-2.5 hover:bg-emerald-50 text-xs font-bold text-emerald-700 dark:bg-slate-900 dark:hover:bg-emerald-950/20 dark:border-emerald-900/60"
                               onClick={() => setFullAcceptance(assignment)}
-                              disabled={receiveMutation.isPending}
+                              disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
                             >
                               <Check className="mr-1.5 h-4 w-4" />
                               Accept full supply
@@ -539,10 +562,26 @@ export function VendorCheckInTab({
                               variant="outline"
                               className="h-auto rounded-xl border-rose-250 bg-white py-2.5 hover:bg-rose-50 text-xs font-bold text-rose-700 dark:bg-slate-900 dark:hover:bg-rose-950/20 dark:border-rose-900/60"
                               onClick={() => setFullRejection(assignment)}
-                              disabled={receiveMutation.isPending}
+                              disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
                             >
                               <XCircle className="mr-1.5 h-4 w-4" />
                               Reject full supply
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-auto rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                              onClick={() => submitSingle(assignment)}
+                              disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
+                            >
+                              {singleReceiveMutation.isPending && singleReceiveMutation.variables?.id === assignment.id ? (
+                                <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                              )}
+                              {singleReceiveMutation.isPending && singleReceiveMutation.variables?.id === assignment.id
+                                ? "Receiving…"
+                                : "Receive item"}
                             </Button>
                           </div>
                         )}
@@ -555,15 +594,6 @@ export function VendorCheckInTab({
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                           </span>
                           <span>This assignment is confirmed by the vendor, but is pending dispatch. It is read-only until the vendor dispatches.</span>
-                        </div>
-                      )}
-                      {assignment.status === "dispatched" && (
-                        <div className="mt-4 flex items-center gap-2 px-3.5 py-2.5 text-xs rounded-xl bg-emerald-50/80 border border-emerald-100 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-350 font-medium">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                          </span>
-                          <span>This assignment has been dispatched and is ready to be received. Please verify physical quantities.</span>
                         </div>
                       )}
                       {!enabled && assignment.status !== "confirmed" && assignment.status !== "received" && (
@@ -649,7 +679,7 @@ export function VendorCheckInTab({
                       ? "Prepare at least one item to submit."
                       : `${preparedCount} of ${receivableAssignments.length} receivable item(s) will be submitted.`}
                   </p>
-                  <Button onClick={submit} disabled={receiveMutation.isPending || preparedCount === 0}>
+                  <Button onClick={submit} disabled={receiveMutation.isPending || singleReceiveMutation.isPending || preparedCount === 0}>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     {receiveMutation.isPending ? "Submitting…" : `Submit ${preparedCount} item${preparedCount === 1 ? "" : "s"}`}
                   </Button>

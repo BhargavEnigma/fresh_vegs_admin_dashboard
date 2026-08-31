@@ -180,6 +180,7 @@ export const ENDPOINTS = {
       assignments: "/v1/ops/vendor/assignments",
       checkIn: "/v1/ops/vendor/check-in",
       // checkIns: "/v1/ops/vendor/check-ins",
+      receiveMany: "/v1/ops/vendor/assignments/receive",
       receive: (assignmentId) => `/v1/ops/vendor/assignments/${assignmentId}/receive`,
     },
     orders: {
@@ -256,6 +257,7 @@ export const ENDPOINTS = {
       automationSummary: (id) => `/v1/ops/daily-operations/${id}/automation-summary`,
       generateDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/generate`,
       proposedDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/proposed`,
+      changeProposedRunDeliveryPartner: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/proposed/delivery-partner`,
       approveDeliveryPlan: (id) => `/v1/ops/daily-operations/${id}/delivery-plan/approve`,
       evaluateAutoClose: (id) => `/v1/ops/daily-operations/${id}/auto-close/evaluate`,
 

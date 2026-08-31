@@ -180,7 +180,17 @@ export function LoginPage() {
             {requestError ? <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{requestError}</div> : null}
             {loginMethod === "password" ? (
               <form onSubmit={passwordLoginForm.handleSubmit(handlePasswordLogin)} className="space-y-4" noValidate>
-                <div className="space-y-2"><Label htmlFor="identifier">Phone number or email</Label><div className="relative">{identifier?.includes("@") ? <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /> : <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />}<Input id="identifier" autoComplete="username" placeholder="admin@dailyveg.co.in or 9990000001" className="pl-10" aria-invalid={Boolean(passwordLoginForm.formState.errors.identifier)} aria-describedby={passwordLoginForm.formState.errors.identifier ? "identifier-error" : undefined} {...passwordLoginForm.register("identifier")} /></div>{passwordLoginForm.formState.errors.identifier ? <p id="identifier-error" role="alert" className="text-xs text-red-600">{passwordLoginForm.formState.errors.identifier.message}</p> : null}</div>
+                <div className="space-y-2">
+                  <Label htmlFor="identifier">Phone number or email</Label>
+                  <div className="relative">
+                    {identifier?.includes("@") ?
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /> :
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    }
+                    <Input id="identifier" autoComplete="username" placeholder="admin@dailyveg.co.in or 9990000001" className="pl-10" aria-invalid={Boolean(passwordLoginForm.formState.errors.identifier)} aria-describedby={passwordLoginForm.formState.errors.identifier ? "identifier-error" : undefined} {...passwordLoginForm.register("identifier")} />
+                  </div>
+                  {passwordLoginForm.formState.errors.identifier ? <p id="identifier-error" role="alert" className="text-xs text-red-600">{passwordLoginForm.formState.errors.identifier.message}</p> : null}
+                </div>
                 <PasswordField id="login-password" label="Password" error={passwordLoginForm.formState.errors.password} {...passwordLoginForm.register("password")} />
                 <Button type="submit" className="w-full" disabled={passwordLoginForm.formState.isSubmitting}>{passwordLoginForm.formState.isSubmitting ? "Signing in…" : "Sign in securely"}</Button>
               </form>

@@ -61,6 +61,7 @@ import {
   maxAllocationWithExtraScaled,
   vendorUnitCostPaise,
   formatScaledQuantity,
+  confirmedBufferRecommendation,
 } from "../../../../utils/vendor-assignment";
 import {
   getProcurementActionFlow,
@@ -257,6 +258,7 @@ export function ProcurementTab({
   workView = "active",
   onWorkViewChange,
   operation,
+  warehouseId,
   isClosed,
   isAdmin,
   isWarehouseManager,
@@ -270,6 +272,7 @@ export function ProcurementTab({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [activePrintSheet, setActivePrintSheet] = useState("manager");
   const [viewMode, setViewMode] = useState(() => {
@@ -301,6 +304,15 @@ export function ProcurementTab({
   const [confirmAutoAssign, setConfirmAutoAssign] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState(null);
 
+  const targetWarehouseId = warehouseId || operation?.warehouse_id;
+
+  const warehouseVendorsQuery = useQuery({
+    queryKey: ["ops", "warehouseVendors", targetWarehouseId],
+    queryFn: () => VendorService.listForWarehouse(targetWarehouseId),
+    enabled: Boolean(targetWarehouseId),
+    staleTime: 60 * 1000,
+  });
+
   const assignmentsQuery = useQuery({
     queryKey: ["admin", "vendorAssignments", operation?.id],
     queryFn: () => VendorService.getAssignments(operation.id, { logical: true }),
@@ -312,6 +324,45 @@ export function ProcurementTab({
     queryFn: () => VendorService.getAttendance(operation?.delivery_date),
     enabled: Boolean(operation?.id && operation?.delivery_date),
   });
+
+  const vendorOptions = useMemo(() => {
+    const list = (warehouseVendorsQuery.data || []).filter(
+      (vendor) => vendor.status === "active" && vendor.user?.status !== "inactive"
+    );
+    const seenIds = new Set();
+    const options = [];
+
+    list.forEach((vendor) => {
+      const id = vendor.user?.id || vendor.user_id || vendor.id;
+      if (!id || seenIds.has(String(id))) return;
+      seenIds.add(String(id));
+      const label = vendor.company_name
+        ? `${vendor.company_name}${vendor.user?.full_name && vendor.user.full_name !== vendor.company_name ? ` (${vendor.user.full_name})` : ""}`
+        : vendor.user?.full_name || "Vendor";
+      options.push({
+        value: String(id),
+        label,
+        vendor,
+      });
+    });
+
+    (assignmentsQuery.data || []).forEach((assignment) => {
+      const v = assignment.vendor;
+      const vId = assignment.vendor_user_id || v?.id || v?.user?.id;
+      if (!vId || seenIds.has(String(vId))) return;
+      seenIds.add(String(vId));
+      const label = v?.vendor_profile?.company_name || v?.company_name || v?.full_name || "Assigned vendor";
+      options.push({
+        value: String(vId),
+        label,
+        vendor: v,
+      });
+    });
+
+    options.sort((a, b) => a.label.localeCompare(b.label));
+    return options;
+  }, [warehouseVendorsQuery.data, assignmentsQuery.data]);
+
   const vendorCataloguesQuery = useQuery({
     queryKey: ["admin", "vendorCatalogues", operation?.warehouse_id],
     queryFn: async () => {
@@ -468,6 +519,21 @@ export function ProcurementTab({
       0n
     );
   }, [completedAssignments]);
+
+  const confirmedBuffer = useMemo(() => {
+    if (!assigningItem) return null;
+    return confirmedBufferRecommendation(
+      getItemAssignments(assigningItem),
+      stillToAssignForItem(assigningItem)
+    );
+  }, [assigningItem, assignmentsByCost]);
+
+  const applySuggestedAllocation = (quantityScaled) => {
+    const quantity = quantityScaled > 0n ? formatScaledQuantity(quantityScaled) : "";
+    setAllocationRows((rows) => rows.map((row, index) => (
+      index === 0 ? { ...row, allocated_quantity: quantity } : row
+    )));
+  };
 
   const activeAssignments = useMemo(() => {
     if (!assigningItem) return [];
@@ -873,6 +939,10 @@ export function ProcurementTab({
         onViewChange={onWorkViewChange}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
+        vendorFilter={vendorFilter}
+        onVendorFilterChange={setVendorFilter}
+        vendorOptions={vendorOptions}
+        isLoadingVendors={warehouseVendorsQuery.isLoading}
         isAdmin={isAdmin}
         isWarehouseManager={isWarehouseManager}
         isClosed={isClosed}
@@ -1951,6 +2021,36 @@ export function ProcurementTab({
                   <div className="border-t border-blue-200/50 dark:border-blue-900/30 pt-1.5 mt-1.5 flex justify-between items-center text-xs font-bold text-blue-900 dark:text-blue-300">
                     <span>Total Completed:</span>
                     <span>{formatProcurementQuantity(assigningItem, formatScaledQuantity(completedTotal))}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {confirmedBuffer?.confirmedAssignmentCount > 0 && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm dark:border-indigo-900/60 dark:bg-indigo-950/30">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="font-extrabold text-indigo-950 dark:text-indigo-200">
+                      Confirmed vendor buffer is available for this late order
+                    </p>
+                    <p className="text-xs leading-5 text-indigo-800 dark:text-indigo-300">
+                      Previously vendor-confirmed: <strong>{formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.previouslyConfirmedScaled))}</strong>
+                      {" · "}Original demand covered: <strong>{formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.confirmedDemandCoverageScaled))}</strong>
+                      {" · "}Confirmed extra: <strong>{formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.confirmedExtraScaled))}</strong>.
+                      For the late requirement of <strong>{formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.lateDemandScaled))}</strong>, the cost-saving recommended new assignment is <strong>{formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.recommendedNewAllocationScaled))}</strong>.
+                    </p>
+                    <p className="text-[11px] text-indigo-700 dark:text-indigo-400">
+                      Confirmed extra is not received stock yet. You may still assign the full late-order quantity if operational certainty is more important than the additional cost.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => applySuggestedAllocation(confirmedBuffer.recommendedNewAllocationScaled)}>
+                        Use recommended {formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.recommendedNewAllocationScaled))}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => applySuggestedAllocation(confirmedBuffer.fullLateDemandScaled)}>
+                        Assign full late qty {formatProcurementQuantity(assigningItem, formatScaledQuantity(confirmedBuffer.fullLateDemandScaled))}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

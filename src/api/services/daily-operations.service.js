@@ -209,13 +209,21 @@ export const DailyOperationsService = {
     return res.data?.data;
   },
 
-  async generateDeliveryPlan(operationId) {
-    const res = await api.post(ENDPOINTS.ops.dailyOperations.generateDeliveryPlan(operationId));
+  async generateDeliveryPlan(operationId, payload = {}) {
+    const res = await api.post(ENDPOINTS.ops.dailyOperations.generateDeliveryPlan(operationId), payload);
     return res.data?.data;
   },
 
   async getProposedDeliveryPlan(operationId) {
     const res = await api.get(ENDPOINTS.ops.dailyOperations.proposedDeliveryPlan(operationId));
+    return res.data?.data;
+  },
+
+  async changeProposedRunDeliveryPartner(operationId, payload) {
+    const res = await api.patch(
+      ENDPOINTS.ops.dailyOperations.changeProposedRunDeliveryPartner(operationId),
+      payload
+    );
     return res.data?.data;
   },
 

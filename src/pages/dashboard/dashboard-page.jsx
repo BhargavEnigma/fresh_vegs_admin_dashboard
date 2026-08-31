@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatIndianDateTime } from "../../utils/date-formatter";
 import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../utils/date.util";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import {
     AlertTriangle,
@@ -18,18 +18,22 @@ import {
     Settings2,
     ShoppingBasket,
     Truck,
+    Warehouse,
 } from "lucide-react";
 
 import { AdminDashboardService } from "../../api/services/admin-dashboard.service";
 import { OpsOrdersService } from "../../api/services/ops-orders.service";
 import { OpsReportsService } from "../../api/services/ops-reports.service";
 import { OpsJobsService } from "../../api/services/ops-jobs.service";
+import { DailyOperationsService } from "../../api/services/daily-operations.service";
+import { WarehousesService } from "../../api/services/warehouses.service";
 
 import { PageHeader } from "../../components/common/page-header";
 import { StatusBadge } from "../../components/common/status-badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
+import { PremiumSelect } from "../../components/ui/premium-select";
 import { useToast } from "../../components/toast/toast-context";
 import { useAuth } from "../../auth/auth-context";
 import { cn } from "../../lib/utils";
@@ -45,6 +49,26 @@ function formatCurrencyFromPaise(paise) {
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString("en-IN");
+}
+
+function getOrderPaise(order) {
+    if (!order) return 0;
+    const raw =
+        order.total_paise ??
+        order.grand_total_paise ??
+        order.payable_amount_paise ??
+        order.final_amount_paise ??
+        order.total_amount_paise ??
+        (order.total_amount ? Math.round(Number(order.total_amount) * 100) : null) ??
+        (order.payable_amount ? Math.round(Number(order.payable_amount) * 100) : null);
+    return Number(raw || 0);
+}
+
+function isOrderPaid(order) {
+    if (!order) return false;
+    const paymentStatus = String(order.payment_status || "").toLowerCase();
+    const status = String(order.status || "").toLowerCase();
+    return paymentStatus === "paid" || status === "delivered";
 }
 
 // date helper functions are imported from "../../utils/date.util"
@@ -203,10 +227,117 @@ function GuidanceCard({ title, subtitle, icon: Icon, children }) {
 
 export function DashboardPage() {
     const toast = useToast();
-    const { roles } = useAuth();
+    const { roles, user, booting } = useAuth();
     const isAdmin = roles.includes("admin");
+    const isWarehouseManager = roles.includes("warehouse_manager") && !isAdmin;
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [selectedDate, setSelectedDate] = useState(getIstYyyyMmDd());
+    const assignedWarehouses = user?.warehouse_assignments
+        ?.map((assignment) => assignment?.warehouse)
+        .filter(Boolean) || user?.warehouses || [];
+    const assignedWarehouseId = user?.warehouse_ids?.[0]
+        || user?.warehouse_assignments?.[0]?.warehouse_id
+        || user?.warehouse_id
+        || assignedWarehouses[0]?.id
+        || "";
+
+    const [selectedDate, setSelectedDate] = useState(() => searchParams.get("delivery_date") || getIstYyyyMmDd());
+    const [warehouseId, setWarehouseId] = useState(() => {
+        if (isWarehouseManager) {
+            return assignedWarehouseId;
+        }
+        return searchParams.get("warehouse_id") || localStorage.getItem("daily_ops_warehouse_id") || "";
+    });
+
+    const warehousesQuery = useQuery({
+        queryKey: ["admin", "warehouses"],
+        queryFn: () => WarehousesService.list(),
+        enabled: isAdmin && !booting,
+    });
+    const warehouses = warehousesQuery.data?.warehouses || warehousesQuery.data || [];
+
+    // Auto-select warehouse for admin
+    useEffect(() => {
+        if (isWarehouseManager) {
+            if (assignedWarehouseId && warehouseId !== assignedWarehouseId) {
+                setWarehouseId(assignedWarehouseId);
+                localStorage.setItem("daily_ops_warehouse_id", assignedWarehouseId);
+            }
+            return;
+        }
+
+        if (!warehouses.length) return;
+        const selectedIsValid = warehouses.some((warehouse) => warehouse.id === warehouseId);
+        if (selectedIsValid) return;
+        const nextWarehouseId = warehouses[0].id;
+        setWarehouseId(nextWarehouseId);
+        localStorage.setItem("daily_ops_warehouse_id", nextWarehouseId);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("warehouse_id", nextWarehouseId);
+        if (selectedDate) nextParams.set("delivery_date", selectedDate);
+        setSearchParams(nextParams, { replace: true });
+    }, [warehouses, warehouseId, searchParams, setSearchParams, selectedDate, isWarehouseManager, assignedWarehouseId]);
+
+    useEffect(() => {
+        const qpDate = searchParams.get("delivery_date");
+        if (qpDate && qpDate !== selectedDate) {
+            setSelectedDate(qpDate);
+        }
+        if (isAdmin) {
+            const qpWarehouse = searchParams.get("warehouse_id");
+            if (qpWarehouse && qpWarehouse !== warehouseId) {
+                setWarehouseId(qpWarehouse);
+            }
+        }
+    }, [searchParams, isAdmin, selectedDate, warehouseId]);
+
+    const handleDateChange = (newDate) => {
+        if (!newDate) return;
+        setSelectedDate(newDate);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("delivery_date", newDate);
+        if (warehouseId) nextParams.set("warehouse_id", warehouseId);
+        setSearchParams(nextParams, { replace: true });
+    };
+
+    const handleWarehouseChange = (nextWarehouseId) => {
+        setWarehouseId(nextWarehouseId);
+        if (nextWarehouseId) {
+            localStorage.setItem("daily_ops_warehouse_id", nextWarehouseId);
+        } else {
+            localStorage.removeItem("daily_ops_warehouse_id");
+        }
+        const nextParams = new URLSearchParams(searchParams);
+        if (nextWarehouseId) {
+            nextParams.set("warehouse_id", nextWarehouseId);
+        } else {
+            nextParams.delete("warehouse_id");
+        }
+        if (selectedDate) nextParams.set("delivery_date", selectedDate);
+        setSearchParams(nextParams, { replace: true });
+    };
+
+    const overviewQuery = useQuery({
+        queryKey: ["dashboardDailyOpsOverview", selectedDate, warehouseId || "none"],
+        queryFn: () =>
+            DailyOperationsService.getOverview({
+                delivery_date: selectedDate,
+                warehouse_id: warehouseId || undefined,
+            }),
+        enabled: Boolean(selectedDate && (isAdmin ? warehouseId : true)),
+        staleTime: 15 * 1000,
+    });
+
+    // Handle warehouse_manager auto warehouse resolution from overview response
+    useEffect(() => {
+        if (isWarehouseManager && overviewQuery.data?.operation?.warehouse_id && !warehouseId) {
+            const resolvedWhId = overviewQuery.data.operation.warehouse_id;
+            setWarehouseId(resolvedWhId);
+            localStorage.setItem("daily_ops_warehouse_id", resolvedWhId);
+        }
+    }, [overviewQuery.data, warehouseId, isWarehouseManager]);
+
+    const effectiveWarehouseId = warehouseId || overviewQuery.data?.operation?.warehouse_id || assignedWarehouseId || "";
 
     const kpisQuery = useQuery({
         queryKey: ["adminDashboardKpis", selectedDate],
@@ -215,26 +346,40 @@ export function DashboardPage() {
                 start_date: selectedDate,
                 end_date: selectedDate,
             }),
+        enabled: Boolean(selectedDate),
         staleTime: 15 * 1000,
     });
 
     const procurementQuery = useQuery({
-        queryKey: ["dashboardProcurement", selectedDate],
-        queryFn: () => OpsReportsService.procurement({ delivery_date: selectedDate }),
-        enabled: !!selectedDate,
+        queryKey: ["dashboardProcurement", selectedDate, effectiveWarehouseId || "none"],
+        queryFn: () => OpsReportsService.procurement({ delivery_date: selectedDate, warehouse_id: effectiveWarehouseId }),
+        enabled: Boolean(selectedDate && effectiveWarehouseId),
         staleTime: 15 * 1000,
     });
 
     const ordersQuery = useQuery({
-        queryKey: ["dashboardOpsOrders", selectedDate],
+        queryKey: ["dashboardOpsOrders", selectedDate, effectiveWarehouseId || "none"],
         queryFn: () =>
             OpsOrdersService.list({
                 page: 1,
-                limit: 100,
+                limit: 200,
                 delivery_date: selectedDate,
+                ...(effectiveWarehouseId ? { warehouse_id: effectiveWarehouseId } : {}),
             }),
-        enabled: !!selectedDate,
+        enabled: Boolean(selectedDate && (isAdmin ? effectiveWarehouseId : true)),
         staleTime: 15 * 1000,
+    });
+
+    const deliveredOrdersQuery = useQuery({
+        queryKey: ["dashboardDeliveredOrders", effectiveWarehouseId || "none"],
+        queryFn: () =>
+            OpsOrdersService.list({
+                status: "delivered",
+                warehouse_id: effectiveWarehouseId || undefined,
+                limit: 500,
+            }),
+        enabled: Boolean(effectiveWarehouseId),
+        staleTime: 60 * 1000,
     });
 
     const scheduleQuery = useQuery({
@@ -260,8 +405,12 @@ export function DashboardPage() {
         mutationFn: () => OpsJobsService.lockOrders({ delivery_date: selectedDate }),
         onSuccess: () => {
             toast.success("Lock orders job completed");
-            ordersQuery.refetch();
-            procurementQuery.refetch();
+            if (effectiveWarehouseId) {
+                ordersQuery.refetch();
+                procurementQuery.refetch();
+                deliveredOrdersQuery.refetch();
+            }
+            overviewQuery.refetch();
             kpisQuery.refetch();
             if (isAdmin) {
                 runsQuery.refetch();
@@ -272,12 +421,6 @@ export function DashboardPage() {
         },
     });
 
-    const kpis = kpisQuery.data || null;
-
-    const procurementItems = procurementQuery.data?.items || [];
-    const orders = ordersQuery.data?.orders || [];
-    const exceptionOrders = useMemo(() => getExceptionOrders(orders), [orders]);
-
     const schedule = isAdmin ? scheduleQuery.data?.data || scheduleQuery.data || null : null;
     const jobRuns = isAdmin
         ? runsQuery.data?.rows ||
@@ -287,18 +430,136 @@ export function DashboardPage() {
         []
         : [];
 
-    const totalProcurementQty = useMemo(() => {
-        return procurementItems.reduce((sum, item) => sum + Number(item?.total_quantity || 0), 0);
-    }, [procurementItems]);
+    const overview = overviewQuery.data || null;
+    const kpis = kpisQuery.data || null;
 
-    const orderStatusMap = kpis?.orders_by_status || {};
+    const procurementItems = procurementQuery.data?.items || [];
+    const orders = ordersQuery.data?.orders || [];
+    const pagination = ordersQuery.data?.pagination || {};
+    const exceptionOrders = useMemo(() => getExceptionOrders(orders), [orders]);
+
+    const currentWarehouse = useMemo(() => {
+        const targetWarehouseId = effectiveWarehouseId || warehouseId;
+        return warehouses.find((w) => w.id === targetWarehouseId)
+            || assignedWarehouses.find((w) => w.id === targetWarehouseId)
+            || null;
+    }, [warehouses, assignedWarehouses, effectiveWarehouseId, warehouseId]);
+
+    const totalOrdersCount = useMemo(() => {
+        if (typeof overview?.order_metrics?.total_orders === "number") {
+            return overview.order_metrics.total_orders;
+        }
+        if (typeof pagination?.total === "number") {
+            return pagination.total;
+        }
+        if (orders.length > 0) {
+            return orders.length;
+        }
+        return kpis?.orders_for_delivery || 0;
+    }, [overview, pagination, orders, kpis]);
+
+    const readyForPackingCount = useMemo(() => {
+        if (typeof overview?.order_metrics?.packing_queue === "number") {
+            return overview.order_metrics.packing_queue;
+        }
+        if (orders.length > 0) {
+            return orders.filter((o) => ["placed", "locked", "accepted"].includes(String(o.status || "").toLowerCase())).length;
+        }
+        return kpis?.packing_queue || 0;
+    }, [overview, orders, kpis]);
+
+    const paymentPendingCount = useMemo(() => {
+        if (typeof overview?.order_metrics?.payment_pending === "number") {
+            return overview.order_metrics.payment_pending;
+        }
+        if (orders.length > 0) {
+            return orders.filter((o) => {
+                const ps = String(o.payment_status || "").toLowerCase();
+                const st = String(o.status || "").toLowerCase();
+                return ps === "pending" || ps === "failed" || ps === "verification_pending" || st === "payment_pending";
+            }).length;
+        }
+        return kpis?.payment_pending || 0;
+    }, [overview, orders, kpis]);
+
+    const orderStatusMap = useMemo(() => {
+        const counts = {
+            placed: 0,
+            accepted: 0,
+            locked: 0,
+            packed: 0,
+            out_for_delivery: 0,
+            delivered: 0,
+            cancelled: 0,
+            delivery_failed: 0,
+            ...(kpis?.orders_by_status || {}),
+            ...(overview?.order_metrics?.status_counts || {}),
+        };
+
+        if (orders.length > 0) {
+            const calculated = {};
+            orders.forEach((order) => {
+                const status = String(order.status || "placed").toLowerCase();
+                calculated[status] = (calculated[status] || 0) + 1;
+            });
+            if (!overview?.order_metrics?.status_counts) {
+                return { ...counts, ...calculated };
+            }
+        }
+
+        return counts;
+    }, [overview, kpis, orders]);
+
+    const todayPaidSalesPaise = useMemo(() => {
+        if (orders.length > 0) {
+            const paidOrders = orders.filter((o) => isOrderPaid(o) && String(o.status || "").toLowerCase() !== "cancelled");
+            const sum = paidOrders.reduce((acc, o) => acc + getOrderPaise(o), 0);
+            if (sum > 0) return sum;
+        }
+        if (typeof overview?.financial_summary?.total_sales_paise === "number" && overview.financial_summary.total_sales_paise > 0) {
+            return overview.financial_summary.total_sales_paise;
+        }
+        if (typeof overview?.financial_summary?.revenue_paid_paise === "number" && overview.financial_summary.revenue_paid_paise > 0) {
+            return overview.financial_summary.revenue_paid_paise;
+        }
+        if (typeof overview?.reconciliation_metrics?.total_revenue_paise === "number" && overview.reconciliation_metrics.total_revenue_paise > 0) {
+            return overview.reconciliation_metrics.total_revenue_paise;
+        }
+        return 0;
+    }, [orders, overview]);
+
+    const totalDeliveredSalesPaise = useMemo(() => {
+        const deliveredOrders = deliveredOrdersQuery.data?.orders || [];
+        if (deliveredOrders.length > 0) {
+            return deliveredOrders.reduce((sum, o) => sum + getOrderPaise(o), 0);
+        }
+        const todayDelivered = orders.filter((o) => String(o.status || "").toLowerCase() === "delivered");
+        if (todayDelivered.length > 0) {
+            return todayDelivered.reduce((sum, o) => sum + getOrderPaise(o), 0);
+        }
+        return 0;
+    }, [deliveredOrdersQuery.data, orders]);
+
+    const procurementUnitTotals = useMemo(() => {
+        return procurementItems.reduce((totals, item) => {
+            const unit = String(item?.procurement_unit || item?.unit || "unit").trim().toUpperCase();
+            totals[unit] = (totals[unit] || 0) + Number(item?.total_quantity || 0);
+            return totals;
+        }, {});
+    }, [procurementItems]);
+    const procurementTotalsLabel = Object.entries(procurementUnitTotals)
+        .map(([unit, value]) => `${formatCount(value)} ${unit}`)
+        .join(" · ") || "0";
+
     const latestOrders = orders.slice(0, 8);
     const latestProcurementItems = procurementItems.slice(0, 8);
 
     const hasAnyError =
+        overviewQuery.isError ||
         kpisQuery.isError ||
         procurementQuery.isError ||
         ordersQuery.isError ||
+        deliveredOrdersQuery.isError ||
         (isAdmin && scheduleQuery.isError) ||
         (isAdmin && runsQuery.isError);
 
@@ -308,18 +569,26 @@ export function DashboardPage() {
                 className="w-full sm:w-auto"
                 variant="outline"
                 onClick={() => {
-                    kpisQuery.refetch();
-                    procurementQuery.refetch();
-                    ordersQuery.refetch();
                     if (isAdmin) {
+                        warehousesQuery.refetch();
                         scheduleQuery.refetch();
                         runsQuery.refetch();
                     }
+                    overviewQuery.refetch();
+                    kpisQuery.refetch();
+                    if (effectiveWarehouseId) {
+                        procurementQuery.refetch();
+                        ordersQuery.refetch();
+                        deliveredOrdersQuery.refetch();
+                    }
                 }}
                 disabled={
+                    (isAdmin && warehousesQuery.isFetching) ||
+                    overviewQuery.isFetching ||
                     kpisQuery.isFetching ||
                     procurementQuery.isFetching ||
                     ordersQuery.isFetching ||
+                    deliveredOrdersQuery.isFetching ||
                     (isAdmin && scheduleQuery.isFetching) ||
                     (isAdmin && runsQuery.isFetching)
                 }
@@ -360,7 +629,7 @@ export function DashboardPage() {
             ) : null}
 
             <Card className="overflow-hidden border-dailyveg-200/80 bg-gradient-to-br from-white via-white to-dailyveg-50/80 dark:border-dailyveg-900/80 dark:from-slate-950 dark:via-slate-950 dark:to-dailyveg-950/30">
-                <CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(220px,280px)_1fr] sm:items-end sm:p-5">
+                <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(180px,240px)_minmax(180px,240px)_1fr] lg:items-end sm:p-5">
                     <div className="grid gap-1.5">
                         <Label htmlFor="dashboard-date" className="flex items-center gap-2 text-sm font-semibold">
                             <CalendarDays className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
@@ -369,7 +638,7 @@ export function DashboardPage() {
                         <DatePicker
                             selected={selectedDate ? new Date(selectedDate) : null}
                             onChange={(date) =>
-                                setSelectedDate(date ? getIstYyyyMmDd(date) : null)
+                                handleDateChange(date ? getIstYyyyMmDd(date) : null)
                             }
                             dateFormat="dd-MM-yyyy"
                             placeholderText="Select date"
@@ -379,18 +648,45 @@ export function DashboardPage() {
                         />
                     </div>
 
+                    {isAdmin ? (
+                        <div className="grid gap-1.5">
+                            <Label className="flex items-center gap-2 text-sm font-semibold">
+                                <Warehouse className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
+                                Warehouse
+                            </Label>
+                            <PremiumSelect
+                                value={warehouseId}
+                                onChange={handleWarehouseChange}
+                                options={warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))}
+                                placeholder={warehousesQuery.isLoading ? "Loading warehouses…" : "Select warehouse"}
+                                isDisabled={warehousesQuery.isLoading}
+                            />
+                        </div>
+                    ) : (
+                        <div className="grid gap-1.5">
+                            <Label className="flex items-center gap-2 text-sm font-semibold">
+                                <Warehouse className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
+                                Assigned Warehouse
+                            </Label>
+                            <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
+                                <Warehouse className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-400 shrink-0" />
+                                <span className="truncate">{currentWarehouse?.name || overview?.operation?.warehouse_name || "Assigned Warehouse"}</span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-slate-600 dark:text-slate-300">
                             All numbers below are for <span className="font-semibold text-slate-900 dark:text-slate-50">{formatDateLabel(selectedDate)}</span>.
                         </p>
                         <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-                            <Button variant="outline" onClick={() => setSelectedDate(getIstYyyyMmDd())} className="w-full sm:w-auto">
+                            <Button variant="outline" onClick={() => handleDateChange(getIstYyyyMmDd())} className="w-full sm:w-auto">
                                 Today
                             </Button>
 
                             <Button
                                 variant="outline"
-                                onClick={() => setSelectedDate(addDaysYyyyMmDd(getIstYyyyMmDd(), 1))}
+                                onClick={() => handleDateChange(addDaysYyyyMmDd(getIstYyyyMmDd(), 1))}
                                 className="w-full sm:w-auto"
                             >
                                 Tomorrow
@@ -398,7 +694,7 @@ export function DashboardPage() {
 
                             <Button
                                 variant="outline"
-                                onClick={() => setSelectedDate(addDaysYyyyMmDd(getIstYyyyMmDd(), -1))}
+                                onClick={() => handleDateChange(addDaysYyyyMmDd(getIstYyyyMmDd(), -1))}
                                 className="w-full sm:w-auto"
                             >
                                 Yesterday
@@ -427,7 +723,7 @@ export function DashboardPage() {
                                 <p className="text-xs text-slate-500 dark:text-slate-400">orders need manual checking</p>
                             </div>
                             <Button variant={exceptionOrders.length ? "default" : "outline"} asChild>
-                                <Link to={`/ops/orders?delivery_date=${selectedDate}`}>
+                                <Link to={`/ops/orders?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}>
                                     Open Orders
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
@@ -446,11 +742,11 @@ export function DashboardPage() {
                 >
                     <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
-                            <div className="text-2xl font-bold">{formatCount(kpis?.orders_for_delivery)}</div>
+                            <div className="text-2xl font-bold">{formatCount(totalOrdersCount)}</div>
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">total orders</div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
-                            <div className="text-2xl font-bold">{formatCount(kpis?.packing_queue)}</div>
+                            <div className="text-2xl font-bold">{formatCount(readyForPackingCount)}</div>
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">ready for packing</div>
                         </div>
                     </div>
@@ -467,8 +763,8 @@ export function DashboardPage() {
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">items</div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-white/75 p-3 dark:border-slate-800 dark:bg-slate-950/60">
-                            <div className="text-2xl font-bold">{formatCount(totalProcurementQty)}</div>
-                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">total quantity</div>
+                            <div className="text-lg font-bold">{procurementTotalsLabel}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">quantity by unit</div>
                         </div>
                     </div>
                 </GuidanceCard>
@@ -484,21 +780,21 @@ export function DashboardPage() {
                     <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                         <QueueCard
                             title="Total Delivery Orders"
-                            value={kpis?.orders_for_delivery}
+                            value={totalOrdersCount}
                             subtitle="All orders planned for this delivery date."
                             icon={Truck}
                             tone="blue"
                         />
                         <QueueCard
                             title="Ready for Packing"
-                            value={kpis?.packing_queue}
+                            value={readyForPackingCount}
                             subtitle="Orders that can move through packing."
                             icon={PackageCheck}
                             tone="green"
                         />
                         <QueueCard
                             title="Payment Issues"
-                            value={kpis?.payment_pending}
+                            value={paymentPendingCount}
                             subtitle="Payments pending, failed, or waiting for check."
                             icon={AlertTriangle}
                             tone="amber"
@@ -581,7 +877,7 @@ export function DashboardPage() {
                                     <Link to="/ops/jobs">Job History</Link>
                                 </Button>
                                 <Button variant="outline" asChild>
-                                    <Link to={`/ops/orders?delivery_date=${selectedDate}`}>Open Orders</Link>
+                                    <Link to={`/ops/orders?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}>Open Orders</Link>
                                 </Button>
                             </div>
                         </CardContent>
@@ -611,10 +907,10 @@ export function DashboardPage() {
 
                             <div className="flex flex-wrap gap-2 pt-1">
                                 <Button variant="outline" asChild>
-                                    <Link to={`/ops/orders?delivery_date=${selectedDate}`}>Open Orders</Link>
+                                    <Link to={`/ops/orders?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}>Open Orders</Link>
                                 </Button>
                                 <Button variant="outline" asChild>
-                                    <Link to={`/ops/procurement?delivery_date=${selectedDate}`}>Open Procurement</Link>
+                                    <Link to={`/ops/procurement?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}>Open Procurement</Link>
                                 </Button>
                             </div>
                         </CardContent>
@@ -622,21 +918,25 @@ export function DashboardPage() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4">
-                <StatCard
-                    title="Today's Paid Sales"
-                    value={formatCurrencyFromPaise(kpis?.revenue_paid_paise)}
-                    subtitle="Money collected for this delivery date."
-                    icon={IndianRupee}
-                    tone="green"
-                />
-                <StatCard
-                    title="All Delivered Sales"
-                    value={formatCurrencyFromPaise(kpis?.total_delivered_revenue_paid_paise)}
-                    subtitle="Lifetime paid revenue from delivered orders."
-                    icon={IndianRupee}
-                    tone="slate"
-                />
+            <div className={"grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 sm:gap-4" + (isAdmin ? " xl:grid-cols-5" : " xl:grid-cols-3")}>
+                { isAdmin &&
+                    <StatCard
+                        title="Today's Paid Sales"
+                        value={formatCurrencyFromPaise(todayPaidSalesPaise)}
+                        subtitle="Money collected for this delivery date."
+                        icon={IndianRupee}
+                        tone="green"
+                    />
+                }
+                { isAdmin &&
+                    <StatCard
+                        title="All Delivered Sales"
+                        value={formatCurrencyFromPaise(totalDeliveredSalesPaise)}
+                        subtitle="Lifetime paid revenue from delivered orders."
+                        icon={IndianRupee}
+                        tone="slate"
+                    />
+                }
                 <StatCard
                     title="Procurement Items"
                     value={formatCount(procurementItems.length)}
@@ -646,8 +946,8 @@ export function DashboardPage() {
                 />
                 <StatCard
                     title="Total Quantity"
-                    value={formatCount(totalProcurementQty)}
-                    subtitle="Combined quantity across procurement."
+                    value={procurementTotalsLabel}
+                    subtitle="Procurement quantity grouped by unit."
                     icon={PackageCheck}
                     tone="slate"
                 />
@@ -778,7 +1078,7 @@ export function DashboardPage() {
                     <QuickLinkCard
                         title="Orders Queue"
                         subtitle="Open the full list to check customers, payments, and order status."
-                        to={`/ops/orders?delivery_date=${selectedDate}`}
+                        to={`/ops/orders?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}
                         buttonLabel="Open Orders"
                         icon={ClipboardList}
                     />
@@ -786,7 +1086,7 @@ export function DashboardPage() {
                     <QuickLinkCard
                         title="Procurement Summary"
                         subtitle="Open the item-wise quantity list for buying and packing."
-                        to={`/ops/procurement?delivery_date=${selectedDate}`}
+                        to={`/ops/procurement?delivery_date=${selectedDate}${effectiveWarehouseId ? `&warehouse_id=${effectiveWarehouseId}` : ""}`}
                         buttonLabel="Open Procurement"
                         icon={ShoppingBasket}
                     />

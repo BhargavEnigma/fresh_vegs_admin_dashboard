@@ -42,7 +42,7 @@ import {
   useInventoryLotMovements,
   useDailyOperationsMutations,
 } from "../../../../api/services/daily-operations.hooks";
-import { formatPaiseToRupees } from "../../../../utils/daily-operations-helpers";
+import { formatPaiseToRupees, matchesStockFilter } from "../../../../utils/daily-operations-helpers";
 import { formatIndianDateTime } from "../../../../utils/date-formatter";
 import { cn } from "../../../../lib/utils";
 import { ProductAvatar } from "../../../../components/common/product-avatar";
@@ -64,6 +64,11 @@ function FreshnessBadge({ status }) {
       className: "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
       icon: AlertTriangle,
     },
+    not_dispatchable: {
+      label: "Not Usable for Delivery",
+      className: "bg-orange-50 text-orange-700 border-orange-200/80 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800",
+      icon: AlertTriangle,
+    },
     quarantined: {
       label: "Quarantined",
       className: "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800",
@@ -75,7 +80,7 @@ function FreshnessBadge({ status }) {
       icon: AlertTriangle,
     },
     depleted: {
-      label: "Empty",
+      label: "Fully Used",
       className: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
       icon: CheckCircle2,
     },
@@ -99,6 +104,22 @@ function FreshnessBadge({ status }) {
       {config.label}
     </span>
   );
+}
+
+function lotAvailabilityState(lot) {
+  const available = Number(lot.available_quantity || 0);
+  const reserved = Number(lot.reserved_quantity || 0);
+  const consumed = Number(lot.consumed_quantity || 0);
+  const waste = Number(lot.waste_quantity || 0);
+  const free = Math.max(0, available - reserved);
+  const freshness = lot.freshness_status || lot.status;
+
+  if (lot.status === "quarantined") return { badge: "Quarantined", tone: "purple", message: `${free} ${lot.unit} is blocked and cannot be used.` };
+  if (freshness === "expired") return { badge: "Expired · Do not use", tone: "rose", message: free > 0 ? `${free} ${lot.unit} is still physically present but expired.` : "No usable stock remains in this lot." };
+  if (available <= 0) return { badge: consumed > 0 ? "Fully used for orders" : "No stock left", tone: "slate", message: `${consumed} ${lot.unit} used/packed${waste > 0 ? ` · ${waste} ${lot.unit} wasted` : ""}.` };
+  if (lot.tomorrow_delivery_status === "not_usable_tomorrow") return { badge: "Available now · Not usable tomorrow", tone: "orange", message: `${free} ${lot.unit} free now, but it misses tomorrow's delivery freshness cutoff.` };
+  if (["use_first", "expiring_soon", "not_dispatchable"].includes(freshness)) return { badge: "Available · Use first", tone: "amber", message: `${free} ${lot.unit} free and should be used before fresher lots.` };
+  return { badge: "Available · Fresh", tone: "emerald", message: `${free} ${lot.unit} free and usable for delivery.` };
 }
 
 function NextActionBadge({ code }) {
@@ -180,10 +201,7 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
       const matchSearch = name.includes(searchTerm.toLowerCase());
       if (!matchSearch) return false;
 
-      if (filterAction === "covered") return item.next_action_code === "covered_from_fresh_stock";
-      if (filterAction === "vendor_needed") return item.next_action_code === "vendor_purchase_needed";
-      if (filterAction === "policy_needed") return item.next_action_code === "configure_freshness_policy";
-      return true;
+      return matchesStockFilter(item, filterAction);
     });
   }, [products, searchTerm, filterAction]);
 
@@ -343,10 +361,11 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
             </div>
             <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
               {[
-                { key: "all", label: "All Items" },
+                { key: "all", label: "All" },
+                { key: "in_stock", label: "In Stock products" },
                 { key: "covered", label: "Covered by Stock" },
-                { key: "vendor_needed", label: "To Procure" },
-                { key: "policy_needed", label: "Policy Required" },
+                { key: "expiry_attention", label: "Expired / Expired Soon" },
+                { key: "to_procure", label: "To Procure" },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -416,6 +435,9 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                   Available Stock
                 </th>
                 <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                  Usable
+                </th>
+                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
                   Vendor Required
                 </th>
                 <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
@@ -432,14 +454,14 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
               {summaryQuery.isLoading ? (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400">
+                  <td colSpan={9} className="p-12 text-center text-slate-400">
                     <RefreshCw className="mx-auto h-7 w-7 animate-spin text-emerald-500" />
                     <p className="mt-3 text-xs font-bold text-slate-700 dark:text-slate-300">Loading warehouse fresh inventory...</p>
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400">
+                  <td colSpan={9} className="p-12 text-center text-slate-400">
                     <Boxes className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
                     <p className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">No inventory products found</p>
                     <p className="mt-0.5 text-xs text-slate-500">Run Replan to sync current order demand with fresh lots.</p>
@@ -450,6 +472,7 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                   const unit = row.tracking_unit || "KG";
                   const grossDemand = Number(row.gross_order_demand_quantity || 0);
                   const reserved = Number(row.reserved_from_stock_quantity || 0);
+                  const available = Number(row.available_stock_quantity ?? row.usable_stock_quantity ?? 0);
                   const usable = Number(row.usable_stock_quantity || 0);
                   const vendorNeeded = Number(row.net_vendor_required_quantity || 0);
                   const isFullyCovered = grossDemand > 0 && vendorNeeded === 0;
@@ -509,15 +532,19 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                       </td>
 
                       <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
-                        {usable > 0 ? (
+                        {available > 0 ? (
                           <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 font-mono text-xs font-black text-emerald-700 shadow-2xs dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
-                            {usable.toFixed(2)}{" "}
+                            {available.toFixed(2)}{" "}
                             <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
                           </span>
                         ) : (
                           <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>
                         )}
+                      </td>
+
+                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
+                        {usable > 0 ? <span className="inline-flex items-center rounded-xl border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-black text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-300">{usable.toFixed(2)} <span className="ml-1 text-[10px] uppercase opacity-80">{unit}</span></span> : <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>}
                       </td>
 
                       <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
@@ -995,6 +1022,7 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
               const free = Number(lot.available_quantity || 0) - Number(lot.reserved_quantity || 0);
               const isQuarantined = lot.status === "quarantined";
               const isExpired = lot.status === "expired" || (lot.usable_until && new Date(lot.usable_until) <= new Date());
+              const availabilityState = lotAvailabilityState(lot);
 
               return (
                 <div
@@ -1011,7 +1039,15 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
                         <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
                           Lot #{lot.id.slice(0, 8)}
                         </span>
-                        <FreshnessBadge status={lot.freshness_status || lot.status} />
+                        <span className={cn(
+                          "inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide whitespace-nowrap",
+                          availabilityState.tone === "emerald" && "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+                          availabilityState.tone === "amber" && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+                          availabilityState.tone === "orange" && "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
+                          availabilityState.tone === "rose" && "border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300",
+                          availabilityState.tone === "purple" && "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300",
+                          availabilityState.tone === "slate" && "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        )}>{availabilityState.badge}</span>
                         {lot.unit_cost_paise > 0 && (
                           <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             Cost: {formatPaiseToRupees(lot.unit_cost_paise)} / {lot.unit}
@@ -1040,6 +1076,15 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
                           </span>
                         )}
                       </div>
+                      <p className={cn(
+                        "mt-2 text-xs font-bold",
+                        availabilityState.tone === "emerald" && "text-emerald-700 dark:text-emerald-300",
+                        availabilityState.tone === "amber" && "text-amber-700 dark:text-amber-300",
+                        availabilityState.tone === "orange" && "text-orange-700 dark:text-orange-300",
+                        availabilityState.tone === "rose" && "text-rose-700 dark:text-rose-300",
+                        availabilityState.tone === "purple" && "text-purple-700 dark:text-purple-300",
+                        availabilityState.tone === "slate" && "text-slate-600 dark:text-slate-300"
+                      )}>{availabilityState.message}</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -1109,19 +1154,13 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
                       </span>
                     </div>
                     <div>
-                      <span className="block text-[10px] text-slate-400 uppercase">Available</span>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        {lot.available_quantity} {lot.unit}
-                      </span>
-                    </div>
-                    <div>
                       <span className="block text-[10px] text-slate-400 uppercase">Reserved</span>
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                         {lot.reserved_quantity} {lot.unit}
                       </span>
                     </div>
                     <div>
-                      <span className="block text-[10px] text-slate-400 uppercase">Consumed</span>
+                      <span className="block text-[10px] text-slate-400 uppercase">Used / Packed</span>
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                         {lot.consumed_quantity} {lot.unit}
                       </span>
@@ -1130,6 +1169,12 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
                       <span className="block text-[10px] text-slate-400 uppercase">Waste</span>
                       <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                         {lot.waste_quantity} {lot.unit}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] text-slate-400 uppercase">Available</span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {Math.max(0, free).toFixed(3)} {lot.unit}
                       </span>
                     </div>
                   </div>
@@ -1265,4 +1310,3 @@ function LotMovementsModal({ lot, onClose }) {
     </Dialog>
   );
 }
-

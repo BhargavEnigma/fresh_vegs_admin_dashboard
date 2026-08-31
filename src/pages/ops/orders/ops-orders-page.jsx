@@ -16,6 +16,7 @@ import { useAuth } from "../../../auth/auth-context";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { OpsJobsService } from "../../../api/services/ops-jobs.service";
+import { WarehousesService } from "../../../api/services/warehouses.service";
 import { opsOrdersFilterSchema } from "../../../validations/ops-orders";
 
 import { PageHeader } from "../../../components/common/page-header";
@@ -212,7 +213,7 @@ function matchesQueue(order, queueKey) {
     }
 }
 
-function getNextActions(order) {
+function getNextActions(order, canMarkDelivered = true) {
     const status = String(order?.status || "").toLowerCase();
     const isLocked = !!order?.is_locked;
     const isDeliveryAssigned = !!order?.delivery_partner_user_id;
@@ -230,6 +231,9 @@ function getNextActions(order) {
     }
 
     if (status === "out_for_delivery") {
+        if (!canMarkDelivered) {
+            return [];
+        }
         return [{ key: "delivered", label: "Mark Delivered" }];
     }
 
@@ -308,7 +312,7 @@ function canMoveOrderToStatus(order, toStatus) {
     return ALLOWED_TRANSITIONS[status]?.includes(toStatus) || false;
 }
 
-function Filters({ value, onApply, deliveryPartners }) {
+function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assignedWarehouse, warehousesLoading }) {
     const form = useForm({
         resolver: zodResolver(opsOrdersFilterSchema),
         defaultValues: {
@@ -351,8 +355,31 @@ function Filters({ value, onApply, deliveryPartners }) {
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
-                    <Label className="text-xs font-semibold text-slate-500">Warehouse ID</Label>
-                    <div className="relative"><Warehouse className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Warehouse UUID" {...form.register("warehouse_id")} /></div>
+                    <Label className="text-xs font-semibold text-slate-500">Warehouse</Label>
+                    {isAdmin ? (
+                        <Controller
+                            control={form.control}
+                            name="warehouse_id"
+                            render={({ field }) => (
+                                <PremiumSelect
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    options={warehouses.map((warehouse) => ({
+                                        value: warehouse.id,
+                                        label: warehouse.name,
+                                    }))}
+                                    placeholder={warehousesLoading ? "Loading warehouses…" : "All warehouses"}
+                                    isDisabled={warehousesLoading}
+                                    isClearable
+                                />
+                            )}
+                        />
+                    ) : (
+                        <div className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                            <Warehouse className="h-4 w-4 shrink-0 text-dailyveg-600 dark:text-dailyveg-400" />
+                            <span className="truncate">{assignedWarehouse?.name || (warehousesLoading ? "Loading assigned warehouse…" : "Assigned warehouse")}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
@@ -400,7 +427,7 @@ function Filters({ value, onApply, deliveryPartners }) {
                     variant="outline"
                     onClick={() => {
                         form.reset({
-                            warehouse_id: "",
+                            warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
                             delivery_partner_user_id: "",
                             q: "",
                             limit: 20,
@@ -408,7 +435,7 @@ function Filters({ value, onApply, deliveryPartners }) {
                         });
 
                         onApply({
-                            warehouse_id: "",
+                            warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
                             delivery_partner_user_id: "",
                             q: "",
                             limit: 20,
@@ -786,8 +813,9 @@ function MobileOrderCard({
     isUpdatePending,
     canDelete,
     onDelete,
+    canMarkDelivered = true,
 }) {
-    const nextActions = getNextActions(order);
+    const nextActions = getNextActions(order, canMarkDelivered);
     const selected = selectedIds.includes(order.id);
 
     const ORDER_STATUS_LABELS = {
@@ -940,8 +968,9 @@ function OrderGridCard({
     isUpdatePending,
     canDelete,
     onDelete,
+    canMarkDelivered = true,
 }) {
-    const nextActions = getNextActions(order);
+    const nextActions = getNextActions(order, canMarkDelivered);
     const selected = selectedIds.includes(order.id);
     const deliveryPartner = order.delivery_partner ? getDeliveryPartnerName(order) : "Not assigned";
     const deliveryPartnerPhone = order.delivery_partner ? getDeliveryPartnerPhone(order) || "—" : "—";
@@ -1217,13 +1246,17 @@ export function OpsOrdersPage() {
     const { withLoader } = useGlobalLoader();
     const qc = useQueryClient();
     const navigate = useNavigate();
-    const { roles } = useAuth();
+    const { roles, user, booting } = useAuth();
     const [searchParams] = useSearchParams();
 
     const isAdmin = roles.includes("admin");
+    const isWarehouseManagerOnly = roles.includes("warehouse_manager") && !roles.includes("admin") && !roles.includes("delivery_partner");
+    const canMarkDelivered = !isWarehouseManagerOnly;
+    const assignedWarehouseId = user?.warehouse_ids?.[0] || user?.warehouse_id || user?.warehouses?.[0]?.id || "";
 
     const paramDate = searchParams.get("delivery_date");
     const paramQueue = searchParams.get("queue");
+    const paramWarehouseId = searchParams.get("warehouse_id");
 
     const [queue, setQueue] = useState(paramQueue || "all");
     const [previewOrder, setPreviewOrder] = useState(null);
@@ -1240,11 +1273,28 @@ export function OpsOrdersPage() {
     const [filters, setFilters] = useState({
         page: 1,
         limit: 20,
-        warehouse_id: "",
+        warehouse_id: isWarehouseManagerOnly ? assignedWarehouseId : paramWarehouseId || "",
         delivery_partner_user_id: "",
         delivery_date: paramDate || addDaysYyyyMmDd(getIstYyyyMmDd(), 1),
         q: "",
     });
+
+    const warehousesQuery = useQuery({
+        queryKey: ["opsOrdersWarehouses"],
+        queryFn: () => WarehousesService.list(),
+        enabled: (isAdmin || isWarehouseManagerOnly) && !booting,
+    });
+    const warehouses = warehousesQuery.data?.warehouses || warehousesQuery.data || [];
+    const assignedWarehouse = isWarehouseManagerOnly
+        ? warehouses.find((warehouse) => warehouse.id === assignedWarehouseId) || warehouses[0] || user?.warehouses?.[0] || null
+        : null;
+
+    useEffect(() => {
+        if (!isWarehouseManagerOnly) return;
+        const resolvedWarehouseId = assignedWarehouse?.id || assignedWarehouseId;
+        if (!resolvedWarehouseId || filters.warehouse_id === resolvedWarehouseId) return;
+        setFilters((prev) => ({ ...prev, warehouse_id: resolvedWarehouseId, page: 1 }));
+    }, [assignedWarehouse?.id, assignedWarehouseId, filters.warehouse_id, isWarehouseManagerOnly]);
 
     function formatDateLabel(value) {
         return formatIndianDateTime(value);
@@ -1435,6 +1485,7 @@ export function OpsOrdersPage() {
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
             qc.invalidateQueries({ queryKey: ["procurement"] });
+            qc.invalidateQueries({ queryKey: ["ops", "dailyOperations"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Bulk delivery partner assignment failed");
@@ -1451,6 +1502,7 @@ export function OpsOrdersPage() {
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
             qc.invalidateQueries({ queryKey: ["procurement"] });
+            qc.invalidateQueries({ queryKey: ["ops", "dailyOperations"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Failed to unassign delivery partner");
@@ -1515,6 +1567,9 @@ export function OpsOrdersPage() {
         selectedOrders.some((order) => !canUnassignDeliveryPartner(order));
 
     function disableBulkStatus(toStatus) {
+        if (toStatus === "delivered" && !canMarkDelivered) {
+            return true;
+        }
         return (
             !hasSelectedOrders ||
             bulkUpdateMut.isPending ||
@@ -1565,6 +1620,10 @@ export function OpsOrdersPage() {
     }
 
     async function handleQuickAction(orderId, toStatus) {
+        if (toStatus === "delivered" && !canMarkDelivered) {
+            toast.error("Warehouse managers cannot mark orders as delivered. Only admins and delivery partners can perform this action.");
+            return;
+        }
         try {
             await updateStatusMut.mutateAsync({
                 orderId,
@@ -1578,6 +1637,10 @@ export function OpsOrdersPage() {
     }
 
     function handleBulkAction(toStatus) {
+        if (toStatus === "delivered" && !canMarkDelivered) {
+            toast.error("Warehouse managers cannot mark orders as delivered. Only admins and delivery partners can perform this action.");
+            return;
+        }
         if (!selectedIds.length) {
             toast.warning("Please select at least one order");
             return;
@@ -1876,7 +1939,15 @@ export function OpsOrdersPage() {
             </Card>
 
             <div className="mt-4">
-                <Filters value={filters} onApply={handleApplyFilters} deliveryPartners={deliveryPartners} />
+                <Filters
+                    value={filters}
+                    onApply={handleApplyFilters}
+                    deliveryPartners={deliveryPartners}
+                    warehouses={warehouses}
+                    isAdmin={isAdmin}
+                    assignedWarehouse={assignedWarehouse}
+                    warehousesLoading={warehousesQuery.isLoading}
+                />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
@@ -2003,9 +2074,11 @@ export function OpsOrdersPage() {
                             Bulk Out for Delivery
                         </Button>
 
-                        <Button variant="outline" disabled={disableBulkStatus("delivered")} onClick={() => handleBulkAction("delivered")}>
-                            Bulk Delivered
-                        </Button>
+                        {canMarkDelivered && (
+                            <Button variant="outline" disabled={disableBulkStatus("delivered")} onClick={() => handleBulkAction("delivered")}>
+                                Bulk Delivered
+                            </Button>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">Selected: {selectedIds.length}</span>
@@ -2052,6 +2125,7 @@ export function OpsOrdersPage() {
                                                 isUpdatePending={updateStatusMut.isPending}
                                                 canDelete={isAdmin}
                                                 onDelete={openDeleteDialog}
+                                                canMarkDelivered={canMarkDelivered}
                                             />
                                         ) : (
                                             <MobileOrderCard
@@ -2068,6 +2142,7 @@ export function OpsOrdersPage() {
                                                 isUpdatePending={updateStatusMut.isPending}
                                                 canDelete={isAdmin}
                                                 onDelete={openDeleteDialog}
+                                                canMarkDelivered={canMarkDelivered}
                                             />
                                         )
                                     )
@@ -2100,7 +2175,7 @@ export function OpsOrdersPage() {
                                             </tr>
                                         ) : (
                                             visibleRows.map((order) => {
-                                                const nextActions = getNextActions(order);
+                                                const nextActions = getNextActions(order, canMarkDelivered);
                                                 const selected = selectedIds.includes(order.id);
 
                                                 return (

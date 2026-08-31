@@ -4,11 +4,16 @@ import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../../utils/date.util";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import {
     AlertTriangle,
     CalendarCheck,
+    CalendarDays,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     ClipboardList,
+    ExternalLink,
     PackageCheck,
     Printer,
     RefreshCw,
@@ -17,13 +22,13 @@ import {
 
 import { OpsReportsService } from "../../../api/services/ops-reports.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
+import { WarehousesService } from "../../../api/services/warehouses.service";
 
-import { PageHeader } from "../../../components/common/page-header";
 import { DataTable } from "../../../components/common/data-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
 // import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
 import { Button } from "../../../components/ui/button";
+import { PremiumSelect } from "../../../components/ui/premium-select";
 import { cn } from "../../../lib/utils";
 
 // todayISO is replaced by getIstYyyyMmDd from "../../utils/date.util"
@@ -405,6 +410,27 @@ function ProcurementMobileList({ rows }) {
 export function ProcurementPage() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [date, setDate] = useState(searchParams.get("delivery_date") || getIstYyyyMmDd());
+    const [warehouseId, setWarehouseId] = useState(
+        searchParams.get("warehouse_id") || localStorage.getItem("daily_ops_warehouse_id") || ""
+    );
+    const warehousesQuery = useQuery({
+        queryKey: ["ops", "procurement", "warehouses"],
+        queryFn: () => WarehousesService.list(),
+    });
+    const warehouses = warehousesQuery.data?.warehouses || warehousesQuery.data || [];
+
+    useEffect(() => {
+        if (!warehouses.length) return;
+        const selectedIsValid = warehouses.some((warehouse) => warehouse.id === warehouseId);
+        if (selectedIsValid) return;
+        const nextWarehouseId = warehouses[0].id;
+        setWarehouseId(nextWarehouseId);
+        localStorage.setItem("daily_ops_warehouse_id", nextWarehouseId);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("warehouse_id", nextWarehouseId);
+        nextParams.set("delivery_date", date);
+        setSearchParams(nextParams, { replace: true });
+    }, [warehouses, warehouseId, searchParams, setSearchParams, date]);
 
     useEffect(() => {
         const qpDate = searchParams.get("delivery_date");
@@ -413,10 +439,46 @@ export function ProcurementPage() {
         }
     }, [searchParams, date]);
 
+    const handleDateChange = (newDate) => {
+        if (!newDate) return;
+        setDate(newDate);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("delivery_date", newDate);
+        if (warehouseId) nextParams.set("warehouse_id", warehouseId);
+        setSearchParams(nextParams, { replace: true });
+    };
+
+    const handleWarehouseChange = (nextWarehouseId) => {
+        setWarehouseId(nextWarehouseId);
+        localStorage.setItem("daily_ops_warehouse_id", nextWarehouseId);
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set("warehouse_id", nextWarehouseId);
+        nextParams.set("delivery_date", date);
+        setSearchParams(nextParams, { replace: true });
+    };
+
+    const handlePrevDay = () => {
+        const cur = date || getIstYyyyMmDd();
+        handleDateChange(addDaysYyyyMmDd(cur, -1));
+    };
+
+    const handleNextDay = () => {
+        const cur = date || getIstYyyyMmDd();
+        handleDateChange(addDaysYyyyMmDd(cur, 1));
+    };
+
+    const handleDateToday = () => {
+        handleDateChange(getIstYyyyMmDd());
+    };
+
+    const handleDateTomorrow = () => {
+        handleDateChange(addDaysYyyyMmDd(getIstYyyyMmDd(), 1));
+    };
+
     const procurementQuery = useQuery({
-        queryKey: ["procurement", date],
-        queryFn: () => OpsReportsService.procurement({ delivery_date: date }),
-        enabled: !!date,
+        queryKey: ["procurement", date, warehouseId || "none"],
+        queryFn: () => OpsReportsService.procurement({ delivery_date: date, warehouse_id: warehouseId }),
+        enabled: Boolean(date && warehouseId),
     });
 
     const rows = procurementQuery.data?.items || [];
@@ -579,100 +641,127 @@ export function ProcurementPage() {
         []
     );
 
-    const actions = (
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-            <Button
-                variant="outline"
-                onClick={() => {
-                    procurementQuery.refetch();
-                }}
-                disabled={procurementQuery.isFetching}
-            >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-            </Button>
-
-            <Button variant="outline" asChild>
-                <Link to={`/ops/orders?delivery_date=${date}`}>View Orders</Link>
-            </Button>
-        </div>
-    );
-
     const isCompletedState = procurementState === "completed";
 
     return (
         <div className="min-w-0 space-y-4 sm:space-y-6">
-            <PageHeader
-                title="Daily Procurement"
-                subtitle="Simple preparation list: what products to buy, collect, or prepare for the selected delivery date."
-                actions={actions}
-            />
+            {/* Header & Date Controls Toolbar */}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-1 sm:pb-2">
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold tracking-tight text-dailyveg-700 dark:text-dailyveg-200">
+                        Daily Procurement
+                    </h1>
+                    <p className="mt-0.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                        Preparation list for farm & market fulfillment for{" "}
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            {formatDateLabel(date)}
+                        </span>
+                    </p>
+                </div>
 
-            <Card className="mb-6 overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <CalendarCheck className="h-4 w-4 text-dailyveg-600 dark:text-dailyveg-300" />
-                        Select Delivery Date
-                    </CardTitle>
-                    <CardDescription>
-                        Choose the day you want to prepare products for.
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent className="grid gap-4">
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="procurement-date">Delivery Date</Label>
-                        <DatePicker
-                            selected={parseYyyyMmDd(date)}
-                            onChange={(selectedDate) => {
-                                const nextDate = selectedDate ? toYyyyMmDd(selectedDate) : "";
-                                setDate(nextDate);
-
-                                if (nextDate) {
-                                    setSearchParams({ delivery_date: nextDate });
-                                } else {
-                                    setSearchParams({});
-                                }
-                            }}
-                            dateFormat="dd-MM-yyyy"
-                            id="procurement-date"
-                            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-slate-300"
-                            isClearable
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                    <div className="w-52 shrink-0">
+                        <PremiumSelect
+                            value={warehouseId}
+                            onChange={handleWarehouseChange}
+                            options={warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))}
+                            placeholder={warehousesQuery.isLoading ? "Loading warehouses…" : "Select warehouse"}
+                            isDisabled={warehousesQuery.isLoading}
                         />
                     </div>
-
-                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                    {/* Quick Date Selector Group */}
+                    <div className="flex items-center rounded-xl border border-slate-200/80 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900 shrink-0">
                         <Button
-                            variant="outline"
-                            onClick={() => setSearchParams({ delivery_date: date })}
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
+                            onClick={handlePrevDay}
+                            title="Previous Day"
                         >
-                            Apply
+                            <ChevronLeft className="h-4 w-4" />
                         </Button>
 
                         <Button
-                            variant="outline"
-                            onClick={() => {
-                                const today = getIstYyyyMmDd();
-                                setDate(today);
-                                setSearchParams({ delivery_date: today });
-                            }}
+                            size="sm"
+                            variant={date === getIstYyyyMmDd() ? "default" : "ghost"}
+                            className={cn(
+                                "h-7 px-3 text-xs font-semibold rounded-lg transition-all",
+                                date === getIstYyyyMmDd()
+                                    ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm font-bold"
+                                    : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
+                            )}
+                            onClick={handleDateToday}
                         >
                             Today
                         </Button>
 
                         <Button
-                            variant="outline"
-                            onClick={() => {
-                                const tomorrow = addDaysYyyyMmDd(getIstYyyyMmDd(), 1);
-                                setDate(tomorrow);
-                                setSearchParams({ delivery_date: tomorrow });
-                            }}
+                            size="sm"
+                            variant={date === addDaysYyyyMmDd(getIstYyyyMmDd(), 1) ? "default" : "ghost"}
+                            className={cn(
+                                "h-7 px-3 text-xs font-semibold rounded-lg transition-all",
+                                date === addDaysYyyyMmDd(getIstYyyyMmDd(), 1)
+                                    ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm font-bold"
+                                    : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
+                            )}
+                            onClick={handleDateTomorrow}
                         >
                             Tomorrow
                         </Button>
+
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
+                            onClick={handleNextDay}
+                            title="Next Day"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
                     </div>
-                </CardContent>
-            </Card>
+
+                    {/* Date Picker Input */}
+                    <div className="relative shrink-0">
+                        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                        <DatePicker
+                            selected={parseYyyyMmDd(date)}
+                            onChange={(selectedDate) => {
+                                if (selectedDate) {
+                                    handleDateChange(toYyyyMmDd(selectedDate));
+                                }
+                            }}
+                            dateFormat="dd-MM-yyyy"
+                            className="flex h-9 w-[138px] rounded-xl border border-slate-200/80 bg-white py-1.5 pl-8 pr-2.5 text-xs font-bold text-slate-800 shadow-sm transition-all focus:border-dailyveg-500 focus:outline-none focus:ring-2 focus:ring-dailyveg-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                            placeholderText="Select Date"
+                        />
+                    </div>
+
+                    {/* Refresh Action */}
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 px-3.5 text-xs font-bold gap-1.5 rounded-xl border-slate-200/80 bg-white shadow-sm hover:border-dailyveg-300 hover:bg-dailyveg-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-dailyveg-950/50 shrink-0"
+                        onClick={() => procurementQuery.refetch()}
+                        disabled={procurementQuery.isFetching}
+                    >
+                        <RefreshCw className={cn("h-3.5 w-3.5 text-dailyveg-600", procurementQuery.isFetching && "animate-spin")} />
+                        Refresh
+                    </Button>
+
+                    {/* View Orders Action */}
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 px-3.5 text-xs font-bold gap-1.5 rounded-xl border-slate-200/80 bg-white shadow-sm hover:border-dailyveg-300 hover:bg-dailyveg-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-dailyveg-950/50 shrink-0"
+                        asChild
+                    >
+                        <Link to={`/ops/orders?delivery_date=${date}`}>
+                            <ExternalLink className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                            View Orders
+                        </Link>
+                    </Button>
+                </div>
+            </div>
 
             {procurementQuery.isLoading ? (
                 <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">

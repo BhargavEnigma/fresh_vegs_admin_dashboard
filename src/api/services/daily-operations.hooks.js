@@ -396,7 +396,7 @@ export function useDailyOperationsMutations(operationId) {
   });
 
   const generateDeliveryPlanMutation = useMutation({
-    mutationFn: () => DailyOperationsService.generateDeliveryPlan(operationId),
+    mutationFn: (payload) => DailyOperationsService.generateDeliveryPlan(operationId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.proposedDeliveryPlan(operationId) });
       invalidateOverview();
@@ -412,6 +412,14 @@ export function useDailyOperationsMutations(operationId) {
       invalidateOverview();
     },
     meta: { globalLoaderMessage: "Approving delivery plan..." },
+  });
+
+  const changeProposedRunDeliveryPartnerMutation = useMutation({
+    mutationFn: (payload) => DailyOperationsService.changeProposedRunDeliveryPartner(operationId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.proposedDeliveryPlan(operationId) });
+    },
+    meta: { globalLoaderMessage: "Changing proposed delivery partner..." },
   });
 
   const createExceptionMutation = useMutation({
@@ -559,6 +567,7 @@ export function useDailyOperationsMutations(operationId) {
     reconcileCodVarianceMutation,
     generateDeliveryPlanMutation,
     approveDeliveryPlanMutation,
+    changeProposedRunDeliveryPartnerMutation,
     createExceptionMutation,
     updateExceptionMutation,
     createWasteMutation,
@@ -573,5 +582,3 @@ export function useDailyOperationsMutations(operationId) {
     addStockMutation,
   };
 }
-
-

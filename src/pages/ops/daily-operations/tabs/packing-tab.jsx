@@ -32,8 +32,12 @@ import { Badge } from "../../../../components/ui/badge";
 import { useToast } from "../../../../components/toast/toast-context";
 import {
   groupPackingItemsByOrder,
+  orderedPackForPackingItem,
+  isPackingGroupExactlyPacked,
+  mapErrorCodeToUserMessage,
   parseDecimal,
 } from "../../../../utils/daily-operations-helpers";
+import { ProductAvatar } from "../../../../components/common/product-avatar";
 import { normalizeAutomationCapabilities, findOrderForPacking } from "../../../../utils/daily-operations-normalizers";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../../utils/order-identifier";
 import { formatQuantity } from "../../../../lib/utils";
@@ -98,6 +102,10 @@ export function PackingTab({
 
   const flatItems = packingData?.items || packingData || [];
   const orderGroups = useMemo(() => groupPackingItemsByOrder(flatItems), [flatItems]);
+  const editingPack = useMemo(
+    () => orderedPackForPackingItem(editingPackingItem),
+    [editingPackingItem],
+  );
 
   const vendorAssignmentsQuery = useQuery({
     queryKey: ["admin", "vendorAssignments", operation?.id],
@@ -216,7 +224,7 @@ export function PackingTab({
       toast.success("Clean packing confirmed for order");
       setExpandedOrderId(null);
     } catch (err) {
-      toast.error(err?.message || "Clean packing confirmation failed");
+      toast.error("Packing could not be finalized", mapErrorCodeToUserMessage(err));
     } finally {
       setConfirmingOrderId(null);
     }
@@ -325,6 +333,7 @@ export function PackingTab({
 
     // Check if there is an issue status
     const hasIssue = group.issue_count > 0 || status === "issue";
+    const isChecklistExactlyPacked = isPackingGroupExactlyPacked(group);
 
     // Style card dynamic colors based on state
     let cardAccentBorder = "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-dailyveg-300 dark:hover:border-dailyveg-800 shadow-[0_2px_8px_rgba(0,0,0,0.015)]";
@@ -452,7 +461,7 @@ export function PackingTab({
                     </>
                   ) : (
                     <>
-                      <Check className="h-3 w-3 stroke-[3]" /> Clean Confirm
+                      <Check className="h-3 w-3 stroke-[3]" /> {isChecklistExactlyPacked ? "Finalize Order" : "Clean Confirm"}
                     </>
                   )}
                 </Button>
@@ -478,7 +487,9 @@ export function PackingTab({
             {capabilities.atomic_clean_packing ? (
               <div className="bg-slate-50/70 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/50 dark:border-slate-800 space-y-3">
                 <div className="flex justify-between items-center flex-wrap gap-2">
-                  <span className="font-extrabold text-xs uppercase tracking-wider text-slate-500">Expecting Clean Verification</span>
+                  <span className="font-extrabold text-xs uppercase tracking-wider text-slate-500">
+                    {isChecklistExactlyPacked ? "Checklist resolved — ready to finalize" : "Expecting clean verification"}
+                  </span>
                   <Button
                     size="xs"
                     variant="outline"
@@ -518,10 +529,10 @@ export function PackingTab({
                     >
                       {isConfirmingClean && confirmingOrderId === group.order_id ? (
                         <span className="flex items-center justify-center gap-1.5">
-                          <Loader2 className="h-4 w-4 animate-spin stroke-[3]" /> Confirming Clean Packing...
+                          <Loader2 className="h-4 w-4 animate-spin stroke-[3]" /> Finalizing Order...
                         </span>
                       ) : (
-                        "Confirm Clean Packing"
+                        isChecklistExactlyPacked ? "Finalize Packed Order" : "Confirm Clean Packing"
                       )}
                     </Button>
                   )}
@@ -861,25 +872,47 @@ export function PackingTab({
             </DialogHeader>
 
             <div className="space-y-3 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border">
-                <p className="font-bold text-slate-900 dark:text-white">
-                  {editingPackingItem.product?.name || editingPackingItem.product_name}
-                </p>
-                <p className="text-slate-500 font-medium mt-0.5">
-                  {editingPackingItem.pack?.pack_label || editingPackingItem.pack_label}
-                </p>
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-lime-50 p-3.5 shadow-sm dark:border-emerald-900/60 dark:from-slate-950 dark:via-emerald-950/30 dark:to-slate-900">
+                <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-emerald-200/30 blur-2xl dark:bg-emerald-700/20" />
+                <div className="relative flex items-center gap-3.5">
+                  <ProductAvatar
+                    item={editingPackingItem}
+                    size="lg"
+                    className="h-16 w-16 rounded-2xl border-2 border-white shadow-md ring-1 ring-emerald-100 dark:border-slate-800 dark:ring-emerald-900"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-extrabold tracking-tight text-slate-950 dark:text-white">
+                      {editingPackingItem.product?.name || editingPackingItem.product_name}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-400">
+                      Editing pack
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {editingPack && (
+                        <span
+                          className="inline-flex items-baseline gap-1 rounded-full border border-emerald-200/80 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600 shadow-sm dark:border-emerald-900 dark:bg-slate-900/90 dark:text-slate-300"
+                        >
+                          <span>{editingPack.label}</span>
+                          <strong className="text-xs font-black text-emerald-700 dark:text-emerald-400">× {Number(editingPack.quantity).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-350 p-2.5 rounded-xl border border-emerald-100/60 dark:border-emerald-900/40 text-[11px] font-bold leading-relaxed flex items-start gap-1.5 shadow-sm">
                 <span className="text-emerald-600 font-extrabold shrink-0 mt-0.5">ℹ</span>
-                <span>Quantities entered here will automatically calculate the inventory delta and update the bulk stock ledger accordingly.</span>
+                <span>
+                  Enter pack counts only for the selected <strong>{editingPack?.label || "pack"}</strong> row. This will not change any other pack row.
+                </span>
               </div>
 
               {!isReportingException ? (
                 // Full override form
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label className="text-xs font-semibold">Packed Qty</Label>
+                    <Label className="text-xs font-semibold">Packed Packs</Label>
                     <Input
                       type="number"
                       step="0.001"
@@ -889,7 +922,7 @@ export function PackingTab({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold">Missing Qty</Label>
+                    <Label className="text-xs font-semibold">Missing Packs</Label>
                     <Input
                       type="number"
                       step="0.001"
@@ -899,7 +932,7 @@ export function PackingTab({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold">Damaged Qty</Label>
+                    <Label className="text-xs font-semibold">Damaged Packs</Label>
                     <Input
                       type="number"
                       step="0.001"
@@ -914,7 +947,7 @@ export function PackingTab({
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs font-bold text-rose-600">Missing Quantity</Label>
+                      <Label className="text-xs font-bold text-rose-600">Missing Packs</Label>
                       <Input
                         type="number"
                         step="0.001"
@@ -924,7 +957,7 @@ export function PackingTab({
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold text-amber-600">Damaged Quantity</Label>
+                      <Label className="text-xs font-bold text-amber-600">Damaged Packs</Label>
                       <Input
                         type="number"
                         step="0.001"
@@ -935,7 +968,7 @@ export function PackingTab({
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs font-semibold">Remaining Packed Quantity</Label>
+                    <Label className="text-xs font-semibold">Remaining Packed Packs</Label>
                     <Input
                       type="number"
                       step="0.001"

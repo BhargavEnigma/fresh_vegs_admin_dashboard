@@ -31,6 +31,10 @@ export async function createProductWithImages(payload, images) {
   const formData = new FormData();
 
   Object.entries(payload || {}).forEach(([k, v]) => {
+    if (k === "search_keywords" && v === null) {
+      formData.append(k, "null");
+      return;
+    }
     if (v === undefined || v === null) return;
     formData.append(k, String(v));
   });
@@ -54,6 +58,10 @@ export async function updateProductWithImages(productId, payload, images) {
   const formData = new FormData();
 
   Object.entries(payload || {}).forEach(([k, v]) => {
+    if (k === "search_keywords" && v === null) {
+      formData.append(k, "null");
+      return;
+    }
     if (v === undefined || v === null) return;
     formData.append(k, String(v));
   });

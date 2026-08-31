@@ -18,6 +18,29 @@ export function parseDecimal(val, maxDecimals = 3) {
   return Math.round(num * factor) / factor;
 }
 
+export function matchesStockFilter(item, filter) {
+  if (!item) return false;
+
+  const grossDemand = Number(item.gross_order_demand_quantity || 0);
+  const openingUsableStock = Number(item.opening_usable_stock_quantity || 0);
+  const availableStock = Number(item.available_stock_quantity || 0);
+  const expiredStock = Number(item.expired_stock_quantity || 0);
+  const expiringSoonStock = Number(item.expiring_soon_stock_quantity || 0);
+  const vendorRequired = Number(item.net_vendor_required_quantity || 0);
+
+  if (filter === "in_stock") return openingUsableStock > 0 || availableStock > 0;
+  if (filter === "covered") {
+    return grossDemand > 0
+      && vendorRequired <= 0
+      && item.next_action_code === "covered_from_fresh_stock";
+  }
+  if (filter === "expiry_attention") return expiredStock > 0 || expiringSoonStock > 0;
+  if (filter === "to_procure") {
+    return vendorRequired > 0 && item.next_action_code === "vendor_purchase_needed";
+  }
+  return true;
+}
+
 export function groupPackingItemsByOrder(packingItems = []) {
   if (!Array.isArray(packingItems)) return [];
 
@@ -75,6 +98,26 @@ export function groupPackingItemsByOrder(packingItems = []) {
   }
 
   return result;
+}
+
+export function orderedPackForPackingItem(item) {
+  if (!item) return null;
+  const label = item?.pack?.pack_label || item?.pack?.label || item?.pack_label || "Base";
+  const quantity = Number(item?.ordered_quantity ?? item?.required_quantity ?? 0);
+  return {
+    label,
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 0,
+  };
+}
+
+export function isPackingGroupExactlyPacked(group) {
+  const items = Array.isArray(group?.items) ? group.items : [];
+  return items.length > 0 && items.every((item) => (
+    String(item.status || item.packing_status || "").toLowerCase() === "packed"
+    && Number(item.packed_quantity || 0) === Number(item.required_quantity || 0)
+    && Number(item.missing_quantity || 0) === 0
+    && Number(item.damaged_quantity || 0) === 0
+  ));
 }
 
 export const FRIENDLY_EVENT_LABELS = {

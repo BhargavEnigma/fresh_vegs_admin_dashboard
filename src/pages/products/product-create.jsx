@@ -41,6 +41,7 @@ export function ProductCreatePage() {
     defaultValues: {
       category_id: "",
       name: "",
+      search_keywords: "",
       description: "",
       unit: "kg",
       base_quantity: 1,
@@ -136,6 +137,7 @@ export function ProductCreatePage() {
                 payload: {
                   category_id: v.category_id,
                   name: v.name,
+                  search_keywords: v.search_keywords?.trim() || null,
                   description: v.description || null,
                   tag: v.tag,
                   unit: v.unit,
@@ -187,6 +189,22 @@ export function ProductCreatePage() {
               {form.formState.errors.name ? (
                 <p className="text-xs text-red-600">
                   {form.formState.errors.name.message}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Search keywords (optional)</Label>
+              <Textarea
+                {...form.register("search_keywords")}
+                placeholder="e.g. Gajar, Guvar, Valor, Limbu"
+              />
+              <p className="text-xs text-slate-500">
+                Add comma-separated Gujarati names written in English characters to improve customer search.
+              </p>
+              {form.formState.errors.search_keywords ? (
+                <p className="text-xs text-red-600">
+                  {form.formState.errors.search_keywords.message}
                 </p>
               ) : null}
             </div>

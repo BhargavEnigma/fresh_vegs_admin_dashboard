@@ -313,9 +313,27 @@ export function AppShell() {
 
           <div className="mt-4 shrink-0 border-t border-slate-200/80 pt-4 dark:border-slate-800">
             {sidebarOpen ? (
-              <div className="rounded-3xl border border-dailyveg-200/80 bg-gradient-to-br from-dailyveg-50 to-white p-3 shadow-sm dark:border-dailyveg-900/80 dark:from-dailyveg-950/50 dark:to-slate-900">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-dailyveg-500 text-white shadow-brand">
+              <button
+                type="button"
+                onClick={() => navigate("/account/profile")}
+                className={cn(
+                  "w-full rounded-3xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500 focus-visible:ring-offset-2",
+                  location.pathname === "/account/profile"
+                    ? "border-dailyveg-500 bg-dailyveg-500 text-white shadow-brand ring-2 ring-dailyveg-200 dark:border-dailyveg-500 dark:bg-dailyveg-700 dark:ring-dailyveg-900"
+                    : "border-dailyveg-200/80 bg-gradient-to-br from-dailyveg-50 to-white shadow-sm hover:-translate-y-0.5 hover:border-dailyveg-300 hover:shadow-md dark:border-dailyveg-900/80 dark:from-dailyveg-950/50 dark:to-slate-900 dark:hover:border-dailyveg-700"
+                )}
+                aria-label="Open my profile"
+                aria-current={location.pathname === "/account/profile" ? "page" : undefined}
+              >
+                  <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-2xl shadow-brand",
+                      location.pathname === "/account/profile"
+                        ? "bg-white text-dailyveg-500"
+                        : "bg-dailyveg-500 text-white"
+                    )}
+                  >
                     <User className="h-4 w-4" />
                   </div>
 
@@ -323,20 +341,30 @@ export function AppShell() {
                     <div className="truncate text-sm font-semibold">
                       {user?.full_name || user?.phone || "User"}
                     </div>
-                    <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {roles.join(", ") || "No role"}
+                    <div className={cn("truncate text-xs", location.pathname === "/account/profile" ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
+                      {user?.phone || "No phone number"}
                     </div>
+                    <div className={cn("mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide", location.pathname === "/account/profile" ? "text-white/70" : "text-dailyveg-700/70 dark:text-dailyveg-300/70")}>{roles.join(", ").replaceAll("_", " ") || "No role"}</div>
                   </div>
                 </div>
-              </div>
+              </button>
             ) : (
               <div className="flex justify-center">
-                <div
+                <button
+                  type="button"
+                  onClick={() => navigate("/account/profile")}
                   title={user?.full_name || user?.phone || "User"}
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-dailyveg-500 text-white shadow-brand"
+                  className={cn(
+                    "flex h-12 w-12 items-center justify-center rounded-2xl bg-dailyveg-500 text-white shadow-brand transition-all hover:scale-105 hover:bg-dailyveg-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500 focus-visible:ring-offset-2 dark:bg-dailyveg-700 dark:hover:bg-dailyveg-600",
+                    location.pathname === "/account/profile"
+                      ? "ring-4 ring-dailyveg-200 dark:ring-dailyveg-900"
+                      : ""
+                  )}
+                  aria-label="Open my profile"
+                  aria-current={location.pathname === "/account/profile" ? "page" : undefined}
                 >
                   <User className="h-6 w-6" />
-                </div>
+                </button>
               </div>
             )}
 

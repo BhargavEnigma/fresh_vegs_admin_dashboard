@@ -151,3 +151,11 @@ test("view switching is procurement-local and existing action callbacks stay wir
   assert.match(tab, /Manage vendor capacity/);
   assert.match(tab, /increase the maximum quantity for these products or add another available vendor/);
 });
+
+test("grouped procurement rows preserve an explicit zero still-to-assign value", () => {
+  const table = readFileSync(new URL("../src/pages/ops/daily-operations/tabs/procurement-work-table.jsx", import.meta.url), "utf8");
+  assert.match(
+    table,
+    /field === "unassigned_quantity"[\s\S]*value !== null[\s\S]*\(item\.is_product_group \|\| item\.product_group_rows\?\.length\)[\s\S]*return formatProcurementQuantity\(item, value, "0"\)/
+  );
+});

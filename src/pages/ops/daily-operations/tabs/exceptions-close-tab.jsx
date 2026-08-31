@@ -628,6 +628,7 @@ export function ExceptionsCloseTab({
                   const isNotEntered = run.reported_cod_paise === null || run.handed_over_cod_paise === null;
                   const isReconciled = (!isNotEntered && !hasVariance) || run.cod_reconciliation_status === "matched" || Number(run.expected_cod_paise || 0) === 0;
                   const canReconcile = canReconcileRunCod(run);
+                  const isCancelled = run.status === "cancelled";
 
                   return (
                     <div 
@@ -656,7 +657,11 @@ export function ExceptionsCloseTab({
                       </div>
 
                       <div className="shrink-0 text-right min-w-[120px]">
-                        {isReconciled ? (
+                        {isCancelled ? (
+                          <span className="inline-flex rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-300">
+                            Canceled Deliveries
+                          </span>
+                        ) : isReconciled ? (
                           <span className="inline-flex px-2.5 py-1 text-[10px] font-black text-emerald-700 bg-emerald-100/70 dark:bg-emerald-950/20 border border-emerald-200/40 rounded-lg items-center gap-1">
                             <ShieldCheck className="h-3.5 w-3.5" /> Reconciled
                           </span>

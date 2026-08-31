@@ -7,6 +7,7 @@ import {
   assignmentCoverageScaled,
   buildFullAcceptanceDraft,
   buildFullRejectionDraft,
+  confirmedBufferRecommendation,
   formatQuantityWithUnit,
   formatProcurementQuantity,
   normalizeVendorAssignment,
@@ -19,6 +20,48 @@ import {
   rupeesToPaise,
   validateReceiptQuantities,
 } from "../src/utils/vendor-assignment.js";
+
+test("confirmed extra reduces the recommended late-order assignment but full demand stays available", () => {
+  const recommendation = confirmedBufferRecommendation([{
+    status: "confirmed",
+    allocated_quantity: "12.500",
+    supplied_quantity: "12.500",
+    demand_coverage_quantity: "10.000",
+  }], "2.500");
+
+  assert.equal(recommendation.previouslyConfirmedScaled, 12500n);
+  assert.equal(recommendation.confirmedExtraScaled, 2500n);
+  assert.equal(recommendation.recommendedNewAllocationScaled, 0n);
+  assert.equal(recommendation.fullLateDemandScaled, 2500n);
+});
+
+test("recommendation assigns only the late demand not covered by confirmed extra", () => {
+  const recommendation = confirmedBufferRecommendation([{
+    status: "dispatched",
+    supplied_quantity: "12.500",
+    demand_coverage_quantity: "10.000",
+  }], "4.000");
+  assert.equal(recommendation.confirmedExtraScaled, 2500n);
+  assert.equal(recommendation.recommendedNewAllocationScaled, 1500n);
+});
+
+test("remaining demand excludes unreceived buffer while received stock covers actual demand", () => {
+  const confirmed = {
+    status: "confirmed",
+    supplied_quantity: "12.500",
+    allocated_quantity: "12.500",
+    demand_coverage_quantity: "10.000",
+  };
+  assert.equal(remainingAssignmentQuantity("12.500", [confirmed]), 2500n);
+
+  const received = {
+    status: "received",
+    received_quantity: "12.500",
+    allocated_quantity: "12.500",
+    demand_coverage_quantity: "10.000",
+  };
+  assert.equal(remainingAssignmentQuantity("12.500", [received]), 0n);
+});
 
 test("quantity parsing preserves three-decimal precision", () => {
   assert.equal(parseQuantityScaled("0.125"), 125n);

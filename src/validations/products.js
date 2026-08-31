@@ -5,6 +5,7 @@ export const PROCUREMENT_UNITS = ["kg", "l", "unit", "piece"];
 export const createProductSchema = z.object({
   category_id: z.string().uuid(),
   name: z.string().min(2).max(150),
+  search_keywords: z.string().trim().max(2000).optional().nullable(),
   description: z.string().max(2000).optional().nullable(),
   tag: z.string().max(2000).optional().nullable(),
   unit: z.string().max(20),

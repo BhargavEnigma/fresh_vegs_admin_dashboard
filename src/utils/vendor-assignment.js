@@ -48,16 +48,7 @@ export function normalizeProcurementUnit(value, mode = "pack", packLabel = "") {
 }
 
 export function parseQuantityScaled(value, { allowEmpty = false } = {}) {
-  let cleanedValue = value;
-  if (typeof value === "number") {
-    cleanedValue = parseFloat(value.toFixed(3));
-  } else if (typeof value === "string" && value.trim() !== "") {
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed)) {
-      cleanedValue = parseFloat(parsed.toFixed(3));
-    }
-  }
-  const raw = String(cleanedValue ?? "").trim();
+  const raw = String(value ?? "").trim();
   if (allowEmpty && raw === "") return null;
   if (!/^\d+(?:\.\d{1,3})?$/.test(raw)) {
     throw new Error("Quantity must be non-negative with at most 3 decimal places");
@@ -75,6 +66,44 @@ export function formatScaledQuantity(value) {
   }
   const fractionStr = String(fractionVal).padStart(3, "0").replace(/0+$/, "");
   return `${whole}.${fractionStr}`;
+}
+
+export function confirmedBufferRecommendation(assignments = [], lateDemand = 0) {
+  const confirmed = assignments.filter((assignment) =>
+    ["confirmed", "dispatched"].includes(assignment?.status)
+  );
+  const assignedScaled = confirmed.reduce(
+    (sum, assignment) => sum + parseQuantityScaled(
+      assignment.supplied_quantity || assignment.allocated_quantity || 0
+    ),
+    0n
+  );
+  const demandCoverageScaled = confirmed.reduce(
+    (sum, assignment) => sum + parseQuantityScaled(
+      assignment.demand_coverage_quantity
+        ?? assignment.supplied_quantity
+        ?? assignment.allocated_quantity
+        ?? 0
+    ),
+    0n
+  );
+  const confirmedExtraScaled = assignedScaled > demandCoverageScaled
+    ? assignedScaled - demandCoverageScaled
+    : 0n;
+  const lateDemandScaled = typeof lateDemand === "bigint"
+    ? lateDemand
+    : parseQuantityScaled(lateDemand || 0);
+  return {
+    confirmedAssignmentCount: confirmed.length,
+    previouslyConfirmedScaled: assignedScaled,
+    confirmedDemandCoverageScaled: demandCoverageScaled,
+    confirmedExtraScaled,
+    lateDemandScaled,
+    recommendedNewAllocationScaled: lateDemandScaled > confirmedExtraScaled
+      ? lateDemandScaled - confirmedExtraScaled
+      : 0n,
+    fullLateDemandScaled: lateDemandScaled,
+  };
 }
 
 export function formatQuantityWithUnit(value, unit, fallback = "—") {
@@ -187,10 +216,19 @@ export function addQuantities(values) {
 
 export function assignmentCoverageScaled(assignment = {}) {
   if (["assigned", "approved"].includes(assignment.status)) {
-    return parseQuantityScaled(assignment.allocated_quantity || "0");
+    return parseQuantityScaled(
+      assignment.demand_coverage_quantity ?? assignment.allocated_quantity ?? "0"
+    );
   }
   if (["confirmed", "dispatched"].includes(assignment.status)) {
-    return parseQuantityScaled(assignment.supplied_quantity || "0");
+    const supplied = parseQuantityScaled(assignment.supplied_quantity || "0");
+    const demandCoverage = parseQuantityScaled(
+      assignment.demand_coverage_quantity
+        ?? assignment.supplied_quantity
+        ?? assignment.allocated_quantity
+        ?? "0"
+    );
+    return supplied < demandCoverage ? supplied : demandCoverage;
   }
   if (assignment.status === "received") {
     return parseQuantityScaled(assignment.received_quantity || "0");
@@ -221,16 +259,7 @@ export function acceptedPayoutPaise(quantity, unitCostPaise) {
 }
 
 export function rupeesToPaise(value) {
-  let cleanedValue = value;
-  if (typeof value === "number") {
-    cleanedValue = parseFloat(value.toFixed(2));
-  } else if (typeof value === "string" && value.trim() !== "") {
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed)) {
-      cleanedValue = parseFloat(parsed.toFixed(2));
-    }
-  }
-  const raw = String(cleanedValue ?? "").trim();
+  const raw = String(value ?? "").trim();
   if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) {
     throw new Error("Price must be non-negative with at most 2 decimal places");
   }

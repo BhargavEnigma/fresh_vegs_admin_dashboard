@@ -113,6 +113,7 @@ export function ProductDetailPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="ID" value={<span className="font-mono text-xs">{p.id}</span>} />
                 <Field label="Name" value={p.name} />
+                <Field label="Search keywords" value={p.search_keywords || "—"} />
                 <Field label="Category" value={p.category?.name || "—"} />
                 <Field label="Unit" value={p.unit} />
                 <Field label="Base quantity" value={formatQuantity(p.base_quantity)} />

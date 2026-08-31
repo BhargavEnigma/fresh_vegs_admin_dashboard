@@ -672,6 +672,7 @@ export function DailyOperationsPage() {
             onWorkViewChange={setProcurementView}
             onSelectTab={handleTabChange}
             operation={operation}
+            warehouseId={selectedWarehouseId || operation?.warehouse_id}
             isClosed={isClosed}
             isAdmin={isAdmin}
             isWarehouseManager={isWarehouseManager}
@@ -738,10 +739,12 @@ export function DailyOperationsPage() {
             onHandoverRun={mutations.handoverRunMutation.mutateAsync}
             onGeneratePlan={mutations.generateDeliveryPlanMutation.mutateAsync}
             onApprovePlan={mutations.approveDeliveryPlanMutation.mutateAsync}
+            onChangeProposedRunPartner={mutations.changeProposedRunDeliveryPartnerMutation.mutateAsync}
             isCreatingRun={mutations.createRunMutation.isPending}
             isHandingOver={mutations.handoverRunMutation.isPending}
             isGeneratingPlan={mutations.generateDeliveryPlanMutation.isPending}
             isApprovingPlan={mutations.approveDeliveryPlanMutation.isPending}
+            isChangingProposedRunPartner={mutations.changeProposedRunDeliveryPartnerMutation.isPending}
             capabilitiesRaw={automationSummary}
           />
         )}

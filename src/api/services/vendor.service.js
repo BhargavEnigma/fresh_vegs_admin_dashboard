@@ -120,4 +120,8 @@ export const VendorService = {
   async receive(assignmentId, payload) {
     return unwrap(await api.post(ENDPOINTS.ops.vendor.receive(assignmentId), payload));
   },
+
+  async receiveMany(assignments) {
+    return unwrap(await api.post(ENDPOINTS.ops.vendor.receiveMany, { assignments }));
+  },
 };

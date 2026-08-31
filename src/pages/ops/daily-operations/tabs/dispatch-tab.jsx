@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PremiumWorkspaceHelper } from "../../../../components/common/premium-workspace-helper";
 import { Link } from "react-router-dom";
 import {
@@ -11,6 +11,7 @@ import {
   ArrowDown,
   Trash2,
   UserCheck,
+  UserX,
   Package,
   Layers,
   FileText,
@@ -38,6 +39,27 @@ import { RunManifestPrint } from "../print/run-manifest-print";
 import { DailyOperationsService } from "../../../../api/services/daily-operations.service";
 import { useDailyOperationsProposedDeliveryPlan } from "../../../../api/services/daily-operations.hooks";
 
+function formatProposedOrderAddress(order) {
+  return [
+    order?.delivery_address_line1,
+    order?.delivery_address_line2,
+    order?.delivery_landmark,
+    order?.delivery_area,
+    order?.delivery_city,
+    order?.delivery_state,
+    order?.delivery_pincode,
+  ].filter(Boolean).join(", ") || "Address not available";
+}
+
+function formatItemQuantity(item) {
+  const quantity = Number(item?.quantity || 0);
+  const formatted = Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/\.?0+$/, "");
+  if (item?.pack_label) {
+    return `${formatted} × ${item.pack_label}`;
+  }
+  return `${formatted} ${String(item?.unit || "").toUpperCase()}`.trim();
+}
+
 export function DispatchTab({
   runsData,
   isLoading,
@@ -53,10 +75,12 @@ export function DispatchTab({
   onHandoverRun,
   onGeneratePlan,
   onApprovePlan,
+  onChangeProposedRunPartner,
   isCreatingRun,
   isHandingOver,
   isGeneratingPlan,
   isApprovingPlan,
+  isChangingProposedRunPartner,
   capabilitiesRaw,
 }) {
   const toast = useToast();
@@ -68,6 +92,11 @@ export function DispatchTab({
   const [selectedRunId, setSelectedRunId] = useState(null);
   const [runDetail, setRunDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [selectedProposedRun, setSelectedProposedRun] = useState(null);
+  const [selectedProposedPartnerId, setSelectedProposedPartnerId] = useState("");
+  const [selectedManifestOrder, setSelectedManifestOrder] = useState(null);
+  const [selectedPlanningPartnerIds, setSelectedPlanningPartnerIds] = useState([]);
+  const planningSelectionSourceRef = useRef(null);
 
   // Toggle manual override view for planning mode
   const [manualOverrideActive, setManualOverrideActive] = useState(false);
@@ -77,6 +106,22 @@ export function DispatchTab({
   const { data: proposedPlan, isLoading: isLoadingProposedPlan } = useDailyOperationsProposedDeliveryPlan(operationId, {
     enabled: Boolean(operationId && capabilities.delivery_plan_generation),
   });
+
+  useEffect(() => {
+    if (!operationId || !deliveryPartners.length) return;
+    const sourceKey = `${operationId}:${proposedPlan?.plan_id || "new"}`;
+    if (planningSelectionSourceRef.current === sourceKey) return;
+
+    const activePartnerIds = new Set(deliveryPartners.map((partner) => String(partner.id)));
+    const storedPartnerIds = Array.isArray(proposedPlan?.delivery_partner_user_ids)
+      ? proposedPlan.delivery_partner_user_ids
+          .map(String)
+          .filter((partnerId) => activePartnerIds.has(partnerId))
+      : deliveryPartners.map((partner) => String(partner.id));
+
+    setSelectedPlanningPartnerIds(storedPartnerIds);
+    planningSelectionSourceRef.current = sourceKey;
+  }, [operationId, proposedPlan?.plan_id, proposedPlan?.delivery_partner_user_ids, deliveryPartners]);
 
   // Print state
   const [printingRunDetail, setPrintingRunDetail] = useState(null);
@@ -91,6 +136,17 @@ export function DispatchTab({
   const [selectedOrderIdsToAdd, setSelectedOrderIdsToAdd] = useState([]);
 
   const runsList = runsData?.runs || runsData || [];
+  const isPlanningSelectionDirty = useMemo(() => {
+    if (!proposedPlan) return false;
+    const storedIds = Array.isArray(proposedPlan.delivery_partner_user_ids)
+      ? proposedPlan.delivery_partner_user_ids.map(String)
+      : deliveryPartners.map((partner) => String(partner.id));
+    const selectedIds = selectedPlanningPartnerIds.map(String);
+    return (
+      storedIds.length !== selectedIds.length ||
+      [...storedIds].sort().some((id, index) => id !== [...selectedIds].sort()[index])
+    );
+  }, [proposedPlan, deliveryPartners, selectedPlanningPartnerIds]);
 
   // All order IDs already in any run
   const allRunOrders = useMemo(() => {
@@ -210,8 +266,14 @@ export function DispatchTab({
   };
 
   const handleGeneratePlan = async () => {
+    if (!selectedPlanningPartnerIds.length) {
+      toast.error("Select at least one available delivery partner.");
+      return;
+    }
     try {
-      const res = await onGeneratePlan();
+      const res = await onGeneratePlan({
+        delivery_partner_user_ids: selectedPlanningPartnerIds,
+      });
       if (res?.warnings && res.warnings.length > 0) {
         toast.warning("Proposed Plan Warnings", res.warnings[0]);
       } else if (!res?.proposed_runs || res.proposed_runs.length === 0) {
@@ -224,6 +286,15 @@ export function DispatchTab({
     }
   };
 
+  const togglePlanningPartner = (partnerId) => {
+    const normalizedId = String(partnerId);
+    setSelectedPlanningPartnerIds((current) => (
+      current.includes(normalizedId)
+        ? current.filter((id) => id !== normalizedId)
+        : [...current, normalizedId]
+    ));
+  };
+
   const handleApprovePlan = async () => {
     try {
       await onApprovePlan();
@@ -231,6 +302,28 @@ export function DispatchTab({
       setManualOverrideActive(true); // switch view to runs detail
     } catch (err) {
       toast.error(err?.message || "Plan approval failed.");
+    }
+  };
+
+  const openProposedRunReview = (run, runIndex) => {
+    setSelectedProposedRun({ ...run, runIndex });
+    setSelectedProposedPartnerId(run.rider_id || "");
+  };
+
+  const handleChangeProposedRunPartner = async () => {
+    if (!selectedProposedRun || !selectedProposedPartnerId) return;
+    if (String(selectedProposedPartnerId) === String(selectedProposedRun.rider_id)) return;
+
+    try {
+      await onChangeProposedRunPartner({
+        current_delivery_partner_user_id: selectedProposedRun.rider_id,
+        new_delivery_partner_user_id: selectedProposedPartnerId,
+      });
+      toast.success("Proposed delivery partner changed successfully.");
+      setSelectedProposedRun(null);
+      setSelectedProposedPartnerId("");
+    } catch (err) {
+      toast.error(err?.message || "Failed to change the proposed delivery partner.");
     }
   };
 
@@ -321,7 +414,7 @@ export function DispatchTab({
                   size="sm"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
                   onClick={handleGeneratePlan}
-                  disabled={isGeneratingPlan}
+                  disabled={isGeneratingPlan || selectedPlanningPartnerIds.length === 0}
                 >
                   {proposedPlan ? "Regenerate Plan" : "Generate Plan"}
                 </Button>
@@ -331,7 +424,7 @@ export function DispatchTab({
                     size="sm"
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
                     onClick={handleApprovePlan}
-                    disabled={isApprovingPlan}
+                    disabled={isApprovingPlan || isPlanningSelectionDirty}
                   >
                     Approve Plan & Create Runs
                   </Button>
@@ -340,13 +433,124 @@ export function DispatchTab({
             </div>
 
             {/* proposedPlan Content */}
+            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/40 px-4 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-indigo-950/20 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-950 dark:text-white">
+                    <UserCheck className="h-4 w-4 text-indigo-600" /> Delivery Partners for This Plan
+                  </h4>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Exclude absent partners here. Their account and warehouse assignment will not be changed.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    {selectedPlanningPartnerIds.length} included
+                  </span>
+                  <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-black text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
+                    {Math.max(0, deliveryPartners.length - selectedPlanningPartnerIds.length)} excluded
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5">
+                {deliveryPartners.length === 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900">
+                    No active delivery partners are assigned to this warehouse.
+                  </div>
+                ) : (
+                  <div className="grid max-h-56 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                    {deliveryPartners.map((partner) => {
+                      const partnerId = String(partner.id);
+                      const isIncluded = selectedPlanningPartnerIds.includes(partnerId);
+                      const partnerName = partner.full_name || "Delivery Partner";
+                      const initials = partnerName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+
+                      return (
+                        <button
+                          key={partner.id}
+                          type="button"
+                          aria-pressed={isIncluded}
+                          onClick={() => togglePlanningPartner(partner.id)}
+                          className={`group flex min-h-12 items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                            isIncluded
+                              ? "border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white shadow-[0_1px_3px_rgba(16,185,129,0.08)] hover:border-emerald-400 dark:border-emerald-900 dark:from-emerald-950/25 dark:to-slate-950"
+                              : "border-slate-200 bg-slate-50/80 opacity-75 hover:border-rose-200 hover:opacity-100 dark:border-slate-800 dark:bg-slate-900/60"
+                          }`}
+                        >
+                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[9px] font-black ring-1 ring-inset ${
+                            isIncluded
+                              ? "bg-emerald-600 text-white ring-emerald-500"
+                              : "bg-slate-200 text-slate-500 ring-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700"
+                          }`}>
+                            {initials || "DP"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[11px] font-extrabold leading-4 text-slate-900 dark:text-white">{partnerName}</span>
+                            <span className="block truncate text-[9px] leading-3 text-slate-500">{partner.phone || "No phone"}</span>
+                          </span>
+                          <span className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-black ${
+                            isIncluded
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                          }`}>
+                            {isIncluded ? <Check className="h-2.5 w-2.5" /> : <UserX className="h-2.5 w-2.5" />}
+                            {isIncluded ? "Included" : "Excluded"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2.5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+                  <p className={`text-[11px] font-semibold ${selectedPlanningPartnerIds.length ? "text-slate-500" : "text-rose-600"}`}>
+                    {selectedPlanningPartnerIds.length
+                      ? `${selectedPlanningPartnerIds.length} partner(s) will receive orders in the next generated plan.`
+                      : "Select at least one delivery partner to generate a plan."}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px]"
+                      onClick={() => setSelectedPlanningPartnerIds(deliveryPartners.map((partner) => String(partner.id)))}
+                    >
+                      Include All
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[10px] text-rose-600"
+                      onClick={() => setSelectedPlanningPartnerIds([])}
+                    >
+                      Exclude All
+                    </Button>
+                  </div>
+                </div>
+                {isPlanningSelectionDirty && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Availability changed. Regenerate the plan before approval so orders are reassigned using only the included partners.
+                  </div>
+                )}
+              </div>
+            </div>
+
             {isLoadingProposedPlan ? (
               <p className="text-xs text-slate-500 text-center py-8">Retrieving proposed plan...</p>
             ) : !proposedPlan ? (
               <div className="text-center py-12 text-slate-500">
                 <Truck className="h-10 w-10 mx-auto opacity-30 mb-2" />
                 <p className="text-xs font-semibold">No proposed plan generated yet.</p>
-                <Button size="sm" className="mt-4 text-xs font-bold" onClick={handleGeneratePlan}>
+                <Button
+                  size="sm"
+                  className="mt-4 text-xs font-bold"
+                  onClick={handleGeneratePlan}
+                  disabled={isGeneratingPlan || selectedPlanningPartnerIds.length === 0}
+                >
                   Generate Initial Plan
                 </Button>
               </div>
@@ -355,7 +559,20 @@ export function DispatchTab({
                 {/* Proposed runs metrics list */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {(proposedPlan.proposed_runs || []).map((pRun, idx) => (
-                    <Card key={idx} className="p-4 border-slate-200/80 bg-white dark:bg-slate-900/50 space-y-3 shadow-sm hover:border-indigo-400 transition-colors">
+                    <Card
+                      key={pRun.rider_id || idx}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Review proposed run ${idx + 1} orders`}
+                      onClick={() => openProposedRunReview(pRun, idx)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openProposedRunReview(pRun, idx);
+                        }
+                      }}
+                      className="p-4 border-slate-200/80 bg-white dark:bg-slate-900/50 space-y-3 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="font-bold text-xs text-indigo-600 uppercase tracking-wider">
@@ -382,6 +599,9 @@ export function DispatchTab({
                             <span className="font-semibold">Est. Duration:</span> {pRun.estimated_duration_mins} mins
                           </div>
                         )}
+                      </div>
+                      <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2 text-[11px] font-bold text-indigo-600 dark:border-slate-800 dark:text-indigo-400">
+                        <Eye className="h-3.5 w-3.5" /> Review assigned orders
                       </div>
                     </Card>
                   ))}
@@ -411,6 +631,127 @@ export function DispatchTab({
               </div>
             )}
           </Card>
+
+          <Dialog open={Boolean(selectedProposedRun)} onOpenChange={(open) => {
+            if (!open) {
+              setSelectedProposedRun(null);
+              setSelectedProposedPartnerId("");
+            }
+          }}>
+            <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Proposed Run #{(selectedProposedRun?.runIndex ?? 0) + 1} · {selectedProposedRun?.rider_name || "Unassigned Rider"}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-950 dark:bg-indigo-950/20">
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <div>
+                      <Label>Delivery partner for this proposed run</Label>
+                      <PremiumSelect
+                        className="mt-1.5"
+                        value={selectedProposedPartnerId}
+                        onChange={setSelectedProposedPartnerId}
+                        options={deliveryPartners
+                          .filter((partner) => (
+                            !Array.isArray(proposedPlan?.delivery_partner_user_ids) ||
+                            proposedPlan.delivery_partner_user_ids.some((id) => String(id) === String(partner.id))
+                          ))
+                          .map((partner) => ({
+                          value: partner.id,
+                          label: `${partner.full_name || partner.phone || "Delivery Partner"}${partner.phone ? ` · ${partner.phone}` : ""}`,
+                        }))}
+                        placeholder="Select delivery partner"
+                        isDisabled={isClosed || isChangingProposedRunPartner}
+                      />
+                      <p className="mt-1.5 text-[11px] text-slate-500">
+                        If the selected partner already has another proposed run, both partners will be swapped.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleChangeProposedRunPartner}
+                      disabled={
+                        isClosed ||
+                        isChangingProposedRunPartner ||
+                        !selectedProposedPartnerId ||
+                        String(selectedProposedPartnerId) === String(selectedProposedRun?.rider_id)
+                      }
+                      className="bg-indigo-600 hover:bg-indigo-700 mt-2"
+                    >
+                      {isChangingProposedRunPartner ? "Changing..." : "Change Partner"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-900 md:grid-cols-4">
+                  <div><span className="block text-slate-500">Orders</span><strong>{selectedProposedRun?.orders_count || 0}</strong></div>
+                  <div><span className="block text-slate-500">Distance</span><strong>{selectedProposedRun?.estimated_distance_km ?? "—"} km</strong></div>
+                  <div><span className="block text-slate-500">Duration</span><strong>{selectedProposedRun?.estimated_duration_mins ?? "—"} mins</strong></div>
+                  <div><span className="block text-slate-500">Expected COD</span><strong>{formatPaiseToRupees(selectedProposedRun?.expected_cod_paise || 0)}</strong></div>
+                </div>
+
+                {!selectedProposedRun?.orders?.length ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    Order details are unavailable for this older proposal. Regenerate the plan to review its orders before approval.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedProposedRun.orders.map((order, orderIndex) => (
+                      <Card key={order.order_id} className="overflow-hidden border-slate-200 dark:border-slate-800">
+                        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/70 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Stop #{order.sequence_number || orderIndex + 1}</p>
+                            <h4 className="mt-1 font-extrabold text-slate-950 dark:text-white">
+                              {order.operational_order_code || order.order_number || order.order_id}
+                            </h4>
+                            {order.operational_order_code && order.order_number && (
+                              <p className="text-xs text-slate-500">Order number: {order.order_number}</p>
+                            )}
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <p className="font-extrabold text-slate-950 dark:text-white">{formatPaiseToRupees(order.order_amount_paise || 0)}</p>
+                            <p className="text-[10px] font-bold uppercase text-slate-500">{order.payment_method || "—"}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 p-4 md:grid-cols-2">
+                          <div className="space-y-2 text-xs">
+                            <div><span className="font-bold text-slate-700 dark:text-slate-300">Delivery date:</span> {order.delivery_date || "—"}</div>
+                            <div><span className="font-bold text-slate-700 dark:text-slate-300">Customer:</span> {order.delivery_name || "—"}{order.delivery_phone ? ` · ${order.delivery_phone}` : ""}</div>
+                            <div>
+                              <span className="font-bold text-slate-700 dark:text-slate-300">Address:</span>
+                              <p className="mt-1 leading-5 text-slate-600 dark:text-slate-400">{formatProposedOrderAddress(order)}</p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">Items ({order.items?.length || 0})</p>
+                            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                              {(order.items || []).map((item) => (
+                                <div key={item.id} className="flex items-start justify-between gap-3 px-3 py-2 text-xs">
+                                  <div>
+                                    <p className="font-semibold text-slate-900 dark:text-white">{item.product_name}</p>
+                                    {item.pack_label && <p className="text-[10px] text-slate-500">{item.pack_label}</p>}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold text-slate-700 dark:text-slate-300">{formatItemQuantity(item)}</p>
+                                    <p className="text-[10px] text-slate-500">{formatPaiseToRupees(item.line_total_paise || 0)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                              {!order.items?.length && <p className="px-3 py-3 text-xs text-slate-500">No item details available.</p>}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
@@ -475,7 +816,11 @@ export function DispatchTab({
                       </div>
 
                       <div className="flex justify-end gap-1.5 mt-3">
-                        {canHandoverDeliveryRun(run) ? (
+                        {run.status === "cancelled" ? (
+                          <span className="flex items-center rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-700 dark:bg-rose-950/20 dark:text-rose-300">
+                            Canceled
+                          </span>
+                        ) : canHandoverDeliveryRun(run) ? (
                           <Button
                             size="sm"
                             className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm"
@@ -565,7 +910,17 @@ export function DispatchTab({
                             return (
                               <div
                                 key={order.id}
-                                className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50 text-xs"
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`View details for ${primaryLabel}`}
+                                onClick={() => setSelectedManifestOrder(order)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setSelectedManifestOrder(order);
+                                  }
+                                }}
+                                className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50 text-xs cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               >
                                 <div className="flex items-center gap-3">
                                   <span className="font-mono font-bold text-slate-400 w-5 text-center">
@@ -597,7 +952,10 @@ export function DispatchTab({
                                       size="sm"
                                       variant="ghost"
                                       className="h-7 w-7 p-0 text-rose-600 hover:text-rose-700"
-                                      onClick={() => handleRemoveOrder(order.id)}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleRemoveOrder(order.id);
+                                      }}
                                       title="Remove from Run"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -658,6 +1016,108 @@ export function DispatchTab({
           )}
         </div>
       )}
+
+      {/* Active run manifest order detail */}
+      <Dialog open={Boolean(selectedManifestOrder)} onOpenChange={(open) => !open && setSelectedManifestOrder(null)}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              Order {selectedManifestOrder ? getPrimaryOrderLabel(selectedManifestOrder) : ""}
+              {selectedManifestOrder?.status && <StatusBadge value={selectedManifestOrder.status} />}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedManifestOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl bg-slate-50 p-4 text-xs dark:bg-slate-900 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <span className="block text-slate-500">Daily order</span>
+                  <strong className="block break-words">{getDailyOrderLabel(selectedManifestOrder) || "—"}</strong>
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-slate-500">Order number</span>
+                  <strong className="block break-all leading-5" title={selectedManifestOrder.order_number || undefined}>
+                    {selectedManifestOrder.order_number || "—"}
+                  </strong>
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-slate-500">Delivery date</span>
+                  <strong className="block">{selectedManifestOrder.delivery_date || "—"}</strong>
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-slate-500">Order amount</span>
+                  <strong className="block">{formatPaiseToRupees(selectedManifestOrder.grand_total_paise ?? selectedManifestOrder.total_paise ?? 0)}</strong>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="p-4">
+                  <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Delivery details</h4>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Customer:</span>{" "}
+                      {selectedManifestOrder.user?.full_name || selectedManifestOrder.delivery_name || "—"}
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Phone:</span>{" "}
+                      {selectedManifestOrder.delivery_phone || selectedManifestOrder.user?.phone || "—"}
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Payment:</span>{" "}
+                      <span className="uppercase">{selectedManifestOrder.payment_method || "—"}</span>
+                      {selectedManifestOrder.payment_status ? ` · ${selectedManifestOrder.payment_status.replaceAll("_", " ")}` : ""}
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">Address:</span>
+                      <p className="mt-1 leading-5 text-slate-600 dark:text-slate-400">
+                        {formatProposedOrderAddress(selectedManifestOrder)}
+                      </p>
+                    </div>
+                    {selectedManifestOrder.delivery_notes && (
+                      <div>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">Delivery notes:</span>
+                        <p className="mt-1 text-slate-600 dark:text-slate-400">{selectedManifestOrder.delivery_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Ordered items ({selectedManifestOrder.items?.length || 0})
+                  </h4>
+                  <div className="divide-y divide-slate-100 h-[300px] overflow-y-auto thin-scrollbar rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                    {(selectedManifestOrder.items || []).map((item) => (
+                      <div key={item.id} className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">{item.product_name}</p>
+                          {item.pack_label && <p className="mt-0.5 text-[10px] text-slate-500">{item.pack_label}</p>}
+                          <p className="mt-0.5 text-[10px] text-slate-500">
+                            {formatPaiseToRupees(item.unit_price_paise || 0)} each
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-slate-700 dark:text-slate-300">{formatItemQuantity(item)}</p>
+                          <p className="mt-0.5 text-[10px] font-semibold text-slate-500">
+                            {formatPaiseToRupees(item.line_total_paise || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {!selectedManifestOrder.items?.length && (
+                      <p className="px-3 py-4 text-center text-xs text-slate-500">No item details available.</p>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setSelectedManifestOrder(null)}>Close</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create Delivery Run Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
