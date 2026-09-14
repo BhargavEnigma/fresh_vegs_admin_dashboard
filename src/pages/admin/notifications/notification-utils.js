@@ -98,7 +98,6 @@ export function validateCampaignForm(form, mode = "draft") {
     const errors = {};
     const title = form.title?.trim();
     const body = form.body?.trim();
-    const imageUrl = form.image_url?.trim();
 
     if (!title) errors.title = "Title is required.";
     if (title && title.length > 80) errors.title = "Title must be 80 characters or less.";
@@ -106,12 +105,11 @@ export function validateCampaignForm(form, mode = "draft") {
     if (body && body.length > 240) errors.body = "Body must be 240 characters or less.";
     if (!form.type) errors.type = "Type is required.";
     if (!form.audience_type) errors.audience_type = "Audience is required.";
-    if (imageUrl) {
-        try {
-            new URL(imageUrl);
-        } catch {
-            errors.image_url = "Image URL must be valid.";
-        }
+    if (form.image_file && !["image/jpeg", "image/png", "image/webp"].includes(form.image_file.type)) {
+        errors.image_file = "Choose a JPG, PNG, or WebP image.";
+    }
+    if (form.image_file && form.image_file.size > 10 * 1024 * 1024) {
+        errors.image_file = "Image must be 10 MB or smaller.";
     }
     if (DEEP_LINK_VALUE_REQUIRED.has(form.deep_link_type) && !form.deep_link_value?.trim()) {
         errors.deep_link_value = "Deep link value is required for this destination.";
@@ -154,6 +152,8 @@ export function formFromCampaign(campaign) {
         title: campaign?.title || "",
         body: campaign?.body || "",
         image_url: campaign?.image_url || "",
+        image_file: null,
+        image_preview_url: "",
         type: campaign?.type || "general_announcement",
         audience_type: campaign?.audience_type || "all_customers",
         selected_user_ids: Array.isArray(filters.user_ids) ? filters.user_ids.join("\n") : "",

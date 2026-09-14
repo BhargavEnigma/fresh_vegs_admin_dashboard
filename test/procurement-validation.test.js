@@ -22,8 +22,8 @@ test("bulk product requires a supported procurement unit", () => {
   assert.equal(createProductSchema.safeParse({ ...product, procurement_mode: "bulk", procurement_unit: "kg" }).success, true);
 });
 
-test("pack product remains supported without a procurement unit", () => {
-  assert.equal(createProductSchema.safeParse({ ...product, procurement_mode: "pack", procurement_unit: "" }).success, true);
+test("pack procurement mode is rejected because operational quantities are physical", () => {
+  assert.equal(createProductSchema.safeParse({ ...product, procurement_mode: "pack", procurement_unit: "" }).success, false);
 });
 
 test("vendor capacity accepts three decimals and rejects excess precision", () => {

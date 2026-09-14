@@ -67,6 +67,7 @@ export function InventoryPage() {
   const queryClient = useQueryClient();
   const [warehouseId, setWarehouseId] = useState(() => localStorage.getItem("daily_ops_warehouse_id") || "");
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
   const [sort, setSort] = useState({ key: "product", direction: "asc" });
   const [dialog, setDialog] = useState({ open: false, mode: "add", product: null });
@@ -96,6 +97,10 @@ export function InventoryPage() {
   });
   const products = inventoryQuery.data?.products || [];
   const summary = inventoryQuery.data?.summary || {};
+  const categoryOptions = useMemo(() => Array.from(new Map(products
+    .filter((product) => product.category_id)
+    .map((product) => [String(product.category_id), { value: String(product.category_id), label: product.category_name || "Unnamed category" }])).values())
+    .sort((a, b) => a.label.localeCompare(b.label)), [products]);
 
   const lotsQuery = useQuery({
     queryKey: ["inventory-manage-lots", dialog.product?.product_id, warehouseId],
@@ -150,12 +155,13 @@ export function InventoryPage() {
     setDialog({ open: true, mode, product });
   };
   const filtered = useMemo(() => products.filter((product) => {
+    if (categoryFilter && String(product.category_id) !== categoryFilter) return false;
     if (!String(product.product_name || "").toLowerCase().includes(search.toLowerCase())) return false;
     if (stockFilter === "in_stock") return Number(product.available_quantity) > 0;
     if (stockFilter === "low") return Number(product.available_quantity) > 0 && Number(product.available_quantity) <= Number(product.reserved_quantity || 0) + 2;
     if (stockFilter === "out") return Number(product.available_quantity) <= 0;
     return true;
-  }), [products, search, stockFilter]);
+  }), [products, search, stockFilter, categoryFilter]);
   const sortedProducts = useMemo(() => [...filtered].sort((a, b) => {
     if (sort.key === "freshness") {
       const aDate = a.earliest_expiry ? new Date(a.earliest_expiry).getTime() : null;
@@ -199,8 +205,18 @@ export function InventoryPage() {
 
       <Card className="overflow-hidden rounded-3xl border-slate-200/80 shadow-lg shadow-slate-900/5 dark:border-slate-800">
         <div className="flex flex-col gap-3 border-b border-slate-100 p-5 dark:border-slate-900 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-md flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search product" className="h-11 rounded-xl pl-10" /></div>
-          <div className="w-48"><PremiumSelect value={stockFilter} onChange={setStockFilter} options={[{ value: "all", label: "All products" }, { value: "in_stock", label: "In stock" }, { value: "low", label: "Low stock" }, { value: "out", label: "Out of stock" }]} /></div>
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search product" className="h-11 rounded-xl pl-10" />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-full sm:w-60">
+              <PremiumSelect value={categoryFilter} onChange={setCategoryFilter} options={categoryOptions} placeholder="Filter by category" isClearable />
+            </div>
+            <div className="w-full sm:w-48">
+              <PremiumSelect value={stockFilter} onChange={setStockFilter} options={[{ value: "all", label: "All products" }, { value: "in_stock", label: "In stock" }, { value: "low", label: "Low stock" }, { value: "out", label: "Out of stock" }]} />
+            </div>
+          </div>
         </div>
         {inventoryQuery.isLoading ? (
           <div className="p-16 text-center text-sm font-semibold text-slate-400">Loading inventory…</div>

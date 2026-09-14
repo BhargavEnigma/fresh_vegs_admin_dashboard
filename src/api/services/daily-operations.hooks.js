@@ -214,8 +214,68 @@ export function useInventoryLotMovements(lotId, { enabled = true } = {}) {
 export function useDailyOperationsMutations(operationId) {
   const queryClient = useQueryClient();
 
+  const patchPackingItem = (current, updatedItem, orderSummary = null, mutationId = null) => {
+    if (!current || !updatedItem?.id) return current;
+    const currentItems = Array.isArray(current) ? current : current.items || [];
+    let items = currentItems.map((item) => {
+      if (item.id !== updatedItem.id) return item;
+      const patched = {
+        ...item,
+        ...updatedItem,
+        packing_status: updatedItem.status || item.packing_status,
+      };
+      if (mutationId) patched.__packingMutationId = mutationId;
+      else delete patched.__packingMutationId;
+      return patched;
+    });
+    const changed = items.find((item) => item.id === updatedItem.id);
+    if (changed?.order_id) {
+      const orderItems = items.filter((item) => item.order_id === changed.order_id);
+      const summary = orderSummary || {
+        total_items: orderItems.length,
+        packed_count: orderItems.filter((item) => item.status === "packed").length,
+        partial_count: orderItems.filter((item) => item.status === "partial").length,
+        issue_count: orderItems.filter((item) => item.status === "issue").length,
+        pending_count: orderItems.filter((item) => item.status === "pending").length,
+      };
+      items = items.map((item) => item.order_id === changed.order_id
+        ? { ...item, order_summary: summary }
+        : item);
+    }
+    return Array.isArray(current) ? items : { ...current, items };
+  };
+
+  const findPackingItem = (current, itemId) => {
+    const items = Array.isArray(current) ? current : current?.items || [];
+    return items.find((item) => item.id === itemId) || null;
+  };
+
+  const optimisticPackingItem = (item, payload) => {
+    if (!item) return null;
+    const next = { ...item, ...payload };
+    const required = Number(item.required_quantity || item.ordered_quantity || 0);
+    const packed = Number(next.packed_quantity || 0);
+    const missing = Number(next.missing_quantity || 0);
+    const damaged = Number(next.damaged_quantity || 0);
+    next.status = missing > 0 || damaged > 0
+      ? "issue"
+      : packed === required
+        ? "packed"
+        : packed > 0
+          ? "partial"
+          : "pending";
+    return next;
+  };
+
+  const patchIfCurrentMutation = (current, item, mutationId, orderSummary = null) => {
+    const cached = findPackingItem(current, item?.id);
+    if (!cached || cached.__packingMutationId !== mutationId) return current;
+    return patchPackingItem(current, item, orderSummary);
+  };
+
   const invalidateOverview = () => {
-    queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.all });
+    queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "overview"] });
+    queryClient.invalidateQueries({ queryKey: ["procurement"] });
     queryClient.invalidateQueries({ queryKey: ["ops", "orders"] });
     queryClient.invalidateQueries({ queryKey: ["ops", "reports"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
@@ -228,6 +288,7 @@ export function useDailyOperationsMutations(operationId) {
   const refreshMutation = useMutation({
     mutationFn: () => DailyOperationsService.refreshOperation(operationId),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.all });
       invalidateOverview();
     },
     meta: { globalLoaderMessage: "Refreshing daily operation..." },
@@ -285,10 +346,50 @@ export function useDailyOperationsMutations(operationId) {
   const updatePackingItemMutation = useMutation({
     mutationFn: ({ orderId, packingItemId, payload }) =>
       DailyOperationsService.updatePackingItem(operationId, orderId, packingItemId, payload),
-    onSuccess: (_, { orderId }) => {
-      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
+    onMutate: async ({ orderId, packingItemId, payload }) => {
+      const overviewKey = dailyOperationsKeys.packing(operationId);
+      const orderKey = dailyOperationsKeys.packingOrder(operationId, orderId);
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: overviewKey }),
+        queryClient.cancelQueries({ queryKey: orderKey }),
+      ]);
+      const previousOverview = queryClient.getQueryData(overviewKey);
+      const previousOrder = queryClient.getQueryData(orderKey);
+      const baseItem = findPackingItem(previousOrder, packingItemId)
+        || findPackingItem(previousOverview, packingItemId);
+      const optimisticItem = optimisticPackingItem(baseItem, payload);
+      const mutationId = `${packingItemId}:${Date.now()}:${Math.random()}`;
+      if (optimisticItem) {
+        queryClient.setQueryData(overviewKey, (current) => patchPackingItem(current, optimisticItem, null, mutationId));
+        queryClient.setQueryData(orderKey, (current) => patchPackingItem(current, optimisticItem, null, mutationId));
+      }
+      return { previousOverview, previousOrder, previousItem: baseItem, mutationId };
+    },
+    onSuccess: (data, { orderId }, context) => {
+      const updatedItem = data?.item || data;
+      const orderSummary = data?.order_summary || null;
+      queryClient.setQueryData(
+        dailyOperationsKeys.packing(operationId),
+        (current) => patchIfCurrentMutation(current, updatedItem, context?.mutationId, orderSummary),
+      );
+      queryClient.setQueryData(
+        dailyOperationsKeys.packingOrder(operationId, orderId),
+        (current) => patchIfCurrentMutation(current, updatedItem, context?.mutationId, orderSummary),
+      );
+      queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "overview"], refetchType: "active" });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
+    },
+    onError: (_error, { orderId, packingItemId }, context) => {
+      const rollback = (current) => {
+        const cached = findPackingItem(current, packingItemId);
+        if (!cached || cached.__packingMutationId !== context?.mutationId || !context?.previousItem) return current;
+        return patchPackingItem(current, context.previousItem);
+      };
+      queryClient.setQueryData(dailyOperationsKeys.packing(operationId), rollback);
+      queryClient.setQueryData(dailyOperationsKeys.packingOrder(operationId, orderId), rollback);
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingOrder(operationId, orderId) });
-      invalidateOverview();
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
     },
     meta: { globalLoaderMessage: "Updating packing item..." },
   });

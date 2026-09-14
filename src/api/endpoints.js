@@ -130,6 +130,7 @@ export const ENDPOINTS = {
       getById: (id) => `/v1/admin/vendor/${id}`,
       update: (id) => `/v1/admin/vendor/${id}`,
       remove: (id) => `/v1/admin/vendor/${id}`,
+      catalogues: "/v1/admin/vendor/catalogues",
       products: (id) => `/v1/admin/vendor/${id}/products`,
       updateProduct: (id, vendorProductId) => `/v1/admin/vendor/${id}/products/${vendorProductId}`,
       removeProduct: (id, vendorProductId) => `/v1/admin/vendor/${id}/products/${vendorProductId}`,
@@ -162,6 +163,7 @@ export const ENDPOINTS = {
     notificationCampaigns: {
       list: "/v1/admin/notification-campaigns",
       create: "/v1/admin/notification-campaigns",
+      uploadImage: "/v1/admin/notification-campaigns/images",
       getById: (id) => `/v1/admin/notification-campaigns/${id}`,
       update: (id) => `/v1/admin/notification-campaigns/${id}`,
       remove: (id) => `/v1/admin/notification-campaigns/${id}`,

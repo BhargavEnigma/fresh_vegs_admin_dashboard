@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AlertTriangle, BellRing, CalendarClock, Link2, Send, Users } from "lucide-react";
+import { AlertTriangle, BellRing, CalendarClock, ImagePlus, Link2, Send, Users, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 
@@ -28,6 +28,8 @@ const DEFAULT_FORM = {
     title: "",
     body: "",
     image_url: "",
+    image_file: null,
+    image_preview_url: "",
     type: "general_announcement",
     audience_type: "all_customers",
     selected_user_ids: "",
@@ -65,6 +67,10 @@ export function NotificationForm({ campaign, mode = "create" }) {
     const [testUserId, setTestUserId] = React.useState("");
     const [pendingAction, setPendingAction] = React.useState(null);
 
+    React.useEffect(() => () => {
+        if (form.image_preview_url) URL.revokeObjectURL(form.image_preview_url);
+    }, [form.image_preview_url]);
+
     React.useEffect(() => {
         if (campaign) setForm(formFromCampaign(campaign));
     }, [campaign]);
@@ -81,6 +87,11 @@ export function NotificationForm({ campaign, mode = "create" }) {
     const saveMut = useMutation({
         mutationFn: async ({ submitMode }) => {
             const payload = buildCampaignPayload(form, submitMode);
+            if (form.image_file) {
+                const uploadResponse = await AdminNotificationsService.uploadImage(form.image_file);
+                payload.image_url = uploadResponse?.data?.image_url || uploadResponse?.image_url;
+                if (!payload.image_url) throw new Error("Image URL was not returned by backend.");
+            }
             if (mode === "edit" && campaign?.id) {
                 return AdminNotificationsService.update(campaign.id, payload);
             }
@@ -220,9 +231,45 @@ export function NotificationForm({ campaign, mode = "create" }) {
                                 <FieldError>{errors.type}</FieldError>
                             </div>
                             <div>
-                                <Label>Image URL</Label>
-                                <Input value={form.image_url} onChange={(e) => updateField("image_url", e.target.value)} placeholder="https://..." />
-                                <FieldError>{errors.image_url}</FieldError>
+                                <Label htmlFor="notification-image">Image (optional)</Label>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <Input
+                                        id="notification-image"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={(event) => {
+                                            const file = event.target.files?.[0] || null;
+                                            const previewUrl = file ? URL.createObjectURL(file) : "";
+                                            setForm((current) => ({
+                                                ...current,
+                                                image_file: file,
+                                                image_preview_url: previewUrl,
+                                            }));
+                                            setErrors((current) => ({ ...current, image_file: undefined }));
+                                        }}
+                                    />
+                                    {(form.image_file || form.image_url) ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Remove notification image"
+                                            onClick={() => {
+                                                updateField("image_file", null);
+                                                updateField("image_url", "");
+                                                updateField("image_preview_url", "");
+                                                const input = document.getElementById("notification-image");
+                                                if (input) input.value = "";
+                                            }}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    ) : null}
+                                </div>
+                                <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                                    <ImagePlus className="h-3.5 w-3.5" /> JPG, PNG, or WebP; maximum 10 MB.
+                                </p>
+                                <FieldError>{errors.image_file}</FieldError>
                             </div>
                         </div>
                     </Card>

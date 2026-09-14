@@ -12,8 +12,7 @@ export const OpsReportsService = {
         const res = await api.get(ENDPOINTS.ops.reports.procurement, {
             params: {
                 delivery_date: finalDate,
-                date: finalDate,
-                warehouse_id,
+                ...(warehouse_id ? { warehouse_id } : {}),
             },
         });
 

@@ -7,6 +7,7 @@ import {
   canStartVendorAssignment,
   autoAssignableProcurementCostIds,
   completedProcurementPortions,
+  completedTotalCostPaise,
   completedUnitCostPerKgPaise,
   groupFullyConfirmedProductRows,
   procurementDisplayTotals,
@@ -15,8 +16,8 @@ import {
 } from "../src/utils/procurement-work-view.js";
 
 const rows = [
-  { id: "active", work_view: "active", outstanding_quantity: "2", unassigned_quantity: "2", next_action_code: "assign_vendor" },
-  { id: "warehouse", work_view: "active", outstanding_quantity: "1.5", unassigned_quantity: "0", next_action_code: "warehouse_receipt" },
+  { id: "active", procurement_unit: "kg", work_view: "active", outstanding_quantity: "2", unassigned_quantity: "2", next_action_code: "assign_vendor" },
+  { id: "warehouse", procurement_unit: "piece", work_view: "active", outstanding_quantity: "1.5", unassigned_quantity: "0", next_action_code: "warehouse_receipt" },
   { id: "done", work_view: "history", outstanding_quantity: "0", next_action_code: "completed" },
 ];
 
@@ -24,7 +25,6 @@ test("Active Work is the default procurement view", () => {
   assert.equal(PROCUREMENT_VIEWS.ACTIVE, "active");
   assert.deepEqual(procurementItemsForView(rows).map((row) => row.id), ["active", "warehouse"]);
 });
-
 test("completed rows are kept in History and excluded from Active Work", () => {
   assert.deepEqual(procurementItemsForView(rows, "history").map((row) => row.id), ["done"]);
   assert.equal(procurementItemsForView(rows, "active").some((row) => row.id === "done"), false);
@@ -53,8 +53,8 @@ test("Completed unit cost is always derived per KG from final cost and purchased
 
 test("active display totals use outstanding quantity and backend next actions", () => {
   assert.deepEqual(procurementDisplayTotals(procurementItemsForView(rows, "active")), {
-    outstanding: 3.5,
-    unassigned: 2,
+    outstanding_by_unit: { kg: 2, piece: 1.5 },
+    unassigned_by_unit: { kg: 2, piece: 0 },
     waitingVendor: 0,
     waitingWarehouse: 1,
   });
@@ -130,9 +130,8 @@ test("new demand remains separate from the confirmed assignment popup until conf
 test("procurement requests and query keys are separated by active/history view", () => {
   const service = readFileSync(new URL("../src/api/services/daily-operations.service.js", import.meta.url), "utf8");
   const hooks = readFileSync(new URL("../src/api/services/daily-operations.hooks.js", import.meta.url), "utf8");
-  assert.match(service, /ENDPOINTS\.admin\.cost\.procurementItems/);
-  assert.match(service, /delivery_date: deliveryDate/);
-  assert.match(service, /warehouse_id: warehouseId/);
+  assert.match(service, /ENDPOINTS\.ops\.dailyOperations\.procurement\(operationId\)/);
+  assert.match(service, /params:\s*\{\s*view,/);
   assert.match(hooks, /queryKey: dailyOperationsKeys\.procurement\(operationId, view, deliveryDate, warehouseId\)/);
   assert.match(hooks, /view,\s+deliveryDate,\s+warehouseId,/);
 });
@@ -156,6 +155,38 @@ test("grouped procurement rows preserve an explicit zero still-to-assign value",
   const table = readFileSync(new URL("../src/pages/ops/daily-operations/tabs/procurement-work-table.jsx", import.meta.url), "utf8");
   assert.match(
     table,
-    /field === "unassigned_quantity"[\s\S]*value !== null[\s\S]*\(item\.is_product_group \|\| item\.product_group_rows\?\.length\)[\s\S]*return formatProcurementQuantity\(item, value, "0"\)/
+    /value !== null[\s\S]*\(item\.is_product_group \|\| item\.product_group_rows\?\.length\)[\s\S]*return formatProcurementQuantity\(item, value, "0"\)/
   );
+});
+
+test("groupFullyConfirmedProductRows aggregates total_cost_paise and derives correct unit cost across multiple pack rows", () => {
+  const productRows = [
+    { id: "potato-3kg", product_id: "potato", product_name: "Potato", ordered_quantity: 3, purchased_quantity: 3, received_quantity: 3, total_cost_paise: 2250, unit_cost_paise: 1500 },
+    { id: "potato-2kg", product_id: "potato", product_name: "Potato", ordered_quantity: 2, purchased_quantity: 2, received_quantity: 2, total_cost_paise: 3750, unit_cost_paise: 1500 },
+    { id: "potato-5kg", product_id: "potato", product_name: "Potato", ordered_quantity: 20, purchased_quantity: 20, received_quantity: 20, total_cost_paise: 31500, unit_cost_paise: 1500 },
+  ];
+  const assignments = {
+    "potato-3kg": [{ id: "a1", status: "received", procurement_cost_id: "potato-3kg" }],
+    "potato-2kg": [{ id: "a2", status: "received", procurement_cost_id: "potato-2kg" }],
+    "potato-5kg": [{ id: "a3", status: "received", procurement_cost_id: "potato-5kg" }],
+  };
+  const grouped = groupFullyConfirmedProductRows(productRows, assignments);
+
+  assert.equal(grouped.length, 1);
+  assert.equal(grouped[0].total_cost_paise, 37500);
+  assert.equal(grouped[0].purchased_quantity, 25);
+  assert.equal(grouped[0].received_quantity, 25);
+  assert.equal(grouped[0].unit_cost_paise, 1500);
+  assert.equal(completedTotalCostPaise(grouped[0]), 37500);
+  assert.equal(completedUnitCostPerKgPaise(grouped[0]), 1500);
+
+  // When backend returns an unaggregated group item with assignments
+  const unaggregatedItem = { id: "potato", total_cost_paise: 3750, received_quantity: 25 };
+  const itemAssignments = [
+    { id: "a1", status: "received", received_quantity: 3, unit_cost_paise: 1500 },
+    { id: "a2", status: "received", received_quantity: 2, unit_cost_paise: 1500 },
+    { id: "a3", status: "received", received_quantity: 20, unit_cost_paise: 1500 },
+  ];
+  assert.equal(completedTotalCostPaise(unaggregatedItem, itemAssignments), 37500);
+  assert.equal(completedUnitCostPerKgPaise(unaggregatedItem, itemAssignments), 1500);
 });

@@ -185,12 +185,12 @@ function ProductFormDialog({ vendor, entry, catalogue, open, onOpenChange }) {
             </div>
             <div>
               <Label htmlFor="vendor-min-quantity">Minimum quantity ({procurementUnit.toUpperCase()}) — optional</Label>
-              <Input id="vendor-min-quantity" type="number" min="0" step="0.001" placeholder="Not set" {...form.register("minimum_quantity")} />
+              <Input id="vendor-min-quantity" type="number" min="0" step={procurementUnit === "pc" ? "1" : "0.001"} placeholder="Not set" {...form.register("minimum_quantity")} />
               <FieldError error={form.formState.errors.minimum_quantity} />
             </div>
             <div>
               <Label htmlFor="vendor-max-quantity">Maximum quantity ({procurementUnit.toUpperCase()}) — optional</Label>
-              <Input id="vendor-max-quantity" type="number" min="0.001" step="0.001" placeholder="Not set (unlimited)" {...form.register("maximum_quantity")} />
+              <Input id="vendor-max-quantity" type="number" min={procurementUnit === "pc" ? "1" : "0.001"} step={procurementUnit === "pc" ? "1" : "0.001"} placeholder="Not set (unlimited)" {...form.register("maximum_quantity")} />
               <FieldError error={form.formState.errors.maximum_quantity} />
             </div>
             <div>

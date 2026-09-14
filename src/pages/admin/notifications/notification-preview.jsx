@@ -4,7 +4,7 @@ import { labelFor, NOTIFICATION_TYPES } from "./notification-utils";
 export function NotificationPreview({ form }) {
     const title = form.title?.trim() || "Fresh offer from DailyVeg";
     const body = form.body?.trim() || "Your notification message preview will appear here.";
-    const imageUrl = form.image_url?.trim();
+    const imageUrl = form.image_preview_url || form.image_url?.trim();
 
     return (
         <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-3 shadow-2xl shadow-slate-300/50 dark:border-slate-800 dark:bg-black dark:shadow-black/40">

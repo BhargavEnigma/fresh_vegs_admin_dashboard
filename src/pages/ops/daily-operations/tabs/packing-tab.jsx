@@ -108,9 +108,10 @@ export function PackingTab({
   );
 
   const vendorAssignmentsQuery = useQuery({
-    queryKey: ["admin", "vendorAssignments", operation?.id],
-    queryFn: () => VendorService.getAssignments(operation.id),
+    queryKey: ["admin", "vendorAssignments", operation?.id, "child"],
+    queryFn: () => VendorService.getAssignments(operation.id, { logical: false }),
     enabled: Boolean(operation?.id),
+    staleTime: 30 * 1000,
   });
 
   const vendorAssignmentsForItem = (item) => {

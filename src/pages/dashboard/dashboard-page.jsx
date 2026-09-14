@@ -351,7 +351,7 @@ export function DashboardPage() {
     });
 
     const procurementQuery = useQuery({
-        queryKey: ["dashboardProcurement", selectedDate, effectiveWarehouseId || "none"],
+        queryKey: ["procurement", selectedDate, effectiveWarehouseId || "none"],
         queryFn: () => OpsReportsService.procurement({ delivery_date: selectedDate, warehouse_id: effectiveWarehouseId }),
         enabled: Boolean(selectedDate && effectiveWarehouseId),
         staleTime: 15 * 1000,

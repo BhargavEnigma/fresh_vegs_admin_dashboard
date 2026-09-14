@@ -76,11 +76,9 @@ export function ExceptionsCloseTab({
   onSaveNotes,
   onCloseOperation,
   onReopenOperation,
-  onEvaluateAutoClose,
   isSavingNotes,
   isClosing,
   isReopening,
-  isEvaluatingAutoClose,
   capabilitiesRaw,
 }) {
   const toast = useToast();
@@ -361,16 +359,6 @@ export function ExceptionsCloseTab({
       setReopenReason("");
     } catch (err) {
       toast.error(err?.message || "Failed to reopen");
-    }
-  };
-
-  // Evaluate Auto-Close
-  const handleAutoCloseEvaluate = async () => {
-    try {
-      await onEvaluateAutoClose();
-      toast.success("Auto-close evaluation requested.");
-    } catch (err) {
-      toast.error("Failed to request auto-close evaluation.");
     }
   };
 
@@ -709,32 +697,15 @@ export function ExceptionsCloseTab({
               <CheckSquare className="h-4.5 w-4.5 text-teal-500" /> Store Closure Checklist
             </h4>
 
-            {/* Auto-Close status display */}
-            {capabilities.automatic_operation_close ? (
-              <div className="p-4 bg-gradient-to-br from-teal-50/50 to-emerald-50/30 dark:from-slate-900/60 dark:to-teal-950/20 border border-teal-200/60 dark:border-teal-900/40 text-teal-900 dark:text-teal-300 rounded-xl text-xs space-y-1.5 shadow-sm">
-                <p className="font-black flex items-center gap-1.5">
-                  <Cpu className="h-4.5 w-4.5 text-teal-500 animate-pulse" /> Auto-Closure Mode Active
-                </p>
-                <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
-                  The system will close operations automatically once all checklist criteria and delivery dispatches are complete.
-                </p>
-                <div className="pt-2 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    className="text-teal-700 border-teal-200 dark:border-teal-800 hover:border-teal-300 hover:bg-teal-50/60 dark:hover:bg-teal-950/20 h-7.5 px-4 rounded-xl text-[11px] font-extrabold shadow-sm transition-all hover:scale-[1.03] duration-200" 
-                    onClick={handleAutoCloseEvaluate} 
-                    disabled={isEvaluatingAutoClose}
-                  >
-                    Request Close Check
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl text-xs space-y-1 font-semibold flex items-center gap-2 shadow-sm">
-                <Cpu className="h-4 w-4 text-slate-500" />
-                <span>Backend auto-close capability unavailable. Store requires manual closure trigger.</span>
-              </div>
-            )}
+            {/* Day closure is always an explicit operator decision. */}
+            <div className="p-4 bg-gradient-to-br from-indigo-50/80 to-emerald-50/50 dark:from-indigo-950/20 dark:to-emerald-950/10 border border-indigo-200/70 dark:border-indigo-900/50 text-slate-700 dark:text-slate-300 rounded-xl text-xs shadow-sm">
+              <p className="font-black flex items-center gap-2 text-slate-900 dark:text-white">
+                <ShieldCheck className="h-4.5 w-4.5 text-indigo-600" /> Manual closure confirmation required
+              </p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
+                Completing the final COD handover will mark the checklist ready, but the operation remains open until you confirm Close Day below.
+              </p>
+            </div>
 
             {/* Checklist status */}
             <div className={`p-4 rounded-xl border text-xs shadow-sm ${canClose ? "bg-emerald-50/60 text-emerald-800 border-emerald-200/70 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400" : "bg-rose-50/60 text-rose-800 border-rose-200/70 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400"}`}>
@@ -798,14 +769,14 @@ export function ExceptionsCloseTab({
               )}
             </div>
 
-            {!isClosed && !capabilities.automatic_operation_close && (
-              <Button 
-                size="sm" 
-                className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-black rounded-xl py-2.5 shadow-md shadow-emerald-500/10 transition-all hover:scale-[1.01] hover:shadow-lg" 
+            {!isClosed && (
+              <Button
+                size="lg"
+                className="w-full min-h-14 bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-600 hover:from-indigo-700 hover:via-violet-700 hover:to-emerald-700 text-white font-black text-sm tracking-wide rounded-2xl py-3.5 shadow-xl shadow-indigo-500/20 ring-1 ring-white/20 transition-all hover:scale-[1.01] hover:shadow-2xl disabled:opacity-50 disabled:shadow-none"
                 onClick={() => { setIsForceCloseMode(false); setIsCloseModalOpen(true); }} 
-                disabled={isClosing}
+                disabled={isClosing || !canClose}
               >
-                Close Store Daily Operations
+                <ShieldCheck className="mr-2 h-5 w-5" /> Close Day — Final Confirmation
               </Button>
             )}
           </Card>

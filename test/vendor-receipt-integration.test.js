@@ -42,6 +42,27 @@ test("vendor check-in submits one atomic bulk request and keeps drafts on failur
   assert.doesNotMatch(onErrorSource, /setDrafts\(\{\}\)/);
 });
 
+test("receipt success merges the response into check-in cache without an immediate refetch", () => {
+  const refreshStart = checkInSource.indexOf("const refreshReceiptData");
+  const refreshEnd = checkInSource.indexOf("const receiveMutation", refreshStart);
+  const refreshSource = checkInSource.slice(refreshStart, refreshEnd);
+
+  assert.match(refreshSource, /queryClient\.setQueryData/);
+  assert.match(refreshSource, /result\?\.assignments/);
+  assert.doesNotMatch(refreshSource, /assignmentsQuery\.refetch/);
+  assert.doesNotMatch(refreshSource, /\["ops", "dailyOperations"\]\s*\}/);
+  assert.doesNotMatch(refreshSource, /\["admin", "vendorAssignments"\]\s*\}/);
+  assert.match(refreshSource, /\["admin", "vendorAssignments", operationId\]/);
+  assert.match(refreshSource, /\["ops", "dailyOperations", "inventorySummary", operationId\]/);
+});
+
+test("check-in history and warehouse filtering are opt-in query dimensions", () => {
+  assert.match(serviceSource, /warehouse_id: warehouseId/);
+  assert.match(serviceSource, /include_history: includeHistory/);
+  assert.match(checkInSource, /warehouseId \|\| "all", includeHistory/);
+  assert.match(checkInSource, /if \(!includeHistory\) setIncludeHistory\(true\)/);
+});
+
 test("each product can be received through the existing single-item API", () => {
   const mutationStart = checkInSource.indexOf("const singleReceiveMutation = useMutation");
   const mutationEnd = checkInSource.indexOf("const vendorOptions", mutationStart);

@@ -91,6 +91,14 @@ export function groupPackingItemsByOrder(packingItems = []) {
   const result = Array.from(map.values());
 
   for (const group of result) {
+    const databaseSummary = group.items[0]?.order_summary;
+    if (databaseSummary) {
+      group.total_items = Number(databaseSummary.total_items || 0);
+      group.packed_count = Number(databaseSummary.packed_count || 0);
+      group.partial_count = Number(databaseSummary.partial_count || 0);
+      group.issue_count = Number(databaseSummary.issue_count || 0);
+      group.pending_count = Number(databaseSummary.pending_count || 0);
+    }
     if (group.total_items > 0) {
       group.progress_percent = Math.round((group.packed_count / group.total_items) * 100);
       group.is_complete = group.packed_count === group.total_items;

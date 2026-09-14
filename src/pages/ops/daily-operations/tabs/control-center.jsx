@@ -409,7 +409,13 @@ export function ControlCenter({
                     <div className="mt-3 text-xs text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-between">
                       <span>Progress:</span>
                       <span className="font-extrabold text-slate-900 dark:text-white">
-                        {stage.completed_count} / {stage.total_count}
+                        {stage.key === "reconciliation" ||
+                        stage.is_currency ||
+                        stage.unit === "paise" ||
+                        stage.unit === "currency" ||
+                        stage.unit === "inr"
+                          ? `${formatPaiseToRupees(stage.completed_count)} / ${formatPaiseToRupees(stage.total_count)}`
+                          : `${stage.completed_count} / ${stage.total_count}`}
                       </span>
                     </div>
                   )}

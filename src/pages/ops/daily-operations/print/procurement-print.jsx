@@ -2,73 +2,11 @@ import React from "react";
 import { formatIndianDateTime } from "../../../../utils/date-formatter";
 import { formatPaiseToRupees } from "../../../../utils/daily-operations-helpers";
 import { formatQuantity } from "../../../../lib/utils";
+import { formatQuantityWithUnit } from "../../../../utils/vendor-assignment";
 
 export function calculateTotalWeight(qty, packLabel, packObj, procurementUnit) {
-  if (!qty || qty <= 0) return "—";
-  
-  let baseQty = packObj?.base_quantity;
-  let baseUnit = packObj?.base_unit;
-
-  if (!baseQty || !baseUnit) {
-    const label = packLabel || "";
-    const match = label.match(/(\d+(?:\.\d+)?)\s*([a-zA-Z]+)/);
-    if (match) {
-      baseQty = parseFloat(match[1]);
-      baseUnit = match[2].toLowerCase();
-    } else {
-      const u = String(procurementUnit || "pc").toLowerCase().trim();
-      if (u === "kg") {
-        if (qty < 1) {
-          return `${Math.round(qty * 1000)}g`;
-        }
-        return `${parseFloat(Number(qty).toFixed(3))}kg`;
-      }
-      if (u === "l") {
-        if (qty < 1) {
-          return `${Math.round(qty * 1000)}ml`;
-        }
-        return `${parseFloat(Number(qty).toFixed(3))}l`;
-      }
-      if (u === "g" || u === "gm") {
-        const total = qty;
-        if (total >= 1000) {
-          return `${parseFloat((total / 1000).toFixed(3))}kg`;
-        }
-        return `${parseFloat(total.toFixed(3))}g`;
-      }
-      return `${qty}${u}`;
-    }
-  }
-
-  const total = qty * baseQty;
-  
-  if (baseUnit === "kg") {
-    if (total < 1) {
-      return `${Math.round(total * 1000)}g`;
-    }
-    return `${parseFloat(total.toFixed(3))}kg`;
-  } else if (baseUnit === "g" || baseUnit === "gm") {
-    if (total >= 1000) {
-      return `${parseFloat((total / 1000).toFixed(3))}kg`;
-    } else {
-      return `${parseFloat(total.toFixed(3))}g`;
-    }
-  } else if (baseUnit === "l") {
-    if (total < 1) {
-      return `${Math.round(total * 1000)}ml`;
-    }
-    return `${parseFloat(total.toFixed(3))}l`;
-  } else if (baseUnit === "ml") {
-    if (total >= 1000) {
-      return `${parseFloat((total / 1000).toFixed(3))}l`;
-    } else {
-      return `${parseFloat(total.toFixed(3))}ml`;
-    }
-  } else if (baseUnit === "pc" || baseUnit === "pcs") {
-    return `${total}pc`;
-  } else {
-    return `${total}${baseUnit}`;
-  }
+  // Procurement quantities are already physical. Pack metadata is display-only.
+  return Number(qty) > 0 ? formatQuantityWithUnit(qty, procurementUnit) : "—";
 }
 
 export function ProcurementPrintSheet({ operation, items = [] }) {

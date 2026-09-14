@@ -17,6 +17,13 @@ export const AdminNotificationsService = {
         return res.data;
     },
 
+    async uploadImage(file) {
+        const formData = new FormData();
+        formData.append("image", file);
+        const res = await api.post(ENDPOINTS.admin.notificationCampaigns.uploadImage, formData);
+        return res.data;
+    },
+
     async update(id, payload) {
         const res = await api.patch(ENDPOINTS.admin.notificationCampaigns.update(id), payload);
         return res.data;

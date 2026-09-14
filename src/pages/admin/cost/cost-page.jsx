@@ -463,13 +463,21 @@ export function CostPage() {
     });
 
     const profitQuery = useQuery({
-        queryKey: ["costs-profit-overview", filters],
-        queryFn: () =>
-            CostsService.profitOverview({
-                from_date: filters.from_date || undefined,
-                to_date: filters.to_date || undefined,
-                warehouse_id: filters.warehouse_id || undefined,
-            }),
+        queryKey: [
+            "costs-profit-overview",
+            filters.from_date || "",
+            filters.to_date || "",
+            filters.warehouse_id || "",
+        ],
+
+        queryFn: () => CostsService.profitOverview({
+            from_date: filters.from_date || undefined,
+            to_date: filters.to_date || undefined,
+            warehouse_id: filters.warehouse_id || undefined,
+        }),
+
+        enabled:
+            activeTab === "overview",
     });
 
     const procurementQuery = useQuery({
@@ -851,7 +859,7 @@ export function CostPage() {
                         <StatCard
                             title="Revenue"
                             value={paiseToRupees(profit.revenue_paise)}
-                            subtitle="Gross sales captured"
+                            subtitle="Delivered and collected sales"
                             highlight
                             icon={TrendingUp}
                             accent="emerald"
@@ -877,7 +885,7 @@ export function CostPage() {
                         <StatCard
                             title="Projected Profit"
                             value={paiseToRupees(profit.projected_profit_paise)}
-                            subtitle={`Lifecycle-adjusted vendor cost ${paiseToRupees(profit.projected_vendor_procurement_paise)}`}
+                            subtitle={`Booked sales ${paiseToRupees(profit.projected_revenue_paise ?? profit.booked_sales_paise)} · lifecycle cost ${paiseToRupees(profit.projected_total_cost_paise)}`}
                             icon={TrendingUp}
                             accent="amber"
                         />

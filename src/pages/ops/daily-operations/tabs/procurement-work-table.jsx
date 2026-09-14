@@ -24,6 +24,7 @@ import { formatPaiseToRupees } from "../../../../utils/daily-operations-helpers"
 import {
   PROCUREMENT_VIEWS,
   canStartVendorAssignment,
+  completedTotalCostPaise,
   completedUnitCostPerKgPaise,
   completedProcurementPortions,
   groupFullyConfirmedProductRows,
@@ -159,6 +160,12 @@ function SummaryCard({ icon: Icon, label, value, tone = "slate" }) {
   );
 }
 
+function quantitiesByUnit(values = {}) {
+  const entries = Object.entries(values).filter(([, value]) => Number(value) > 0);
+  if (!entries.length) return "0";
+  return entries.map(([unit, value]) => formatQuantityWithUnit(value, unit, "0")).join(" · ");
+}
+
 function vendorName(assignment) {
   return assignment?.vendor?.vendor_profile?.company_name
     || assignment?.vendor?.company_name
@@ -225,6 +232,11 @@ export function ProcurementWorkTable({
   onCheckProblem,
   onViewDetails,
 }) {
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const categoryOptions = useMemo(() => Array.from(new Map((data?.items || [])
+    .filter((item) => item.category_id)
+    .map((item) => [String(item.category_id), { value: String(item.category_id), label: item.category_name || "Unnamed category" }])).values())
+    .sort((a, b) => a.label.localeCompare(b.label)), [data?.items]);
   const [vendorDetails, setVendorDetails] = useState(null);
   const [expandedTimelines, setExpandedTimelines] = useState({});
 
@@ -240,7 +252,7 @@ export function ProcurementWorkTable({
       const rows = view === PROCUREMENT_VIEWS.HISTORY
         ? completedProcurementPortions(data?.items || [])
         : procurementItemsForView(data?.items || [], view);
-      return view === PROCUREMENT_VIEWS.HISTORY || rows.some((item) => item.is_product_group)
+      return rows.some((item) => item.is_product_group)
         ? rows
         : groupFullyConfirmedProductRows(rows, vendorAssignmentsByCost);
     },
@@ -254,6 +266,7 @@ export function ProcurementWorkTable({
         .filter(Boolean).some((value) => String(value).toLowerCase().includes(term));
 
       if (!matchesSearch) return false;
+      if (categoryFilter && String(item.category_id) !== categoryFilter) return false;
 
       if (!vendorFilter) return true;
 
@@ -312,7 +325,7 @@ export function ProcurementWorkTable({
 
       return false;
     }),
-    [searchTerm, vendorFilter, viewItems, vendorAssignmentsByCost, vendorOptions]
+    [searchTerm, vendorFilter, categoryFilter, viewItems, vendorAssignmentsByCost, vendorOptions]
   );
   
   const totals = procurementDisplayTotals(procurementItemsForView(data?.items || [], view));
@@ -321,14 +334,14 @@ export function ProcurementWorkTable({
   const completedCount = isHistory
     ? viewItems.length
     : Number(summary.history_count || 0) + completedProcurementPortions(data?.items || []).length;
-  const hasActiveFilter = Boolean(searchTerm.trim() || vendorFilter);
+  const hasActiveFilter = Boolean(searchTerm.trim() || vendorFilter || categoryFilter);
   const emptyTitle = hasActiveFilter
     ? "No matching products"
     : isHistory
       ? "No completed procurement yet"
       : "All procurement work is complete";
   const emptyDescription = hasActiveFilter
-    ? "No products found matching your current search or vendor filter."
+    ? "No products found matching your current search, vendor, or category filters."
     : isHistory
       ? "Completed products will appear here after warehouse receipt."
       : "There are no products waiting for vendor or warehouse action.";
@@ -353,14 +366,14 @@ export function ProcurementWorkTable({
       {!isHistory && !isLoading && !isError ? (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <SummaryCard icon={Package} label="Products Needing Action" value={viewItems.length} />
-          <SummaryCard icon={ShoppingCart} label="Quantity Still to Assign" value={totals.unassigned.toLocaleString("en-IN", { maximumFractionDigits: 3 })} tone="blue" />
+          <SummaryCard icon={ShoppingCart} label="Quantity Still to Assign" value={quantitiesByUnit(totals.unassigned_by_unit)} tone="blue" />
           <SummaryCard icon={Store} label="Waiting for Vendor" value={totals.waitingVendor} tone="amber" />
           <SummaryCard icon={Warehouse} label="Waiting at Warehouse" value={totals.waitingWarehouse} tone="indigo" />
         </div>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative w-full sm:max-w-xs md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -368,6 +381,15 @@ export function ProcurementWorkTable({
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Search product or vendor"
               className="h-10 rounded-xl pl-9"
+            />
+          </div>
+          <div className="w-full sm:w-60 md:w-64 shrink-0">
+            <PremiumSelect
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={categoryOptions}
+              placeholder="Filter by category"
+              isClearable
             />
           </div>
           <div className="w-full sm:w-60 md:w-64 shrink-0">
@@ -506,19 +528,19 @@ export function ProcurementWorkTable({
                       {isHistory ? (
                         <>
                           <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-slate-100 whitespace-nowrap">
-                            {quantity(item, item.required_quantity)}
+                            {quantity(item, item.required_quantity, "required_quantity")}
                           </td>
                           <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-indigo-600 dark:border-slate-800/70 dark:text-indigo-400 whitespace-nowrap">
-                            {quantity(item, item.purchased_quantity)}
+                            {quantity(item, item.purchased_quantity, "purchased_quantity")}
                           </td>
                           <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-emerald-700 dark:border-slate-800/70 dark:text-emerald-400 whitespace-nowrap">
-                            {quantity(item, item.received_quantity)}
+                            {quantity(item, item.received_quantity, "received_quantity")}
                           </td>
                           <td className="w-[100px] min-w-[90px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-rose-600 dark:border-slate-800/70 dark:text-rose-400 whitespace-nowrap">
-                            {Number(item.rejected_quantity || 0) > 0 ? quantity(item, item.rejected_quantity) : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
+                            {Number(item.rejected_quantity || 0) > 0 ? quantity(item, item.rejected_quantity, "rejected_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
                           </td>
                           <td className="w-[95px] min-w-[85px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-amber-600 dark:border-slate-800/70 dark:text-amber-400 whitespace-nowrap">
-                            {Number(item.waste_quantity || 0) > 0 ? quantity(item, item.waste_quantity) : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
+                            {Number(item.waste_quantity || 0) > 0 ? quantity(item, item.waste_quantity, "waste_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
                           </td>
                           <td className="w-[220px] min-w-[210px] border-b border-slate-100 px-3 py-2 text-center dark:border-slate-800/70">
                             {vendorAssignments.length > 0 ? (
@@ -537,10 +559,10 @@ export function ProcurementWorkTable({
                             )}
                           </td>
                           <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-semibold text-slate-600 dark:border-slate-800/70 dark:text-slate-400 whitespace-nowrap">
-                            {formatPaiseToRupees(completedUnitCostPerKgPaise(item))} / KG
+                            {formatPaiseToRupees(completedUnitCostPerKgPaise(item, vendorAssignments))} / KG
                           </td>
                           <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-white whitespace-nowrap">
-                            {formatPaiseToRupees(item.total_cost_paise)}
+                            {formatPaiseToRupees(completedTotalCostPaise(item, vendorAssignments))}
                           </td>
                         </>
                       ) : (

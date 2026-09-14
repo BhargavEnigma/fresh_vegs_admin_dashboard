@@ -15,6 +15,7 @@ export const OpsOrdersService = {
             unassigned,
             isOrderAssigned,
             q,
+            view = "compact",
         } = filters;
 
         const params = {
@@ -28,6 +29,7 @@ export const OpsOrdersService = {
             ...(unassigned ? { unassigned } : {}),
             ...(isOrderAssigned !== undefined ? { isOrderAssigned } : {}),
             ...(q ? { q } : {}),
+            view,
         };
 
         const res = await api.get(ENDPOINTS.ops.orders.list, { params });

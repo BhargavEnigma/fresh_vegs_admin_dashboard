@@ -55,12 +55,9 @@ export const DailyOperationsService = {
     deliveryDate,
     warehouseId,
   } = {}) {
-    const res = await api.get(ENDPOINTS.admin.cost.procurementItems, {
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.procurement(operationId), {
       params: {
         view,
-        grouping: "product",
-        ...(deliveryDate ? { delivery_date: deliveryDate } : {}),
-        ...(warehouseId ? { warehouse_id: warehouseId } : {}),
       },
     });
     return normalizeProcurementPayload(res.data?.data);

@@ -506,7 +506,7 @@ export function DispatchTab({
                 <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2.5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
                   <p className={`text-[11px] font-semibold ${selectedPlanningPartnerIds.length ? "text-slate-500" : "text-rose-600"}`}>
                     {selectedPlanningPartnerIds.length
-                      ? `${selectedPlanningPartnerIds.length} partner(s) will receive orders in the next generated plan.`
+                      ? `${selectedPlanningPartnerIds.length} partner(s) available; the planner will use only those needed for nearby groups of up to 5 orders.`
                       : "Select at least one delivery partner to generate a plan."}
                   </p>
                   <div className="flex gap-2">

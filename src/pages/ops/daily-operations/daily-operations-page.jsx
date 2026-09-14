@@ -27,7 +27,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useAuth } from "../../../auth/auth-context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { WarehousesService } from "../../../api/services/warehouses.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { listProducts } from "../../../api/services/products.service";
@@ -107,7 +107,6 @@ const TABS = [
 ];
 
 export function DailyOperationsPage() {
-  const queryClient = useQueryClient();
   const { roles, user, booting } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -377,13 +376,11 @@ export function DailyOperationsPage() {
   const mutations = useDailyOperationsMutations(operationId);
 
   const handleRefresh = async () => {
-    queryClient.invalidateQueries({ queryKey: ["ops", "vendorCheckIn"] });
-    queryClient.invalidateQueries({ queryKey: ["ops", "vendorAttendance"] });
-
     if (!operationId) {
       refetchOverview();
       return;
     }
+
     try {
       await mutations.refreshMutation.mutateAsync();
       toast.success("Daily Operations refreshed successfully");
@@ -450,8 +447,8 @@ export function DailyOperationsPage() {
                 size="sm"
                 variant={selectedDate === getIstYyyyMmDd() ? "default" : "ghost"}
                 className={`h-7 px-3.5 text-xs font-bold rounded-lg transition-all ${selectedDate === getIstYyyyMmDd()
-                    ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
+                  ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
                   }`}
                 onClick={handleDateToday}
               >
@@ -462,8 +459,8 @@ export function DailyOperationsPage() {
                 size="sm"
                 variant={selectedDate === addDaysYyyyMmDd(getIstYyyyMmDd(), 1) ? "default" : "ghost"}
                 className={`h-7 px-3.5 text-xs font-bold rounded-lg transition-all ${selectedDate === addDaysYyyyMmDd(getIstYyyyMmDd(), 1)
-                    ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
+                  ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
                   }`}
                 onClick={handleDateTomorrow}
               >
@@ -697,6 +694,7 @@ export function DailyOperationsPage() {
         {activeTab === "vendor-check-in" && (
           <VendorCheckInTab
             deliveryDate={selectedDate}
+            warehouseId={selectedWarehouseId}
             isClosed={isClosed}
             isAdmin={isAdmin}
             isWarehouseManager={isWarehouseManager}

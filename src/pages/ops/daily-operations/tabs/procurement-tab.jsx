@@ -314,9 +314,10 @@ export function ProcurementTab({
   });
 
   const assignmentsQuery = useQuery({
-    queryKey: ["admin", "vendorAssignments", operation?.id],
+    queryKey: ["admin", "vendorAssignments", operation?.id, "logical"],
     queryFn: () => VendorService.getAssignments(operation.id, { logical: true }),
     enabled: Boolean(operation?.id),
+    staleTime: 30 * 1000,
   });
 
   const attendanceQuery = useQuery({
@@ -365,17 +366,7 @@ export function ProcurementTab({
 
   const vendorCataloguesQuery = useQuery({
     queryKey: ["admin", "vendorCatalogues", operation?.warehouse_id],
-    queryFn: async () => {
-      const vendors = (await VendorService.listForWarehouse(operation.warehouse_id)).filter(
-        (vendor) => vendor.status === "active" && vendor.user?.status !== "inactive"
-      );
-      return Promise.all(
-        vendors.map(async (vendor) => ({
-          vendor,
-          catalogue: await VendorService.getProducts(vendor.id),
-        }))
-      );
-    },
+    queryFn: () => VendorService.getCatalogues({ warehouseId: operation?.warehouse_id }),
     enabled: Boolean(assigningItem && operation?.warehouse_id),
     staleTime: 5 * 60 * 1000,
   });
@@ -2126,7 +2117,7 @@ export function ProcurementTab({
                       <Input
                         type="number"
                         min="0"
-                        step="0.001"
+                        step={["piece", "pc", "pcs"].includes(String(itemUnit(assigningItem)).toLowerCase()) ? "1" : "0.001"}
                         value={row.allocated_quantity}
                         onChange={(event) =>
                           setAllocationRows((rows) =>

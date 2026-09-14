@@ -21,7 +21,6 @@ import { Label } from "../../../../components/ui/label";
 import { Badge } from "../../../../components/ui/badge";
 import { PremiumSelect } from "../../../../components/ui/premium-select";
 import { useToast } from "../../../../components/toast/toast-context";
-import { VendorWorkflowGuide } from "../../../../components/common/vendor-workflow-guide";
 import {
   acceptedPayoutPaise,
   buildFullAcceptanceDraft,
@@ -48,6 +47,7 @@ const formatTime = (timeStr) => {
 
 export function VendorCheckInTab({
   deliveryDate,
+  warehouseId,
   isClosed,
   isAdmin,
   isWarehouseManager,
@@ -62,9 +62,11 @@ export function VendorCheckInTab({
   const [pendingOverrideEntries, setPendingOverrideEntries] = useState(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [expandedHistories, setExpandedHistories] = useState({});
+  const [includeHistory, setIncludeHistory] = useState(false);
   const lastSubmittedEntries = useRef([]);
 
   const toggleHistory = (assignmentId) => {
+    if (!includeHistory) setIncludeHistory(true);
     setExpandedHistories(prev => ({
       ...prev,
       [assignmentId]: !prev[assignmentId]
@@ -76,21 +78,47 @@ export function VendorCheckInTab({
     queryFn: VendorService.listForCheckIn,
   });
   const assignmentsQuery = useQuery({
-    queryKey: ["ops", "vendorCheckIn", date, vendorUserId],
-    queryFn: () => VendorService.getCheckIn({ date, vendorUserId }),
+    queryKey: ["ops", "vendorCheckIn", date, vendorUserId, warehouseId || "all", includeHistory],
+    queryFn: () => VendorService.getCheckIn({
+      date,
+      vendorUserId,
+      warehouseId,
+      includeHistory,
+    }),
     enabled: Boolean(date && vendorUserId),
   });
 
-  const refreshReceiptData = async () => {
-    await assignmentsQuery.refetch();
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["ops", "dailyOperations"] }),
-      queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments"] }),
-      queryClient.invalidateQueries({ queryKey: ["inventory"] }),
-      queryClient.invalidateQueries({ queryKey: ["procurement-cost-items"] }),
-      queryClient.invalidateQueries({ queryKey: ["costs-profit-overview"] }),
-      queryClient.invalidateQueries({ queryKey: ["costs-summary"] }),
+  const refreshReceiptData = async (result) => {
+    const updatedAssignments = result?.assignments
+      || (result?.assignment ? [result.assignment] : []);
+    if (updatedAssignments.length) {
+      const updatedById = new Map(updatedAssignments.map((assignment) => [assignment.id, assignment]));
+      queryClient.setQueryData(
+        ["ops", "vendorCheckIn", date, vendorUserId, warehouseId || "all", includeHistory],
+        (current = []) => current.map((assignment) => updatedById.get(assignment.id) || assignment)
+      );
+    }
+    const parents = result?.procurement_costs
+      || (result?.procurement_cost ? [result.procurement_cost] : []);
+    const operationIds = [...new Set(parents.map((parent) => parent.daily_operation_id).filter(Boolean))];
+    const invalidations = operationIds.flatMap((operationId) => [
+      queryClient.invalidateQueries({ queryKey: ["admin", "vendorAssignments", operationId] }),
+      queryClient.invalidateQueries({ queryKey: ["ops", "dailyOperations", "procurement", operationId] }),
+      queryClient.invalidateQueries({ queryKey: ["ops", "dailyOperations", "inventorySummary", operationId] }),
     ]);
+    for (const parent of parents) {
+      if (parent.product_id && parent.warehouse_id) {
+        invalidations.push(queryClient.invalidateQueries({
+          queryKey: ["ops", "dailyOperations", "lots", parent.product_id, parent.warehouse_id],
+        }));
+      }
+      if (parent.delivery_date && parent.warehouse_id) {
+        invalidations.push(queryClient.invalidateQueries({
+          queryKey: ["ops", "dailyOperations", "overview", parent.delivery_date, parent.warehouse_id],
+        }));
+      }
+    }
+    await Promise.all(invalidations);
   };
 
   const receiveMutation = useMutation({
@@ -101,10 +129,10 @@ export function VendorCheckInTab({
         rejected_quantity: entry.rejected_quantity || "0",
       }))
     ),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       toast.success("Vendor delivery checked in");
       setDrafts({});
-      await refreshReceiptData();
+      await refreshReceiptData(result);
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || error?.message || "Failed to receive delivery");
@@ -123,7 +151,7 @@ export function VendorCheckInTab({
         delete next[entry.id];
         return next;
       });
-      await refreshReceiptData();
+      await refreshReceiptData(_result);
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || error?.message || "Failed to receive product");
@@ -272,6 +300,8 @@ export function VendorCheckInTab({
               onChange={(value) => {
                 setVendorUserId(value);
                 setDrafts({});
+                setIncludeHistory(false);
+                setExpandedHistories({});
                 setActiveTab("pending");
                 const nextParams = new URLSearchParams(searchParams);
                 if (value) {
@@ -492,7 +522,7 @@ export function VendorCheckInTab({
                             id={`received-${assignment.id}`}
                             type="number"
                             min="0"
-                            step="0.001"
+                            step={["piece", "pc", "pcs"].includes(String(unit).toLowerCase()) ? "1" : "0.001"}
                             disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
                             placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending dispatch" : "N/A")}
                             value={draft.received_quantity ?? ""}
@@ -507,7 +537,7 @@ export function VendorCheckInTab({
                             id={`rejected-${assignment.id}`}
                             type="number"
                             min="0"
-                            step="0.001"
+                            step={["piece", "pc", "pcs"].includes(String(unit).toLowerCase()) ? "1" : "0.001"}
                             disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
                             placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending dispatch" : "N/A")}
                             value={draft.rejected_quantity ?? ""}
@@ -601,7 +631,7 @@ export function VendorCheckInTab({
                           <span>This assignment must be confirmed and dispatched before check-in.</span>
                         </div>
                       )}
-                      {assignment.status_history && assignment.status_history.length > 0 && (
+                      {(
                         <div className="mt-3 border-t border-slate-100 pt-2.5 dark:border-slate-800">
                           <button
                             type="button"
@@ -612,7 +642,7 @@ export function VendorCheckInTab({
                             {expandedHistories[assignment.id] ? "Hide Transition Logs" : "Show Transition Logs"}
                           </button>
 
-                          {expandedHistories[assignment.id] && (
+                          {expandedHistories[assignment.id] && includeHistory && assignment.status_history && (
                             <div className="mt-3 space-y-2 border-l border-slate-200 pl-3.5 dark:border-slate-800 animate-slide-down">
                               {assignment.assigned_at && (
                                 <div className="relative text-[11px] leading-relaxed mb-2">
@@ -787,7 +817,7 @@ export function VendorCheckInTab({
                               : formatVendorMoney(actualPayout)}
                           </span>
                         </div>
-                        {assignment.status_history && assignment.status_history.length > 0 && (
+                        {(
                           <div className="mt-3 border-t border-slate-100 pt-2.5 dark:border-slate-800 w-full">
                             <button
                               type="button"
@@ -798,7 +828,7 @@ export function VendorCheckInTab({
                               {expandedHistories[assignment.id] ? "Hide Transition Logs" : "Show Transition Logs"}
                             </button>
 
-                            {expandedHistories[assignment.id] && (
+                            {expandedHistories[assignment.id] && includeHistory && assignment.status_history && (
                               <div className="mt-3 space-y-2 border-l border-slate-200 pl-3.5 dark:border-slate-800 animate-slide-down">
                                 {assignment.assigned_at && (
                                   <div className="relative text-[11px] leading-relaxed mb-2">

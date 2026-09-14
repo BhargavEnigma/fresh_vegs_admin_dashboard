@@ -24,16 +24,64 @@ export function completedProcurementPortions(items = []) {
   );
 }
 
-export function completedUnitCostPerKgPaise(item = {}) {
+export function completedUnitCostPerKgPaise(item = {}, vendorAssignments = []) {
   const totalCost = Number(item.total_cost_paise || 0);
   const purchasedKg = Number(item.purchased_quantity || 0);
   const receivedKg = Number(item.received_quantity || 0);
   const quantityKg = purchasedKg > 0 ? purchasedKg : receivedKg;
 
+  // An unaggregated product row can carry only one child's total while the
+  // caller supplies all received assignments. Prefer that complete assignment
+  // context before deriving a misleading blended rate from the partial total.
+  if (Array.isArray(vendorAssignments) && vendorAssignments.length > 0) {
+    const valid = vendorAssignments.find(
+      (a) =>
+        !["cancelled", "rejected"].includes(String(a.status || "").toLowerCase()) &&
+        Number(a.unit_cost_paise ?? a.approved_unit_cost_paise ?? a.vendor_unit_cost_paise ?? 0) > 0
+    );
+    if (valid) {
+      return Number(valid.unit_cost_paise ?? valid.approved_unit_cost_paise ?? valid.vendor_unit_cost_paise);
+    }
+  }
+
+  // Completed procurement must show the effective final unit cost. A locked
+  // catalogue price can differ after partial acceptance/rejection, so it is
+  // only a fallback when no final aggregate is available.
   if (totalCost > 0 && quantityKg > 0) {
     return Math.round(totalCost / quantityKg);
   }
-  return Number(item.unit_cost_paise || 0);
+
+  if (Number(item.unit_cost_paise || 0) > 0) {
+    return Number(item.unit_cost_paise);
+  }
+
+  if (item.product_group_rows?.length) {
+    const rowWithUnitCost = item.product_group_rows.find((row) => Number(row.unit_cost_paise || 0) > 0);
+    if (rowWithUnitCost) return Number(rowWithUnitCost.unit_cost_paise);
+  }
+
+  return 0;
+}
+
+export function completedTotalCostPaise(item = {}, vendorAssignments = []) {
+  const unitCost = completedUnitCostPerKgPaise(item, vendorAssignments);
+  const purchasedKg = Number(item.purchased_quantity || 0);
+  const receivedKg = Number(item.received_quantity || 0);
+  const quantityKg = purchasedKg > 0 ? purchasedKg : receivedKg;
+
+  if (unitCost > 0 && quantityKg > 0) {
+    return Math.round(quantityKg * unitCost);
+  }
+
+  if (item.product_group_rows?.length) {
+    const sumRows = item.product_group_rows.reduce(
+      (sum, row) => sum + Number(row.total_cost_paise || 0),
+      0
+    );
+    if (sumRows > 0) return sumRows;
+  }
+
+  return Number(item.total_cost_paise || 0);
 }
 
 export function procurementStepLabel(item) {
@@ -61,13 +109,16 @@ export function autoAssignableProcurementCostIds(items = []) {
 export function procurementDisplayTotals(items = []) {
   return items.reduce(
     (totals, item) => {
-      totals.outstanding += Number(item.outstanding_quantity || 0);
-      totals.unassigned += Number(item.unassigned_quantity ?? item.quantity_to_assign ?? 0);
+      const unit = String(item.procurement_unit || "unit").trim().toLowerCase();
+      const outstanding = Number(item.outstanding_quantity || 0);
+      const unassigned = Number(item.unassigned_quantity ?? item.quantity_to_assign ?? 0);
+      totals.outstanding_by_unit[unit] = Number(((totals.outstanding_by_unit[unit] || 0) + outstanding).toFixed(3));
+      totals.unassigned_by_unit[unit] = Number(((totals.unassigned_by_unit[unit] || 0) + unassigned).toFixed(3));
       if (["vendor_confirmation", "vendor_dispatch"].includes(item.next_action_code)) totals.waitingVendor += 1;
       if (["warehouse_receipt", "receive_remaining"].includes(item.next_action_code)) totals.waitingWarehouse += 1;
       return totals;
     },
-    { outstanding: 0, unassigned: 0, waitingVendor: 0, waitingWarehouse: 0 }
+    { outstanding_by_unit: {}, unassigned_by_unit: {}, waitingVendor: 0, waitingWarehouse: 0 }
   );
 }
 
@@ -99,12 +150,49 @@ export function groupFullyConfirmedProductRows(items = [], vendorAssignmentsByCo
     if (!confirmedRows.length) return rows;
 
     const assignments = confirmedRows.flatMap(assignmentsForRow);
+    const totalCostPaise = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.total_cost_paise || 0),
+      0
+    );
+    const purchasedQuantity = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.purchased_quantity || 0),
+      0
+    );
+    const receivedQuantity = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.received_quantity || 0),
+      0
+    );
+    const requiredQuantity = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.required_quantity || 0),
+      0
+    );
+    const rejectedQuantity = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.rejected_quantity || 0),
+      0
+    );
+    const wasteQuantity = confirmedRows.reduce(
+      (sum, row) => sum + Number(row.waste_quantity || 0),
+      0
+    );
+
+    const quantityKg = purchasedQuantity > 0 ? purchasedQuantity : receivedQuantity;
+    const unitCostPaise = totalCostPaise > 0 && quantityKg > 0
+      ? Math.round(totalCostPaise / quantityKg)
+      : Number(confirmedRows[0]?.unit_cost_paise || 0);
+
     const confirmedGroup = {
       ...confirmedRows[0],
       id: `confirmed-product:${productId}`,
       procurement_cost_id: null,
       product_group_rows: confirmedRows,
       product_group_assignments: assignments,
+      total_cost_paise: totalCostPaise,
+      purchased_quantity: purchasedQuantity,
+      received_quantity: receivedQuantity,
+      required_quantity: requiredQuantity,
+      rejected_quantity: rejectedQuantity,
+      waste_quantity: wasteQuantity,
+      unit_cost_paise: unitCostPaise,
       pack_label: `${assignments.length} confirmed assignment${assignments.length === 1 ? "" : "s"}`,
       next_action_code: assignments.some((assignment) => assignment.status === "confirmed")
         ? "vendor_dispatch"

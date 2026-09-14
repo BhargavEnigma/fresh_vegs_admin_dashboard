@@ -479,6 +479,9 @@ export function ProcurementPage() {
         queryKey: ["procurement", date, warehouseId || "none"],
         queryFn: () => OpsReportsService.procurement({ delivery_date: date, warehouse_id: warehouseId }),
         enabled: Boolean(date && warehouseId),
+        staleTime: 15 * 1000,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
     });
 
     const rows = procurementQuery.data?.items || [];
