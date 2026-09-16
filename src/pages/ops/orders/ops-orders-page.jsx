@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatIndianDateTime } from "../../../utils/date-formatter";
 import { getIstYyyyMmDd, addDaysYyyyMmDd } from "../../../utils/date.util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -321,6 +321,11 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
             delivery_partner_user_id: value.delivery_partner_user_id || "",
         },
     });
+    const applyTimerRef = useRef(null);
+
+    useEffect(() => () => {
+        if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
+    }, []);
 
     useEffect(() => {
         form.reset({
@@ -330,7 +335,14 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
         });
     }, [value, form]);
 
-    const submit = (v) => {
+    const applyValues = (overrides = {}) => {
+        const parsed = opsOrdersFilterSchema.safeParse({
+            ...form.getValues(),
+            ...overrides,
+        });
+        if (!parsed.success) return;
+
+        const v = parsed.data;
         onApply({
             warehouse_id: v.warehouse_id ?? "",
             delivery_partner_user_id: v.delivery_partner_user_id ?? "",
@@ -340,18 +352,27 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
         });
     };
 
+    const scheduleApply = (overrides) => {
+        if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
+        applyTimerRef.current = setTimeout(() => applyValues(overrides), 300);
+    };
+
     return (
         <form
-            onSubmit={form.handleSubmit(submit)}
+            onSubmit={(event) => {
+                event.preventDefault();
+                if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
+                applyValues();
+            }}
             className="grid gap-4 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark sm:p-5"
         >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-900">
                 <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-dailyveg-50 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300"><SlidersHorizontal className="h-4 w-4" /></span><div><h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Refine orders</h3><p className="text-xs text-slate-500">Narrow the operations queue</p></div></div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
                 <div className="grid min-w-0 gap-1.5">
                     <Label className="text-xs font-semibold text-slate-500">Search</Label>
-                    <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Search operational code, daily no., order no. or phone" {...form.register("q")} /></div>
+                    <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-10 pl-9" placeholder="Search operational code, daily no., order no. or phone" {...form.register("q", { onChange: (event) => scheduleApply({ q: event.target.value }) })} /></div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
@@ -363,7 +384,10 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
                             render={({ field }) => (
                                 <PremiumSelect
                                     value={field.value}
-                                    onChange={field.onChange}
+                                    onChange={(nextValue) => {
+                                        field.onChange(nextValue);
+                                        applyValues({ warehouse_id: nextValue ?? "" });
+                                    }}
                                     options={warehouses.map((warehouse) => ({
                                         value: warehouse.id,
                                         label: warehouse.name,
@@ -377,26 +401,34 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
                     ) : (
                         <div className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                             <Warehouse className="h-4 w-4 shrink-0 text-dailyveg-600 dark:text-dailyveg-400" />
-                            <span className="truncate">{assignedWarehouse?.name || (warehousesLoading ? "Loading assigned warehouse…" : "Assigned warehouse")}</span>
+                            <span className="truncate">
+                                {assignedWarehouse?.name || (warehousesLoading ? "Loading assigned warehouse…" : "Assigned warehouse")}
+                            </span>
                         </div>
                     )}
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
                     <Label className="text-xs font-semibold text-slate-500">Delivery Date</Label>
-                    <div className="relative"><CalendarDays className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" /><DatePicker
-                        selected={form.watch("delivery_date")}
-                        onChange={(date) => form.setValue("delivery_date", date, { shouldValidate: true })}
-                        dateFormat="dd-MM-yyyy"
-                        placeholderText="Select delivery date"
-                        className="flex h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm ring-offset-white placeholder:text-slate-400 focus-visible:border-dailyveg-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500/25 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-dailyveg-950"
-                        isClearable
-                    /></div>
+                    <div className="relative">
+                        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <DatePicker
+                            selected={form.watch("delivery_date")}
+                            onChange={(date) => {
+                                form.setValue("delivery_date", date, { shouldValidate: true });
+                                applyValues({ delivery_date: date });
+                            }}
+                            dateFormat="dd-MM-yyyy"
+                            placeholderText="Select delivery date"
+                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm ring-offset-white placeholder:text-slate-400 focus-visible:border-dailyveg-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dailyveg-500/25 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-dailyveg-950"
+                            isClearable
+                        />
+                    </div>
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
                     <Label className="text-xs font-semibold text-slate-500">Page Size</Label>
-                    <Input className="h-10" type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true })} />
+                    <Input className="h-10" type="number" min={10} max={100} {...form.register("limit", { valueAsNumber: true, onChange: (event) => scheduleApply({ limit: event.target.valueAsNumber }) })} />
                 </div>
 
                 <div className="grid min-w-0 gap-1.5">
@@ -407,7 +439,10 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
                         render={({ field }) => (
                             <PremiumSelect
                                 value={field.value}
-                                onChange={field.onChange}
+                                onChange={(nextValue) => {
+                                    field.onChange(nextValue);
+                                    applyValues({ delivery_partner_user_id: nextValue ?? "" });
+                                }}
                                 placeholder="All partners"
                                 isClearable
                                 options={deliveryPartners.map((partner) => ({
@@ -419,32 +454,34 @@ function Filters({ value, onApply, deliveryPartners, warehouses, isAdmin, assign
                         )}
                     />
                 </div>
-            </div>
-            <div className="flex items-end justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-900">
-                <Button className="gap-2" type="submit"><SlidersHorizontal className="h-4 w-4" />Apply Filters</Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                        form.reset({
-                            warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
-                            delivery_partner_user_id: "",
-                            q: "",
-                            limit: 20,
-                            delivery_date: null,
-                        });
 
-                        onApply({
-                            warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
-                            delivery_partner_user_id: "",
-                            q: "",
-                            limit: 20,
-                            delivery_date: "",
-                        });
-                    }}
-                >
-                    <RiResetLeftFill className="h-4 w-4" /><span className="sr-only">Reset filters</span>
-                </Button>
+                <div className="flex items-end">
+                    <Button
+                        className="h-10 w-10 px-0"
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            if (applyTimerRef.current) clearTimeout(applyTimerRef.current);
+                            form.reset({
+                                warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
+                                delivery_partner_user_id: "",
+                                q: "",
+                                limit: 20,
+                                delivery_date: null,
+                            });
+
+                            onApply({
+                                warehouse_id: isAdmin ? "" : assignedWarehouse?.id || value.warehouse_id || "",
+                                delivery_partner_user_id: "",
+                                q: "",
+                                limit: 20,
+                                delivery_date: "",
+                            });
+                        }}
+                    >
+                        <RiResetLeftFill className="h-4 w-4" /><span className="sr-only">Reset filters</span>
+                    </Button>
+                </div>
             </div>
         </form>
     );
@@ -1534,15 +1571,26 @@ export function OpsOrdersPage() {
     });
 
     const lockOrdersMut = useMutation({
-        mutationFn: () => OpsJobsService.lockOrders({ delivery_date: filters.delivery_date }),
+        mutationFn: () => OpsJobsService.lockScopedOrders({
+            delivery_date: filters.delivery_date,
+            warehouse_id: filters.warehouse_id,
+            order_ids: selectedIds,
+        }),
         meta: {
             globalLoaderMessage: "Locking orders...",
         },
-        onSuccess: () => {
-            toast.success("Lock job executed successfully");
+        onSuccess: (data) => {
+            const lockedCount = Number(data?.locked || 0);
+            toast.success(
+                lockedCount === 1
+                    ? "1 order locked successfully"
+                    : `${lockedCount} orders locked successfully`
+            );
+            setSelectedIds([]);
             qc.invalidateQueries({ queryKey: ["opsOrders"] });
             qc.invalidateQueries({ queryKey: ["opsOrdersSummaryBase"] });
             qc.invalidateQueries({ queryKey: ["procurement"] });
+            qc.invalidateQueries({ queryKey: ["ops", "dailyOperations"] });
         },
         onError: (e) => {
             toast.error(e?.message || "Failed to run lock job");
@@ -1906,9 +1954,19 @@ export function OpsOrdersPage() {
                         {isAdmin ? (
                             <Button
                                 onClick={() => lockOrdersMut.mutate()}
-                                disabled={!filters.delivery_date || lockOrdersMut.isPending}
+                                disabled={!filters.delivery_date || !filters.warehouse_id || lockOrdersMut.isPending}
+                                title={!filters.warehouse_id
+                                    ? "Select a warehouse before locking orders"
+                                    : selectedIds.length
+                                        ? `Lock ${selectedIds.length} selected order${selectedIds.length === 1 ? "" : "s"}`
+                                        : "Lock all unlocked orders for the selected warehouse"}
                             >
-                                <LockKeyhole className="mr-2 h-4 w-4" />{lockOrdersMut.isPending ? "Running..." : "Run Lock Job"}
+                                <LockKeyhole className="mr-2 h-4 w-4" />
+                                {lockOrdersMut.isPending
+                                    ? "Running..."
+                                    : selectedIds.length
+                                        ? `Lock Selected (${selectedIds.length})`
+                                        : "Run Lock Job"}
                             </Button>
                         ) : null}
                     </div>
@@ -2101,256 +2159,256 @@ export function OpsOrdersPage() {
                     </div>
 
                     <div className="mt-4 min-w-0 w-full">
-                            <div className={cn("grid gap-3", viewMode === VIEW_MODES.table ? "lg:hidden" : "sm:grid-cols-2 xl:grid-cols-3")}>
-                                {listQuery.isLoading ? (
-                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
-                                        Loading orders...
-                                    </div>
-                                ) : visibleRows.length === 0 ? (
-                                    <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
-                                        No orders found for this queue.
-                                    </div>
-                                ) : (
-                                    visibleRows.map((order) =>
-                                        viewMode === VIEW_MODES.grid ? (
-                                            <OrderGridCard
-                                                key={order.id}
-                                                order={order}
-                                                selectedIds={selectedIds}
-                                                onToggleSelect={toggleRowSelection}
-                                                onPreview={setPreviewOrder}
-                                                onAssign={openAssignDialog}
-                                                onUnassign={handleUnassignDeliveryPartner}
-                                                onQuickAction={handleQuickAction}
-                                                isAssignPending={assignDeliveryPartnerMut.isPending}
-                                                isUnassignPending={unassignDeliveryPartnerMut.isPending}
-                                                isUpdatePending={updateStatusMut.isPending}
-                                                canDelete={isAdmin}
-                                                onDelete={openDeleteDialog}
-                                                canMarkDelivered={canMarkDelivered}
-                                            />
-                                        ) : (
-                                            <MobileOrderCard
-                                                key={order.id}
-                                                order={order}
-                                                selectedIds={selectedIds}
-                                                onToggleSelect={toggleRowSelection}
-                                                onPreview={setPreviewOrder}
-                                                onAssign={openAssignDialog}
-                                                onUnassign={handleUnassignDeliveryPartner}
-                                                onQuickAction={handleQuickAction}
-                                                isAssignPending={assignDeliveryPartnerMut.isPending}
-                                                isUnassignPending={unassignDeliveryPartnerMut.isPending}
-                                                isUpdatePending={updateStatusMut.isPending}
-                                                canDelete={isAdmin}
-                                                onDelete={openDeleteDialog}
-                                                canMarkDelivered={canMarkDelivered}
-                                            />
-                                        )
+                        <div className={cn("grid gap-3", viewMode === VIEW_MODES.table ? "lg:hidden" : "sm:grid-cols-2 xl:grid-cols-3")}>
+                            {listQuery.isLoading ? (
+                                <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
+                                    Loading orders...
+                                </div>
+                            ) : visibleRows.length === 0 ? (
+                                <div className="rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800 sm:col-span-2 xl:col-span-3">
+                                    No orders found for this queue.
+                                </div>
+                            ) : (
+                                visibleRows.map((order) =>
+                                    viewMode === VIEW_MODES.grid ? (
+                                        <OrderGridCard
+                                            key={order.id}
+                                            order={order}
+                                            selectedIds={selectedIds}
+                                            onToggleSelect={toggleRowSelection}
+                                            onPreview={setPreviewOrder}
+                                            onAssign={openAssignDialog}
+                                            onUnassign={handleUnassignDeliveryPartner}
+                                            onQuickAction={handleQuickAction}
+                                            isAssignPending={assignDeliveryPartnerMut.isPending}
+                                            isUnassignPending={unassignDeliveryPartnerMut.isPending}
+                                            isUpdatePending={updateStatusMut.isPending}
+                                            canDelete={isAdmin}
+                                            onDelete={openDeleteDialog}
+                                            canMarkDelivered={canMarkDelivered}
+                                        />
+                                    ) : (
+                                        <MobileOrderCard
+                                            key={order.id}
+                                            order={order}
+                                            selectedIds={selectedIds}
+                                            onToggleSelect={toggleRowSelection}
+                                            onPreview={setPreviewOrder}
+                                            onAssign={openAssignDialog}
+                                            onUnassign={handleUnassignDeliveryPartner}
+                                            onQuickAction={handleQuickAction}
+                                            isAssignPending={assignDeliveryPartnerMut.isPending}
+                                            isUnassignPending={unassignDeliveryPartnerMut.isPending}
+                                            isUpdatePending={updateStatusMut.isPending}
+                                            canDelete={isAdmin}
+                                            onDelete={openDeleteDialog}
+                                            canMarkDelivered={canMarkDelivered}
+                                        />
                                     )
-                                )}
-                            </div>
+                                )
+                            )}
+                        </div>
 
-                            <div className={cn("w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm thin-scrollbar dark:border-slate-800/80 dark:bg-slate-950", viewMode === VIEW_MODES.table ? "hidden lg:block" : "hidden")}>
-                                <table className="premium-table min-w-[1280px] table-auto whitespace-nowrap">
-                                    <thead className="sticky left-0 top-0 z-10 bg-gradient-to-r from-dailyveg-50 to-slate-50/80 text-left dark:from-dailyveg-950/70 dark:to-slate-900/60">
+                        <div className={cn("w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm thin-scrollbar dark:border-slate-800/80 dark:bg-slate-950", viewMode === VIEW_MODES.table ? "hidden lg:block" : "hidden")}>
+                            <table className="premium-table min-w-[1280px] table-auto whitespace-nowrap">
+                                <thead className="sticky left-0 top-0 z-10 bg-gradient-to-r from-dailyveg-50 to-slate-50/80 text-left dark:from-dailyveg-950/70 dark:to-slate-900/60">
+                                    <tr>
+                                        <th className="w-10 px-4 py-3.5 text-left">
+                                            <input aria-label="Select all visible orders" className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500" type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
+                                        </th>
+                                        {['Order', 'Customer', 'Delivery', 'Area', 'Items', 'Amount', 'Payment', 'Delivery Partner', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{heading}</th>)}
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {listQuery.isLoading ? (
                                         <tr>
-                                            <th className="w-10 px-4 py-3.5 text-left">
-                                                <input aria-label="Select all visible orders" className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500" type="checkbox" checked={isAllVisibleSelected()} onChange={toggleSelectAllVisible} />
-                                            </th>
-                                            {['Order', 'Customer', 'Delivery', 'Area', 'Items', 'Amount', 'Payment', 'Delivery Partner', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">{heading}</th>)}
+                                            <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
+                                                <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin text-dailyveg-500" /><span className="font-medium">Loading orders…</span>
+                                            </td>
                                         </tr>
-                                    </thead>
+                                    ) : visibleRows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
+                                                <Package className="mx-auto mb-3 h-8 w-8 text-slate-300 dark:text-slate-700" /><span className="font-semibold text-slate-700 dark:text-slate-200">No orders found</span><p className="mt-1 text-xs">This queue is clear for the selected filters.</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        visibleRows.map((order) => {
+                                            const nextActions = getNextActions(order, canMarkDelivered);
+                                            const selected = selectedIds.includes(order.id);
 
-                                    <tbody>
-                                        {listQuery.isLoading ? (
-                                            <tr>
-                                                <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
-                                                    <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin text-dailyveg-500" /><span className="font-medium">Loading orders…</span>
-                                                </td>
-                                            </tr>
-                                        ) : visibleRows.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={11} className="px-4 py-16 text-center text-slate-500">
-                                                    <Package className="mx-auto mb-3 h-8 w-8 text-slate-300 dark:text-slate-700" /><span className="font-semibold text-slate-700 dark:text-slate-200">No orders found</span><p className="mt-1 text-xs">This queue is clear for the selected filters.</p>
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            visibleRows.map((order) => {
-                                                const nextActions = getNextActions(order, canMarkDelivered);
-                                                const selected = selectedIds.includes(order.id);
+                                            return (
+                                                <tr key={order.id} className={cn("group border-t border-slate-100 transition-colors dark:border-slate-900", selected ? "bg-dailyveg-50/80 dark:bg-dailyveg-950/35" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/35")}>
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <input
+                                                            aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
+                                                            className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500"
+                                                            type="checkbox"
+                                                            checked={selected}
+                                                            onChange={() => toggleRowSelection(order.id)}
+                                                        />
+                                                    </td>
 
-                                                return (
-                                                    <tr key={order.id} className={cn("group border-t border-slate-100 transition-colors dark:border-slate-900", selected ? "bg-dailyveg-50/80 dark:bg-dailyveg-950/35" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/35")}>
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <input
-                                                                aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
-                                                                className="h-4 w-4 rounded border-slate-300 accent-dailyveg-500"
-                                                                type="checkbox"
-                                                                checked={selected}
-                                                                onChange={() => toggleRowSelection(order.id)}
-                                                            />
-                                                        </td>
-
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="flex items-center gap-3" aria-label={`Order ${getPrimaryOrderLabel(order)}`}>
-                                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300">
-                                                                    {getDailyOrderLabel(order) ? (
-                                                                        <span className="text-xs font-bold">{getDailyOrderLabel(order)}</span>
-                                                                    ) : (
-                                                                        <Hash className="h-4 w-4" />
-                                                                    )}
-                                                                </span>
-                                                                <div>
-                                                                    <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                                                        {getPrimaryOrderLabel(order)}
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="flex items-center gap-3" aria-label={`Order ${getPrimaryOrderLabel(order)}`}>
+                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950 dark:text-dailyveg-300">
+                                                                {getDailyOrderLabel(order) ? (
+                                                                    <span className="text-xs font-bold">{getDailyOrderLabel(order)}</span>
+                                                                ) : (
+                                                                    <Hash className="h-4 w-4" />
+                                                                )}
+                                                            </span>
+                                                            <div>
+                                                                <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                                    {getPrimaryOrderLabel(order)}
+                                                                </div>
+                                                                {order.order_number && (
+                                                                    <div className="text-[10px] text-slate-500 font-mono">
+                                                                        Ref: {order.order_number}
                                                                     </div>
-                                                                    {order.order_number && (
-                                                                        <div className="text-[10px] text-slate-500 font-mono">
-                                                                            Ref: {order.order_number}
-                                                                        </div>
-                                                                    )}
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="font-semibold text-slate-800 dark:text-slate-100">{getCustomerName(order)}</div>
+                                                        <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><Phone className="h-3 w-3" />{getCustomerPhone(order)}</div>
+                                                    </td>
+
+                                                    <td className="px-4 py-3 align-middle"><div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"><CalendarDays className="h-3.5 w-3.5 text-slate-400" />{formatDateLabel(order.delivery_date) || "—"}</div></td>
+                                                    <td className="px-4 py-3 align-middle"><div className="flex max-w-[140px] items-center gap-2 truncate text-xs text-slate-600 dark:text-slate-300" title={getOrderArea(order)}><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{getOrderArea(order)}</span></div></td>
+                                                    <td className="px-4 py-3 align-middle"><span className="inline-flex min-w-8 items-center justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{getOrderItemsCount(order)}</span></td>
+
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white"><IndianRupee className="h-3.5 w-3.5 text-dailyveg-600" />{money(getOrderTotal(order)).replace(/^₹\s?/, "")}</div>
+                                                    </td>
+
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase text-slate-700 dark:text-slate-200"><CreditCard className="h-3.5 w-3.5 text-slate-400" />{order.payment_method || "—"}</div>
+                                                        <div className="mt-1 text-[11px] capitalize text-slate-500">{String(order.payment_status || "—").replaceAll("_", " ")}</div>
+                                                    </td>
+
+                                                    <td className="px-4 py-3 align-middle">
+                                                        {order.delivery_partner ? (
+                                                            <div>
+                                                                <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100"><Truck className="h-3.5 w-3.5 text-dailyveg-600" />{getDeliveryPartnerName(order)}</div>
+                                                                <div className="mt-1 text-xs text-slate-500">
+                                                                    {getDeliveryPartnerPhone(order) || "—"}
                                                                 </div>
                                                             </div>
-                                                        </td>
+                                                        ) : (
+                                                            <span className="inline-flex rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-medium text-slate-500 dark:border-slate-700">Unassigned</span>
+                                                        )}
+                                                    </td>
 
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="font-semibold text-slate-800 dark:text-slate-100">{getCustomerName(order)}</div>
-                                                            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><Phone className="h-3 w-3" />{getCustomerPhone(order)}</div>
-                                                        </td>
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="flex flex-col items-start gap-1.5">
+                                                            <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
+                                                            <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold", order.is_locked ? "text-dailyveg-700 dark:text-dailyveg-300" : "text-slate-400")}>
+                                                                <span className={cn("h-1.5 w-1.5 rounded-full", order.is_locked ? "bg-dailyveg-500" : "bg-slate-300 dark:bg-slate-700")} />{order.is_locked ? "Locked" : "Not locked"}
+                                                            </span>
+                                                        </div>
+                                                    </td>
 
-                                                        <td className="px-4 py-3 align-middle"><div className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"><CalendarDays className="h-3.5 w-3.5 text-slate-400" />{formatDateLabel(order.delivery_date) || "—"}</div></td>
-                                                        <td className="px-4 py-3 align-middle"><div className="flex max-w-[140px] items-center gap-2 truncate text-xs text-slate-600 dark:text-slate-300" title={getOrderArea(order)}><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{getOrderArea(order)}</span></div></td>
-                                                        <td className="px-4 py-3 align-middle"><span className="inline-flex min-w-8 items-center justify-center rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{getOrderItemsCount(order)}</span></td>
+                                                    <td className="px-4 py-3 align-middle">
+                                                        <div className="flex flex-nowrap gap-1.5">
+                                                            <Button className="gap-1.5" variant="ghost" size="sm" onClick={() => setPreviewOrder(order)}>
+                                                                <Eye className="h-3.5 w-3.5" />Preview
+                                                            </Button>
 
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white"><IndianRupee className="h-3.5 w-3.5 text-dailyveg-600" />{money(getOrderTotal(order)).replace(/^₹\s?/, "")}</div>
-                                                        </td>
+                                                            <Button className="gap-1.5" variant="outline" size="sm" asChild>
+                                                                <Link to={`/ops/orders/${order.id}`}>View<ExternalLink className="h-3.5 w-3.5" /></Link>
+                                                            </Button>
 
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase text-slate-700 dark:text-slate-200"><CreditCard className="h-3.5 w-3.5 text-slate-400" />{order.payment_method || "—"}</div>
-                                                            <div className="mt-1 text-[11px] capitalize text-slate-500">{String(order.payment_status || "—").replaceAll("_", " ")}</div>
-                                                        </td>
-
-                                                        <td className="px-4 py-3 align-middle">
-                                                            {order.delivery_partner ? (
-                                                                <div>
-                                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100"><Truck className="h-3.5 w-3.5 text-dailyveg-600" />{getDeliveryPartnerName(order)}</div>
-                                                                    <div className="mt-1 text-xs text-slate-500">
-                                                                        {getDeliveryPartnerPhone(order) || "—"}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="inline-flex rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-medium text-slate-500 dark:border-slate-700">Unassigned</span>
-                                                            )}
-                                                        </td>
-
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="flex flex-col items-start gap-1.5">
-                                                                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
-                                                                <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold", order.is_locked ? "text-dailyveg-700 dark:text-dailyveg-300" : "text-slate-400")}>
-                                                                    <span className={cn("h-1.5 w-1.5 rounded-full", order.is_locked ? "bg-dailyveg-500" : "bg-slate-300 dark:bg-slate-700")} />{order.is_locked ? "Locked" : "Not locked"}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-
-                                                        <td className="px-4 py-3 align-middle">
-                                                            <div className="flex flex-nowrap gap-1.5">
-                                                                <Button className="gap-1.5" variant="ghost" size="sm" onClick={() => setPreviewOrder(order)}>
-                                                                    <Eye className="h-3.5 w-3.5" />Preview
+                                                            {canAssignDeliveryPartner(order) ? (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => openAssignDialog(order)}
+                                                                    disabled={assignDeliveryPartnerMut.isPending}
+                                                                >
+                                                                    {order.delivery_partner_user_id ? "Reassign Rider" : "Assign Rider"}
                                                                 </Button>
+                                                            ) : null}
 
-                                                                <Button className="gap-1.5" variant="outline" size="sm" asChild>
-                                                                    <Link to={`/ops/orders/${order.id}`}>View<ExternalLink className="h-3.5 w-3.5" /></Link>
+                                                            {canUnassignDeliveryPartner(order) ? (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleUnassignDeliveryPartner(order)}
+                                                                    disabled={unassignDeliveryPartnerMut.isPending}
+                                                                >
+                                                                    Unassign
                                                                 </Button>
+                                                            ) : null}
 
-                                                                {canAssignDeliveryPartner(order) ? (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => openAssignDialog(order)}
-                                                                        disabled={assignDeliveryPartnerMut.isPending}
-                                                                    >
-                                                                        {order.delivery_partner_user_id ? "Reassign Rider" : "Assign Rider"}
-                                                                    </Button>
-                                                                ) : null}
+                                                            {nextActions.map((action) => (
+                                                                <Button
+                                                                    key={action.key}
+                                                                    size="sm"
+                                                                    onClick={() => handleQuickAction(order.id, action.key)}
+                                                                    disabled={updateStatusMut.isPending}
+                                                                >
+                                                                    {action.label}
+                                                                </Button>
+                                                            ))}
 
-                                                                {canUnassignDeliveryPartner(order) ? (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => handleUnassignDeliveryPartner(order)}
-                                                                        disabled={unassignDeliveryPartnerMut.isPending}
-                                                                    >
-                                                                        Unassign
-                                                                    </Button>
-                                                                ) : null}
-
-                                                                {nextActions.map((action) => (
-                                                                    <Button
-                                                                        key={action.key}
-                                                                        size="sm"
-                                                                        onClick={() => handleQuickAction(order.id, action.key)}
-                                                                        disabled={updateStatusMut.isPending}
-                                                                    >
-                                                                        {action.label}
-                                                                    </Button>
-                                                                ))}
-
-                                                                {isAdmin ? (
-                                                                    <Button
-                                                                        variant="redoutline"
-                                                                        size="sm"
-                                                                        onClick={() => openDeleteDialog(order)}
-                                                                    >
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                        <span className="sr-only">Delete {getPrimaryOrderLabel(order)}</span>
-                                                                    </Button>
-                                                                ) : null}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                            {isAdmin ? (
+                                                                <Button
+                                                                    variant="redoutline"
+                                                                    size="sm"
+                                                                    onClick={() => openDeleteDialog(order)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    <span className="sr-only">Delete {getPrimaryOrderLabel(order)}</span>
+                                                                </Button>
+                                                            ) : null}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
 
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Page {page} · Showing {rows.length} rows · Total {total}
-                            </p>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Page {page} · Showing {rows.length} rows · Total {total}
+                        </p>
 
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    disabled={page <= 1 || listQuery.isLoading}
-                                    onClick={() =>
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            page: Math.max(1, Number(prev.page || 1) - 1),
-                                        }))
-                                    }
-                                >
-                                    Prev
-                                </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                disabled={page <= 1 || listQuery.isLoading}
+                                onClick={() =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        page: Math.max(1, Number(prev.page || 1) - 1),
+                                    }))
+                                }
+                            >
+                                Prev
+                            </Button>
 
-                                <Button
-                                    variant="outline"
-                                    disabled={rows.length < limit || listQuery.isLoading}
-                                    onClick={() =>
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            page: Number(prev.page || 1) + 1,
-                                        }))
-                                    }
-                                >
-                                    Next
-                                </Button>
-                            </div>
+                            <Button
+                                variant="outline"
+                                disabled={rows.length < limit || listQuery.isLoading}
+                                onClick={() =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        page: Number(prev.page || 1) + 1,
+                                    }))
+                                }
+                            >
+                                Next
+                            </Button>
                         </div>
+                    </div>
                 </Card>
             </div>
 

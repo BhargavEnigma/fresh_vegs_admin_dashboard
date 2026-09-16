@@ -118,7 +118,7 @@ export function AppShell() {
       <div className="flex min-h-screen w-full min-w-0 overflow-x-clip">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r border-slate-200/80 bg-white/95 shadow-2xl shadow-slate-900/5 backdrop-blur-xl transition-[width,transform] duration-300 ease-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40",
+            "app-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r border-slate-200/80 bg-white/95 shadow-2xl shadow-slate-900/5 backdrop-blur-xl transition-[width,transform] duration-300 ease-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/40",
             sidebarOpen ? "w-72 p-4" : "w-24 p-3",
             mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           )}
@@ -203,7 +203,7 @@ export function AppShell() {
             </Button>
           </div>
 
-          <nav className="mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 thin-scrollbar">
+          <nav className="sidebar-scrollbar mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
             {items.map((item) => {
               const hasChildren = Array.isArray(item.children) && item.children.length > 0;
 

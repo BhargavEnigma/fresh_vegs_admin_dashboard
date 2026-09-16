@@ -203,6 +203,7 @@ export const ENDPOINTS = {
     },
     jobs: {
       lockOrders: "/v1/ops/jobs/lock-orders",
+      lockScopedOrders: "/v1/ops/jobs/lock-orders/scoped",
       runs: "/v1/ops/jobs/runs",
     },
     scheduler: {

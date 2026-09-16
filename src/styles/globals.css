@@ -106,6 +106,45 @@ select {
     height: 3px;
 }
 
+/* Keep the scrollbar space stable while revealing it on sidebar hover. */
+.app-sidebar {
+    --sidebar-scrollbar-thumb: transparent;
+}
+
+.app-sidebar:hover {
+    --sidebar-scrollbar-thumb: #b8d9b0;
+}
+
+.dark .app-sidebar:hover {
+    --sidebar-scrollbar-thumb: #245c1d;
+}
+
+/* Firefox needs separate styling; WebKit keeps the original 3px width below. */
+@supports (-moz-appearance: none) {
+    .sidebar-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+    }
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--sidebar-scrollbar-thumb);
+    border-radius: 999px;
+}
+
+.app-sidebar:hover .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #4cae39;
+}
+
 /* Hide scrollbars but keep functionality */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

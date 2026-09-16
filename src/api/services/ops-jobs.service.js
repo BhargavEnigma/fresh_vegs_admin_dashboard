@@ -7,6 +7,11 @@ export const OpsJobsService = {
         return res.data?.data;
     },
 
+    async lockScopedOrders(payload) {
+        const res = await api.post(ENDPOINTS.ops.jobs.lockScopedOrders, payload);
+        return res.data?.data;
+    },
+
     getLockOrdersSchedule: async () => {
         const res = await api.get(ENDPOINTS.ops.scheduler.lockOrders);
         return res.data?.data || res.data;

@@ -8,7 +8,7 @@ import { Input } from "../../../components/ui/input";
 import { AdminOrdersService } from "../../../api/services/admin-orders.service";
 import { OpsOrdersService } from "../../../api/services/ops-orders.service";
 import { Link, useParams } from "react-router-dom";
-import { RefreshCw, AlertTriangle, Copy } from "lucide-react";
+import { RefreshCw, AlertTriangle, Copy, ExternalLink } from "lucide-react";
 
 import { PageHeader } from "../../../components/common/page-header";
 import { Card } from "../../../components/ui/card";
@@ -21,7 +21,7 @@ import { Label } from "../../../components/ui/label";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { OrderStatusTimeline } from "../../../components/orders/order-status-timeline";
 import { getOrderStatusLabel } from "../../../utils/order-status-timeline";
-import { cn, formatQuantity } from "../../../lib/utils";
+import { cn, formatQuantity, assetUrl } from "../../../lib/utils";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 
 function money(paise) {
@@ -505,17 +505,46 @@ export function OpsOrderDetailPage() {
                     </div>
 
                     <div className="mt-6">
-                        <h3 className="mb-2 text-sm font-semibold">
-                            Delivery Proof Image
-                        </h3>
+                        <div className="mb-2 flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">
+                                Delivery Proof Image
+                            </h3>
+                            {order.delivery_proof_image_url ? (
+                                <a
+                                    href={assetUrl(order.delivery_proof_image_url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    <span>View Original</span>
+                                </a>
+                            ) : null}
+                        </div>
 
                         {order.delivery_proof_image_url ? (
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
-                                <img
-                                    src={order.delivery_proof_image_url}
-                                    alt="Delivery Proof"
-                                    className="w-full max-w-full object-contain rounded-md"
-                                />
+                            <div className="inline-block max-w-sm rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900">
+                                <a
+                                    href={assetUrl(order.delivery_proof_image_url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="group relative block overflow-hidden rounded-lg"
+                                    title="Click to view original image"
+                                >
+                                    <div className="flex h-56 w-72 sm:h-64 sm:w-80 max-w-full items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-950/60 p-1">
+                                        <img
+                                            src={assetUrl(order.delivery_proof_image_url)}
+                                            alt="Delivery Proof"
+                                            className="h-full w-full object-contain rounded-md transition-transform duration-200 group-hover:scale-[1.02]"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/15 group-hover:opacity-100">
+                                        <span className="flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-white shadow-sm backdrop-blur-sm">
+                                            <ExternalLink className="h-3 w-3" /> Click to enlarge
+                                        </span>
+                                    </div>
+                                </a>
                             </div>
                         ) : (
                             <div className="text-sm text-slate-500">
