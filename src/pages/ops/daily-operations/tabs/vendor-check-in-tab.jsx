@@ -21,6 +21,7 @@ import { Label } from "../../../../components/ui/label";
 import { Badge } from "../../../../components/ui/badge";
 import { PremiumSelect } from "../../../../components/ui/premium-select";
 import { useToast } from "../../../../components/toast/toast-context";
+import { ProductAvatar } from "../../../../components/common/product-avatar";
 import {
   acceptedPayoutPaise,
   buildFullAcceptanceDraft,
@@ -290,11 +291,11 @@ export function VendorCheckInTab({
   };
 
   return (
-    <div>
-      <Card className="mb-5 p-4">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+    <div className="space-y-4">
+      <Card className="p-3.5 sm:p-4 rounded-2xl border-slate-200/80 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-950">
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
-            <Label>Vendor</Label>
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5 block">Vendor</Label>
             <PremiumSelect
               value={vendorUserId}
               onChange={(value) => {
@@ -322,6 +323,7 @@ export function VendorCheckInTab({
               assignmentsQuery.refetch();
             }}
             disabled={!vendorUserId || assignmentsQuery.isFetching}
+            className="w-full lg:w-auto rounded-xl"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${assignmentsQuery.isFetching ? "animate-spin" : ""}`} />
             Refresh
@@ -329,19 +331,23 @@ export function VendorCheckInTab({
         </div>
       </Card>
 
-
-
       {!vendorUserId ? (
-        <Card className="p-10 text-center text-slate-500">
+        <Card className="rounded-2xl p-8 sm:p-10 text-center text-slate-500 border-dashed">
           <ClipboardCheck className="mx-auto mb-3 h-9 w-9 text-slate-400" />
-          Select a vendor to see active assignments.
+          <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">Select a vendor to see active assignments.</p>
         </Card>
       ) : assignmentsQuery.isLoading ? (
-        <Card className="p-10 text-center text-slate-500">Loading assignments…</Card>
+        <Card className="rounded-2xl p-10 text-center text-slate-500">
+          <RefreshCw className="mx-auto mb-2 h-6 w-6 animate-spin text-emerald-500" />
+          Loading assignments…
+        </Card>
       ) : assignmentsQuery.isError ? (
-        <Card className="p-10 text-center text-red-600">Could not load vendor assignments.</Card>
+        <Card className="rounded-2xl p-10 text-center text-rose-600">Could not load vendor assignments.</Card>
       ) : assignments.length === 0 ? (
-        <Card className="p-10 text-center text-slate-500">No active assignments for this vendor and date.</Card>
+        <Card className="rounded-2xl p-8 sm:p-10 text-center text-slate-500 border-dashed">
+          <ClipboardCheck className="mx-auto mb-3 h-9 w-9 text-slate-400" />
+          <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">No active assignments for this vendor and date.</p>
+        </Card>
       ) : (
         <div className="space-y-4">
           {/* Navigation Tabs */}
@@ -350,7 +356,7 @@ export function VendorCheckInTab({
               <button
                 type="button"
                 onClick={() => handleTabChange("pending")}
-                className={`group relative flex min-w-0 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${
+                className={`group relative flex min-w-0 items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${
                   activeTab === "pending"
                     ? "bg-gradient-to-r from-dailyveg-500 via-dailyveg-600 to-emerald-600 text-white shadow-lg shadow-dailyveg-500/20 scale-[1.01]"
                     : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white"
@@ -361,7 +367,7 @@ export function VendorCheckInTab({
               <button
                 type="button"
                 onClick={() => handleTabChange("received")}
-                className={`group relative flex min-w-0 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${
+                className={`group relative flex min-w-0 items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap ${
                   activeTab === "received"
                     ? "bg-gradient-to-r from-dailyveg-500 via-dailyveg-600 to-emerald-600 text-white shadow-lg shadow-dailyveg-500/20 scale-[1.01]"
                     : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-white"
@@ -374,14 +380,17 @@ export function VendorCheckInTab({
 
           {activeTab === "pending" ? (
             pendingAssignments.length === 0 ? (
-              <Card className="p-10 text-center text-slate-500">No pending assignments for this vendor and date.</Card>
+              <Card className="rounded-2xl p-8 sm:p-10 text-center text-slate-500 border-dashed">
+                <ClipboardCheck className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+                <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">No pending assignments for this vendor and date.</p>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {receivableAssignments.length > 0 && (
-                  <Card className="border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <Card className="rounded-2xl border-emerald-200 bg-emerald-50/40 p-3.5 sm:p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
                       {isAdmin ? (
-                        <div className="w-[60%]">
+                        <div className="w-full sm:w-[60%]">
                           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                             Fast warehouse check-in
                           </h3>
@@ -391,8 +400,8 @@ export function VendorCheckInTab({
                           </p>
                         </div>
                       ) : null}
-                      <div className={cn("flex flex-wrap items-center justify-end gap-2", isAdmin ? "w-[40%]" : "w-full")}>
-                        <Badge variant={preparedCount === receivableAssignments.length ? "success" : "secondary"}>
+                      <div className={cn("flex flex-wrap items-center justify-between sm:justify-end gap-2", isAdmin ? "w-full sm:w-[40%]" : "w-full")}>
+                        <Badge variant={preparedCount === receivableAssignments.length ? "success" : "secondary"} className="rounded-xl px-2.5 py-1">
                           {preparedCount}/{receivableAssignments.length} prepared
                         </Badge>
                         {isAdmin && preparedCount > 0 ? (
@@ -402,6 +411,7 @@ export function VendorCheckInTab({
                             variant="outline"
                             onClick={() => setDrafts({})}
                             disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
+                            className="rounded-xl flex-1 sm:flex-initial"
                           >
                             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                             Clear
@@ -413,7 +423,7 @@ export function VendorCheckInTab({
                             size="sm"
                             onClick={acceptAllSupplied}
                             disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
-                            className="bg-emerald-600 text-white hover:bg-emerald-700"
+                            className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl flex-1 sm:flex-initial"
                           >
                             <CheckCircle2 className="mr-1.5 h-4 w-4" />
                             Accept all supplied
@@ -449,59 +459,64 @@ export function VendorCheckInTab({
                   }
 
                   return (
-                    <Card key={assignment.id} className={cn("relative overflow-hidden rounded-2xl border border-l-[3px] border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)] dark:border-slate-800/80 dark:bg-slate-950/80", accentColor)}>
+                    <Card key={assignment.id} className={cn("relative overflow-hidden rounded-2xl border border-l-[3px] border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)] dark:border-slate-800/80 dark:bg-slate-950/80", accentColor)}>
                       
                       {/* Top Header Row */}
-                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">{assignment.product?.name || "Unknown product"}</h3>
-                            <Badge variant={status.variant} className="rounded-full font-bold px-2 py-0.5">
-                              {status.label}
-                            </Badge>
-                            {assignment.status === "received" && assignment.outcome && (
-                              <Badge
-                                variant={
-                                  assignment.outcome === "fully_accepted"
-                                    ? "success"
-                                    : assignment.outcome === "partially_accepted"
-                                    ? "warning"
-                                    : "danger"
-                                }
-                                className="capitalize font-bold rounded-full px-2 py-0.5"
-                              >
-                                {assignment.outcome.replaceAll("_", " ")}
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4 dark:border-slate-900">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <ProductAvatar item={assignment.product || assignment} size="md" fallbackIcon={ClipboardCheck} className="shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <h3 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base tracking-tight leading-snug break-words">
+                                {assignment.product?.name || "Unknown product"}
+                              </h3>
+                              <Badge variant={status.variant} className="rounded-full font-bold px-2 py-0.5 text-[10px]">
+                                {status.label}
                               </Badge>
-                            )}
-                            <Badge variant={assignment.procurement_mode === "bulk" ? "success" : "outline"} className="rounded-full font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider">
-                              {assignment.procurement_mode === "bulk" ? "Bulk" : "Pack"}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                            {assignment.procurement_mode === "bulk"
-                              ? `Product-level bulk supply · ${unit.toUpperCase()}`
-                              : (assignment.pack_label || unit.toUpperCase())}
-                          </p>
-                          {assignment.check_in_override_reason && (
-                            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-200/20">
-                              <span className="font-bold">Check-in Override:</span>
-                              <span>"{assignment.check_in_override_reason}"</span>
-                              {assignment.override_actor?.full_name && (
-                                <span className="text-slate-400 dark:text-slate-500">
-                                  (by {assignment.override_actor.full_name})
-                                </span>
+                              {assignment.status === "received" && assignment.outcome && (
+                                <Badge
+                                  variant={
+                                    assignment.outcome === "fully_accepted"
+                                      ? "success"
+                                      : assignment.outcome === "partially_accepted"
+                                      ? "warning"
+                                      : "danger"
+                                  }
+                                  className="capitalize font-bold rounded-full px-2 py-0.5 text-[10px]"
+                                >
+                                  {assignment.outcome.replaceAll("_", " ")}
+                                </Badge>
                               )}
+                              <Badge variant={assignment.procurement_mode === "bulk" ? "success" : "outline"} className="rounded-full font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider">
+                                {assignment.procurement_mode === "bulk" ? "Bulk" : "Pack"}
+                              </Badge>
                             </div>
-                          )}
+                            <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                              {assignment.procurement_mode === "bulk"
+                                ? `Product-level bulk supply · ${unit.toUpperCase()}`
+                                : (assignment.pack_label || unit.toUpperCase())}
+                            </p>
+                            {assignment.check_in_override_reason && (
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-200/20">
+                                <span className="font-bold">Check-in Override:</span>
+                                <span>"{assignment.check_in_override_reason}"</span>
+                                {assignment.override_actor?.full_name && (
+                                  <span className="text-slate-400 dark:text-slate-500">
+                                    (by {assignment.override_actor.full_name})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Allocation ID</span>
-                          <span title={assignment.id} className="mt-0.5 block font-mono text-xs font-bold text-slate-600 dark:text-slate-400">…{assignment.id.slice(-8)}</span>
+                          <span title={assignment.id} className="mt-0.5 block font-mono text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">…{assignment.id.slice(-8)}</span>
                         </div>
                       </div>
 
-                      {/* Content Grid */}
-                      <div className="mt-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                      {/* Content Grid - Desktop View */}
+                      <div className="mt-4 hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-end gap-3">
                         <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Allocated</Label>
                           <p className="mt-1.5 text-base font-black text-slate-800 dark:text-slate-200">{formatQuantityWithUnit(assignment.allocated_quantity, unit)}</p>
@@ -547,8 +562,62 @@ export function VendorCheckInTab({
                         </div>
                       </div>
 
-                      {/* Footer Actions & Payout Box */}
-                      <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
+                      {/* Content Grid - Dedicated Mobile View */}
+                      <div className="sm:hidden space-y-2 mt-3">
+                        <div className="grid grid-cols-3 gap-1.5 text-center">
+                          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-900/60">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block truncate">Allocated</span>
+                            <p className="mt-0.5 text-xs font-black text-slate-800 dark:text-slate-200 truncate">{formatQuantityWithUnit(assignment.allocated_quantity, unit)}</p>
+                          </div>
+                          <div className="rounded-xl bg-indigo-50/60 p-2 dark:bg-indigo-950/20">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-indigo-500 block truncate">Supplied</span>
+                            <p className="mt-0.5 text-xs font-black text-indigo-700 dark:text-indigo-400 truncate">{formatQuantityWithUnit(assignment.supplied_quantity, unit)}</p>
+                          </div>
+                          <div className="rounded-xl bg-slate-50 p-2 dark:bg-slate-900/60">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block truncate">Price</span>
+                            <p className="mt-0.5 text-xs font-black text-slate-800 dark:text-slate-200 truncate">{formatVendorMoney(assignment.unit_cost_paise)}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-2.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                            <Label htmlFor={`received-m-${assignment.id}`} className="text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-1">
+                              Received ({unit.toUpperCase()})
+                            </Label>
+                            <Input
+                              id={`received-m-${assignment.id}`}
+                              type="number"
+                              min="0"
+                              step={["piece", "pc", "pcs"].includes(String(unit).toLowerCase()) ? "1" : "0.001"}
+                              disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
+                              placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending" : "N/A")}
+                              value={draft.received_quantity ?? ""}
+                              onChange={(event) => updateDraft(assignment.id, "received_quantity", event.target.value)}
+                              className="h-9 text-xs rounded-xl bg-white border-slate-200/80 font-bold focus:ring-emerald-500/20 focus:border-emerald-500 disabled:opacity-75 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-800"
+                            />
+                          </div>
+
+                          <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-2.5 dark:border-rose-900/40 dark:bg-rose-950/20">
+                            <Label htmlFor={`rejected-m-${assignment.id}`} className="text-[9px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-1">
+                              Rejected ({unit.toUpperCase()})
+                            </Label>
+                            <Input
+                              id={`rejected-m-${assignment.id}`}
+                              type="number"
+                              min="0"
+                              step={["piece", "pc", "pcs"].includes(String(unit).toLowerCase()) ? "1" : "0.001"}
+                              disabled={!enabled || receiveMutation.isPending || singleReceiveMutation.isPending}
+                              placeholder={enabled ? "0.000" : (assignment.status === "confirmed" ? "Pending" : "N/A")}
+                              value={draft.rejected_quantity ?? ""}
+                              onChange={(event) => updateDraft(assignment.id, "rejected_quantity", event.target.value)}
+                              className="h-9 text-xs rounded-xl bg-white border-slate-200/80 font-bold focus:ring-rose-500/20 focus:border-rose-500 disabled:opacity-75 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-800"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions & Payout Box - Desktop View */}
+                      <div className="mt-4 hidden sm:flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-slate-500 dark:text-slate-450">
                             {showActualPayout ? "Final received payout: " : "Estimated accepted payout: "}
@@ -608,6 +677,78 @@ export function VendorCheckInTab({
                                 <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" />
                               ) : (
                                 <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                              )}
+                              {singleReceiveMutation.isPending && singleReceiveMutation.variables?.id === assignment.id
+                                ? "Receiving…"
+                                : "Receive item"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer Actions & Payout Box - Mobile View */}
+                      <div className="mt-3 sm:hidden space-y-2.5 border-t border-slate-100 pt-3 dark:border-slate-900">
+                        <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-2 border border-slate-100 dark:border-slate-800/60">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            {showActualPayout ? "Final payout:" : "Est. payout:"}
+                          </span>
+                          <span className={cn(
+                            "text-xs font-black",
+                            estimatedPayout !== null || showActualPayout
+                              ? "text-emerald-700 dark:text-emerald-400"
+                              : "text-slate-500"
+                          )}>
+                            {assignment.unit_cost_paise === null ||
+                            assignment.unit_cost_paise === undefined ||
+                            Number(assignment.unit_cost_paise) <= 0
+                              ? "Missing vendor price"
+                              : showActualPayout
+                                ? formatVendorMoney(actualPayout)
+                                : !enabled
+                                  ? "Pending dispatch"
+                                  : estimatedPayout === null
+                                    ? "Enter qty"
+                                    : formatVendorMoney(estimatedPayout)}
+                          </span>
+                        </div>
+
+                        {enabled && (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-9 rounded-xl border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/60 text-xs font-bold text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800/60 dark:text-emerald-300 inline-flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                onClick={() => setFullAcceptance(assignment)}
+                                disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                Accept All
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-9 rounded-xl border-rose-200 bg-rose-50/50 hover:bg-rose-100/60 text-xs font-bold text-rose-700 dark:bg-rose-950/20 dark:border-rose-800/60 dark:text-rose-300 inline-flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                onClick={() => setFullRejection(assignment)}
+                                disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                Reject All
+                              </Button>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="w-full h-10 rounded-xl bg-slate-900 text-xs font-bold text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 active:scale-95 transition-all inline-flex items-center justify-center gap-1.5"
+                              onClick={() => submitSingle(assignment)}
+                              disabled={receiveMutation.isPending || singleReceiveMutation.isPending}
+                            >
+                              {singleReceiveMutation.isPending && singleReceiveMutation.variables?.id === assignment.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4" />
                               )}
                               {singleReceiveMutation.isPending && singleReceiveMutation.variables?.id === assignment.id
                                 ? "Receiving…"
@@ -703,13 +844,17 @@ export function VendorCheckInTab({
                     </Card>
                   );
                 })}
-                <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-                  <p className="text-xs text-slate-500">
+                <div className="sticky bottom-3 z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 rounded-2xl border bg-white/95 p-3 sm:p-3.5 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+                  <p className="text-xs text-slate-500 text-center sm:text-left">
                     {preparedCount === 0
                       ? "Prepare at least one item to submit."
                       : `${preparedCount} of ${receivableAssignments.length} receivable item(s) will be submitted.`}
                   </p>
-                  <Button onClick={submit} disabled={receiveMutation.isPending || singleReceiveMutation.isPending || preparedCount === 0}>
+                  <Button
+                    onClick={submit}
+                    disabled={receiveMutation.isPending || singleReceiveMutation.isPending || preparedCount === 0}
+                    className="w-full sm:w-auto h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all inline-flex items-center justify-center gap-1.5"
+                  >
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     {receiveMutation.isPending ? "Submitting…" : `Submit ${preparedCount} item${preparedCount === 1 ? "" : "s"}`}
                   </Button>
@@ -718,7 +863,7 @@ export function VendorCheckInTab({
             )
           ) : (
             receivedAssignments.length === 0 ? (
-              <Card className="p-10 text-center text-slate-500">No received assignments for this vendor and date.</Card>
+              <Card className="p-8 sm:p-10 text-center text-slate-500 text-sm">No received assignments for this vendor and date.</Card>
             ) : (
               <div className="space-y-3">
                 {receivedAssignments.map((assignment) => {
@@ -727,89 +872,140 @@ export function VendorCheckInTab({
                   const actualPayout = assignment.total_cost_paise;
 
                   return (
-                    <Card key={assignment.id} className="p-6 border-l-4 border-l-slate-400 border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-br bg-white/80 dark:bg-slate-950/70 backdrop-blur-md shadow-sm opacity-95 rounded-2xl relative overflow-hidden space-y-5">
-                      <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-bl opacity-[0.03] dark:opacity-[0.05] pointer-events-none rounded-bl-full" />
-                      
+                    <Card key={assignment.id} className="relative overflow-hidden rounded-2xl border border-l-[3px] border-l-slate-400 border-slate-200/80 bg-white p-4 sm:p-5 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)] dark:border-slate-800/80 dark:bg-slate-950/80">
                       {/* Top Header Row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-900">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">{assignment.product?.name || "Unknown product"}</h3>
-                            <Badge variant={status.variant} className="rounded-full font-bold px-2 py-0.5">
-                              {status.label}
-                            </Badge>
-                            {assignment.status === "received" && assignment.outcome && (
-                              <Badge
-                                variant={
-                                  assignment.outcome === "fully_accepted"
-                                    ? "success"
-                                    : assignment.outcome === "partially_accepted"
-                                    ? "warning"
-                                    : "danger"
-                                }
-                                className="capitalize font-bold rounded-full px-2 py-0.5"
-                              >
-                                {assignment.outcome.replaceAll("_", " ")}
+                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <ProductAvatar
+                            product={assignment.product || assignment}
+                            className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl shrink-0 border border-slate-200/80 dark:border-slate-800 shadow-xs"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <h3 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base tracking-tight truncate max-w-full">
+                                {assignment.product?.name || "Unknown product"}
+                              </h3>
+                              <Badge variant={status.variant} className="rounded-full font-bold px-2 py-0.5 text-[10px]">
+                                {status.label}
                               </Badge>
-                            )}
-                            <Badge variant={assignment.procurement_mode === "bulk" ? "success" : "outline"} className="rounded-full font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider">
-                              {assignment.procurement_mode === "bulk" ? "Bulk" : "Pack"}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                            {assignment.procurement_mode === "bulk"
-                              ? `Product-level bulk supply · ${unit.toUpperCase()}`
-                              : (assignment.pack_label || unit.toUpperCase())}
-                          </p>
-                          {assignment.check_in_override_reason && (
-                            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-200/20">
-                              <span className="font-bold">Check-in Override:</span>
-                              <span>"{assignment.check_in_override_reason}"</span>
-                              {assignment.override_actor?.full_name && (
-                                <span className="text-slate-400 dark:text-slate-500">
-                                  (by {assignment.override_actor.full_name})
-                                </span>
+                              {assignment.status === "received" && assignment.outcome && (
+                                <Badge
+                                  variant={
+                                    assignment.outcome === "fully_accepted"
+                                      ? "success"
+                                      : assignment.outcome === "partially_accepted"
+                                      ? "warning"
+                                      : "danger"
+                                  }
+                                  className="capitalize font-bold rounded-full px-2 py-0.5 text-[10px]"
+                                >
+                                  {assignment.outcome.replaceAll("_", " ")}
+                                </Badge>
                               )}
+                              <Badge variant={assignment.procurement_mode === "bulk" ? "success" : "outline"} className="rounded-full font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider">
+                                {assignment.procurement_mode === "bulk" ? "Bulk" : "Pack"}
+                              </Badge>
                             </div>
-                          )}
+                            <p className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                              {assignment.procurement_mode === "bulk"
+                                ? `Product-level bulk supply · ${unit.toUpperCase()}`
+                                : (assignment.pack_label || unit.toUpperCase())}
+                            </p>
+                            {assignment.check_in_override_reason && (
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-800 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-lg border border-amber-200/20">
+                                <span className="font-bold">Check-in Override:</span>
+                                <span>"{assignment.check_in_override_reason}"</span>
+                                {assignment.override_actor?.full_name && (
+                                  <span className="text-slate-400 dark:text-slate-500">
+                                    (by {assignment.override_actor.full_name})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Allocation ID</span>
-                          <span className="text-xs font-extrabold text-slate-700 dark:text-slate-350 mt-0.5 block">#{assignment.id}</span>
+                        <div className="shrink-0 flex items-center justify-between sm:block text-left sm:text-right pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/60">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:block">Allocation ID</span>
+                          <span title={assignment.id} className="sm:mt-0.5 block font-mono text-xs font-bold text-slate-600 dark:text-slate-400">…{assignment.id.slice(-8)}</span>
                         </div>
                       </div>
 
-                      {/* Content Grid */}
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-end">
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
+                      {/* Desktop Content Grid (sm and up) */}
+                      <div className="mt-4 hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-end gap-3">
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Allocated</Label>
-                          <p className="mt-1.5 text-base font-black text-slate-805 dark:text-slate-200">{formatQuantityWithUnit(assignment.allocated_quantity, unit)}</p>
+                          <p className="mt-1.5 text-base font-black text-slate-800 dark:text-slate-200">{formatQuantityWithUnit(assignment.allocated_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
+                        <div className="rounded-xl bg-indigo-50/60 p-3 dark:bg-indigo-950/20">
                           <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Vendor Supplied</Label>
                           <p className="mt-1.5 text-base font-black text-indigo-700 dark:text-indigo-400">{formatQuantityWithUnit(assignment.supplied_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-emerald-100/40 bg-emerald-50/5 p-3.5 dark:border-emerald-950/20 dark:bg-emerald-950/5">
-                          <Label className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Received Qty</Label>
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
+                          <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Locked Price</Label>
+                          <p className="mt-1.5 text-base font-black text-slate-800 dark:text-slate-200">{formatVendorMoney(assignment.unit_cost_paise)}/{unit.toUpperCase()}</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/40 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+                          <Label className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Received ({unit.toUpperCase()})</Label>
                           <p className="mt-1.5 text-base font-black text-emerald-700 dark:text-emerald-300">{formatQuantityWithUnit(assignment.received_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-rose-100/40 bg-rose-50/5 p-3.5 dark:border-rose-950/20 dark:bg-rose-950/5">
-                          <Label className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">Rejected Qty</Label>
+                        <div className="rounded-xl border border-rose-200/70 bg-rose-50/40 p-3 dark:border-rose-900/40 dark:bg-rose-950/10">
+                          <Label className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">Rejected ({unit.toUpperCase()})</Label>
                           <p className="mt-1.5 text-base font-black text-rose-700 dark:text-rose-300">{formatQuantityWithUnit(assignment.rejected_quantity, unit)}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-900/60 dark:bg-slate-900/40">
-                          <Label className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Locked Price</Label>
-                          <p className="mt-1.5 text-base font-black text-slate-805 dark:text-slate-200">{formatVendorMoney(assignment.unit_cost_paise)}/{unit.toUpperCase()}</p>
+                      </div>
+
+                      {/* Mobile Content (sm:hidden) */}
+                      <div className="sm:hidden space-y-2 mt-3">
+                        {/* Compact 3-col info strip */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div className="rounded-xl bg-slate-50 dark:bg-slate-900/80 p-2 text-center border border-slate-100 dark:border-slate-800/60">
+                            <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Allocated</span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate mt-0.5">
+                              {formatQuantityWithUnit(assignment.allocated_quantity, unit)}
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 p-2 text-center border border-indigo-100/60 dark:border-indigo-900/40">
+                            <span className="text-[9px] font-bold text-indigo-500 dark:text-indigo-400 block uppercase tracking-wider">Supplied</span>
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 block truncate mt-0.5">
+                              {formatQuantityWithUnit(assignment.supplied_quantity, unit)}
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-slate-50 dark:bg-slate-900/80 p-2 text-center border border-slate-100 dark:border-slate-800/60">
+                            <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Price</span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate mt-0.5">
+                              {formatVendorMoney(assignment.unit_cost_paise)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Received & Rejected highlights side by side */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-2.5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                              Received ({unit.toUpperCase()})
+                            </span>
+                            <p className="mt-1 text-base font-black text-emerald-700 dark:text-emerald-300">
+                              {formatQuantityWithUnit(assignment.received_quantity, unit)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-rose-200/80 bg-rose-50/50 p-2.5 dark:border-rose-900/50 dark:bg-rose-950/20">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                              Rejected ({unit.toUpperCase()})
+                            </span>
+                            <p className="mt-1 text-base font-black text-rose-700 dark:text-rose-300">
+                              {formatQuantityWithUnit(assignment.rejected_quantity, unit)}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
                       {/* Footer Payout Box */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-900">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-450">
-                            Final received payout:{" "}
+                      <div className="mt-3.5 sm:mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-900">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                          <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-450">
+                            Final received payout:
                           </span>
-                          <span className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-extrabold rounded-xl border bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-350">
+                          <span className="inline-flex items-center justify-center sm:justify-start px-3 py-1.5 text-xs font-extrabold rounded-xl border bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-350">
                             {assignment.unit_cost_paise === null ||
                             assignment.unit_cost_paise === undefined ||
                             Number(assignment.unit_cost_paise) <= 0
@@ -817,8 +1013,9 @@ export function VendorCheckInTab({
                               : formatVendorMoney(actualPayout)}
                           </span>
                         </div>
-                        {(
-                          <div className="mt-3 border-t border-slate-100 pt-2.5 dark:border-slate-800 w-full">
+                      </div>
+
+                      <div className="mt-3 border-t border-slate-100 pt-2.5 dark:border-slate-800">
                             <button
                               type="button"
                               onClick={() => toggleHistory(assignment.id)}
@@ -885,8 +1082,6 @@ export function VendorCheckInTab({
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
                     </Card>
                   );
                 })}

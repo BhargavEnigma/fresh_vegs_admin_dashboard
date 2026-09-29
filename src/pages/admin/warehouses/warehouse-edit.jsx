@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { WarehousesService } from "../../../api/services/warehouses.service";
 import { PageHeader } from "../../../components/common/page-header";
 import { Card } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
 import { useToast } from "../../../components/toast/toast-context";
 import { WarehouseForm } from "./warehouse-form";
+import { ArrowLeft, Eye } from "lucide-react";
 
 export function WarehouseEditPage() {
     const { id } = useParams();
@@ -18,6 +20,8 @@ export function WarehouseEditPage() {
         queryFn: () => WarehousesService.getById(id),
         enabled: !!id,
     });
+
+    const w = query.data;
 
     const updateMut = useMutation({
         mutationFn: (payload) => WarehousesService.update(id, payload),
@@ -34,9 +38,37 @@ export function WarehouseEditPage() {
     });
 
     return (
-        <div>
-            <PageHeader title="Edit Warehouse" subtitle={id} />
-            <Card className="p-4">
+        <div className="space-y-4 px-0 sm:space-y-5">
+            <PageHeader
+                title={
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate">{w?.name ? `Edit: ${w.name}` : "Edit Warehouse"}</span>
+                        {w && (
+                            <span className="inline-flex items-center rounded-lg bg-dailyveg-100 px-2.5 py-0.5 text-xs font-bold text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300">
+                                Fulfillment Center
+                            </span>
+                        )}
+                    </div>
+                }
+                subtitle={w ? `ID: ${id} · ${w.city || "Facility"}` : `Warehouse #${id}`}
+                actions={(
+                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
+                        <Button asChild variant="outline" className="w-full sm:w-auto gap-1.5 h-9 rounded-xl text-xs sm:text-sm">
+                            <Link to={`/admin/warehouses/${id}`}>
+                                <Eye className="h-4 w-4" />
+                                <span>View Details</span>
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full sm:w-auto gap-1.5 h-9 rounded-xl text-xs sm:text-sm">
+                            <Link to="/admin/warehouses">
+                                <ArrowLeft className="h-4 w-4" />
+                                <span>Back to List</span>
+                            </Link>
+                        </Button>
+                    </div>
+                )}
+            />
+            <Card className="rounded-2xl border-slate-200/80 shadow-2xs dark:border-slate-800 p-4 sm:p-6">
                 {query.isLoading ? (
                     <p className="text-sm text-slate-500">Loading...</p>
                 ) : query.isError ? (

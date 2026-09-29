@@ -369,12 +369,12 @@ export function DispatchTab({
 
       {/* Workspaces navigation: Proposed Plan vs Manual Runs */}
       {capabilities.delivery_plan_generation && (
-        <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 bg-slate-50 dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-1.5 sm:flex sm:gap-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant={isPlanningMode ? "default" : "outline"}
-              className="text-xs"
+              className="text-xs h-9 sm:h-8 font-bold"
               onClick={() => setManualOverrideActive(false)}
             >
               Proposed Plan
@@ -382,37 +382,37 @@ export function DispatchTab({
             <Button
               size="sm"
               variant={!isPlanningMode ? "default" : "outline"}
-              className="text-xs"
+              className="text-xs h-9 sm:h-8 font-bold"
               onClick={() => setManualOverrideActive(true)}
             >
-              Dispatch Board (Manual / Active)
+              Dispatch Board
             </Button>
           </div>
 
-          <div className="text-xs text-slate-500 font-bold">
-            Delivery Mode: <span className="text-dailyveg-600">Automated Dispatch</span>
+          <div className="text-[11px] sm:text-xs text-slate-500 font-bold px-1 text-center sm:text-right">
+            Delivery Mode: <span className="text-dailyveg-600 font-black">Automated Dispatch</span>
           </div>
         </div>
       )}
 
       {/* WORKSPACE 1: Proposed Planning Mode */}
       {isPlanningMode && (
-        <div className="space-y-6">
-          <Card className="p-5 border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white dark:from-slate-900/60 dark:to-slate-950 dark:border-indigo-950/40">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-4 sm:space-y-6">
+          <Card className="p-3.5 sm:p-5 border-indigo-100 bg-gradient-to-br from-indigo-50/20 to-white dark:from-slate-900/60 dark:to-slate-950 dark:border-indigo-950/40 rounded-2xl">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
               <div>
-                <h3 className="font-extrabold text-base text-slate-950 dark:text-white flex items-center gap-1.5">
-                  <Cpu className="h-4.5 w-4.5 text-indigo-600" /> Automated Proposed Dispatch Plan
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-950 dark:text-white flex items-center gap-1.5">
+                  <Cpu className="h-4 sm:h-4.5 w-4 sm:w-4.5 text-indigo-600" /> Automated Proposed Dispatch Plan
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                   The system generates route sequences and assigns riders based on orders and coordinates.
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   size="sm"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-9"
                   onClick={handleGeneratePlan}
                   disabled={isGeneratingPlan || selectedPlanningPartnerIds.length === 0}
                 >
@@ -422,7 +422,7 @@ export function DispatchTab({
                 {proposedPlan && (
                   <Button
                     size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9"
                     onClick={handleApprovePlan}
                     disabled={isApprovingPlan || isPlanningSelectionDirty}
                   >
@@ -433,33 +433,33 @@ export function DispatchTab({
             </div>
 
             {/* proposedPlan Content */}
-            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/40 px-4 py-3 dark:border-slate-800 dark:from-slate-900 dark:to-indigo-950/20 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-4 sm:mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex flex-col gap-2.5 sm:gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/40 p-3 sm:px-4 sm:py-3 dark:border-slate-800 dark:from-slate-900 dark:to-indigo-950/20 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="flex items-center gap-2 text-sm font-extrabold text-slate-950 dark:text-white">
+                  <h4 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-extrabold text-slate-950 dark:text-white">
                     <UserCheck className="h-4 w-4 text-indigo-600" /> Delivery Partners for This Plan
                   </h4>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-500">
                     Exclude absent partners here. Their account and warehouse assignment will not be changed.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
                     {selectedPlanningPartnerIds.length} included
                   </span>
-                  <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-black text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
                     {Math.max(0, deliveryPartners.length - selectedPlanningPartnerIds.length)} excluded
                   </span>
                 </div>
               </div>
 
-              <div className="p-3.5">
+              <div className="p-3 sm:p-3.5">
                 {deliveryPartners.length === 0 ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-900">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 sm:p-4 text-xs font-semibold text-amber-900">
                     No active delivery partners are assigned to this warehouse.
                   </div>
                 ) : (
-                  <div className="grid max-h-56 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                  <div className="grid max-h-56 gap-1.5 overflow-y-auto pr-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                     {deliveryPartners.map((partner) => {
                       const partnerId = String(partner.id);
                       const isIncluded = selectedPlanningPartnerIds.includes(partnerId);
@@ -472,13 +472,13 @@ export function DispatchTab({
                           type="button"
                           aria-pressed={isIncluded}
                           onClick={() => togglePlanningPartner(partner.id)}
-                          className={`group flex min-h-12 items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                          className={`group flex min-h-11 sm:min-h-12 items-center gap-2 rounded-xl border p-2 text-left transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
                             isIncluded
                               ? "border-emerald-300/80 bg-gradient-to-r from-emerald-50 to-white shadow-[0_1px_3px_rgba(16,185,129,0.08)] hover:border-emerald-400 dark:border-emerald-900 dark:from-emerald-950/25 dark:to-slate-950"
                               : "border-slate-200 bg-slate-50/80 opacity-75 hover:border-rose-200 hover:opacity-100 dark:border-slate-800 dark:bg-slate-900/60"
                           }`}
                         >
-                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[9px] font-black ring-1 ring-inset ${
+                          <span className={`flex h-6.5 w-6.5 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-lg text-[9px] font-black ring-1 ring-inset ${
                             isIncluded
                               ? "bg-emerald-600 text-white ring-emerald-500"
                               : "bg-slate-200 text-slate-500 ring-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700"
@@ -504,7 +504,7 @@ export function DispatchTab({
                 )}
 
                 <div className="mt-2.5 flex flex-col gap-2 border-t border-slate-100 pt-2.5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-                  <p className={`text-[11px] font-semibold ${selectedPlanningPartnerIds.length ? "text-slate-500" : "text-rose-600"}`}>
+                  <p className={`text-[10px] sm:text-[11px] font-semibold ${selectedPlanningPartnerIds.length ? "text-slate-500" : "text-rose-600"}`}>
                     {selectedPlanningPartnerIds.length
                       ? `${selectedPlanningPartnerIds.length} partner(s) available; the planner will use only those needed for nearby groups of up to 5 orders.`
                       : "Select at least one delivery partner to generate a plan."}
@@ -514,7 +514,7 @@ export function DispatchTab({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 text-[10px]"
+                      className="h-7 text-[10px] flex-1 sm:flex-initial"
                       onClick={() => setSelectedPlanningPartnerIds(deliveryPartners.map((partner) => String(partner.id)))}
                     >
                       Include All
@@ -523,7 +523,7 @@ export function DispatchTab({
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-7 text-[10px] text-rose-600"
+                      className="h-7 text-[10px] text-rose-600 flex-1 sm:flex-initial"
                       onClick={() => setSelectedPlanningPartnerIds([])}
                     >
                       Exclude All
@@ -531,7 +531,7 @@ export function DispatchTab({
                   </div>
                 </div>
                 {isPlanningSelectionDirty && (
-                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 sm:p-3 text-[10px] sm:text-[11px] font-semibold text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     Availability changed. Regenerate the plan before approval so orders are reassigned using only the included partners.
                   </div>
@@ -542,8 +542,8 @@ export function DispatchTab({
             {isLoadingProposedPlan ? (
               <p className="text-xs text-slate-500 text-center py-8">Retrieving proposed plan...</p>
             ) : !proposedPlan ? (
-              <div className="text-center py-12 text-slate-500">
-                <Truck className="h-10 w-10 mx-auto opacity-30 mb-2" />
+              <div className="text-center py-10 sm:py-12 text-slate-500">
+                <Truck className="h-9 w-9 sm:h-10 sm:w-10 mx-auto opacity-30 mb-2" />
                 <p className="text-xs font-semibold">No proposed plan generated yet.</p>
                 <Button
                   size="sm"
@@ -555,9 +555,9 @@ export function DispatchTab({
                 </Button>
               </div>
             ) : (
-              <div className="mt-6 space-y-6">
+              <div className="mt-5 sm:mt-6 space-y-4 sm:space-y-6">
                 {/* Proposed runs metrics list */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {(proposedPlan.proposed_runs || []).map((pRun, idx) => (
                     <Card
                       key={pRun.rider_id || idx}
@@ -571,14 +571,14 @@ export function DispatchTab({
                           openProposedRunReview(pRun, idx);
                         }
                       }}
-                      className="p-4 border-slate-200/80 bg-white dark:bg-slate-900/50 space-y-3 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="p-3.5 sm:p-4 rounded-2xl border-slate-200/80 bg-white dark:bg-slate-900/50 space-y-2.5 sm:space-y-3 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="font-bold text-xs text-indigo-600 uppercase tracking-wider">
+                          <span className="font-bold text-[10px] sm:text-xs text-indigo-600 uppercase tracking-wider">
                             Proposed Run #{idx + 1}
                           </span>
-                          <h4 className="font-extrabold text-sm text-slate-950 dark:text-white mt-1">
+                          <h4 className="font-extrabold text-xs sm:text-sm text-slate-950 dark:text-white mt-0.5">
                             {pRun.rider_name || "Unassigned Rider"}
                           </h4>
                         </div>
@@ -587,7 +587,7 @@ export function DispatchTab({
                         </span>
                       </div>
 
-                      <div className="text-xs space-y-1.5 text-slate-600 dark:text-slate-400">
+                      <div className="text-[11px] sm:text-xs space-y-1 text-slate-600 dark:text-slate-400">
                         <div>
                           <span className="font-semibold">Areas:</span> {pRun.areas_covered?.join(", ") || "—"}
                         </div>
@@ -609,18 +609,18 @@ export function DispatchTab({
 
                 {/* Unassigned orders & Warnings */}
                 {proposedPlan.unassigned_orders_count > 0 && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs space-y-1.5">
+                  <div className="p-3.5 sm:p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs space-y-1.5">
                     <p className="font-bold flex items-center gap-1.5">
                       <AlertTriangle className="h-4 w-4 text-amber-600" /> Warnings: Unassigned Orders Detected
                     </p>
-                    <p>
+                    <p className="text-[11px] sm:text-xs">
                       {proposedPlan.unassigned_orders_count} packed order(s) could not be automatically assigned to any rider run due to rider capacity limits or geographical location.
                     </p>
                     <div className="pt-1.5 flex justify-end">
                       <Button
                         size="xs"
                         variant="outline"
-                        className="border-amber-300 hover:bg-amber-100/50 text-xs text-amber-900 font-bold"
+                        className="w-full sm:w-auto border-amber-300 hover:bg-amber-100/50 text-xs text-amber-900 font-bold h-8"
                         onClick={() => setManualOverrideActive(true)}
                       >
                         Manually Override Runs
@@ -638,18 +638,18 @@ export function DispatchTab({
               setSelectedProposedPartnerId("");
             }
           }}>
-            <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+            <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-sm sm:text-base">
                   Proposed Run #{(selectedProposedRun?.runIndex ?? 0) + 1} · {selectedProposedRun?.rider_name || "Unassigned Rider"}
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-4">
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-950 dark:bg-indigo-950/20">
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="space-y-3.5 sm:space-y-4">
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:p-4 dark:border-indigo-950 dark:bg-indigo-950/20">
+                  <div className="grid gap-2.5 sm:grid-cols-[1fr_auto] sm:items-center">
                     <div>
-                      <Label>Delivery partner for this proposed run</Label>
+                      <Label className="text-xs font-semibold">Delivery partner for this proposed run</Label>
                       <PremiumSelect
                         className="mt-1.5"
                         value={selectedProposedPartnerId}
@@ -666,7 +666,7 @@ export function DispatchTab({
                         placeholder="Select delivery partner"
                         isDisabled={isClosed || isChangingProposedRunPartner}
                       />
-                      <p className="mt-1.5 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[10px] sm:text-[11px] text-slate-500">
                         If the selected partner already has another proposed run, both partners will be swapped.
                       </p>
                     </div>
@@ -678,56 +678,56 @@ export function DispatchTab({
                         !selectedProposedPartnerId ||
                         String(selectedProposedPartnerId) === String(selectedProposedRun?.rider_id)
                       }
-                      className="bg-indigo-600 hover:bg-indigo-700 mt-2"
+                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 sm:mt-2 h-9 text-xs font-bold"
                     >
                       {isChangingProposedRunPartner ? "Changing..." : "Change Partner"}
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-900 md:grid-cols-4">
-                  <div><span className="block text-slate-500">Orders</span><strong>{selectedProposedRun?.orders_count || 0}</strong></div>
-                  <div><span className="block text-slate-500">Distance</span><strong>{selectedProposedRun?.estimated_distance_km ?? "—"} km</strong></div>
-                  <div><span className="block text-slate-500">Duration</span><strong>{selectedProposedRun?.estimated_duration_mins ?? "—"} mins</strong></div>
-                  <div><span className="block text-slate-500">Expected COD</span><strong>{formatPaiseToRupees(selectedProposedRun?.expected_cod_paise || 0)}</strong></div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 rounded-xl bg-slate-50 p-2.5 sm:p-3 text-xs dark:bg-slate-900 md:grid-cols-4">
+                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Orders</span><strong className="text-sm">{selectedProposedRun?.orders_count || 0}</strong></div>
+                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Distance</span><strong className="text-sm">{selectedProposedRun?.estimated_distance_km ?? "—"} km</strong></div>
+                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Duration</span><strong className="text-sm">{selectedProposedRun?.estimated_duration_mins ?? "—"} mins</strong></div>
+                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Expected COD</span><strong className="text-sm">{formatPaiseToRupees(selectedProposedRun?.expected_cod_paise || 0)}</strong></div>
                 </div>
 
                 {!selectedProposedRun?.orders?.length ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4 text-xs sm:text-sm text-amber-900">
                     Order details are unavailable for this older proposal. Regenerate the plan to review its orders before approval.
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {selectedProposedRun.orders.map((order, orderIndex) => (
-                      <Card key={order.order_id} className="overflow-hidden border-slate-200 dark:border-slate-800">
-                        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/70 sm:flex-row sm:items-start sm:justify-between">
+                      <Card key={order.order_id} className="overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800">
+                        <div className="flex flex-col gap-2.5 sm:gap-3 border-b border-slate-100 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/70 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Stop #{order.sequence_number || orderIndex + 1}</p>
-                            <h4 className="mt-1 font-extrabold text-slate-950 dark:text-white">
+                            <h4 className="mt-0.5 sm:mt-1 font-extrabold text-slate-950 dark:text-white text-xs sm:text-sm">
                               {order.operational_order_code || order.order_number || order.order_id}
                             </h4>
                             {order.operational_order_code && order.order_number && (
-                              <p className="text-xs text-slate-500">Order number: {order.order_number}</p>
+                              <p className="text-[11px] sm:text-xs text-slate-500">Order number: {order.order_number}</p>
                             )}
                           </div>
                           <div className="text-left sm:text-right">
-                            <p className="font-extrabold text-slate-950 dark:text-white">{formatPaiseToRupees(order.order_amount_paise || 0)}</p>
+                            <p className="font-extrabold text-slate-950 dark:text-white text-xs sm:text-sm">{formatPaiseToRupees(order.order_amount_paise || 0)}</p>
                             <p className="text-[10px] font-bold uppercase text-slate-500">{order.payment_method || "—"}</p>
                           </div>
                         </div>
 
-                        <div className="grid gap-4 p-4 md:grid-cols-2">
-                          <div className="space-y-2 text-xs">
+                        <div className="grid gap-3 sm:gap-4 p-3 sm:p-4 md:grid-cols-2">
+                          <div className="space-y-1.5 sm:space-y-2 text-xs">
                             <div><span className="font-bold text-slate-700 dark:text-slate-300">Delivery date:</span> {order.delivery_date || "—"}</div>
                             <div><span className="font-bold text-slate-700 dark:text-slate-300">Customer:</span> {order.delivery_name || "—"}{order.delivery_phone ? ` · ${order.delivery_phone}` : ""}</div>
                             <div>
                               <span className="font-bold text-slate-700 dark:text-slate-300">Address:</span>
-                              <p className="mt-1 leading-5 text-slate-600 dark:text-slate-400">{formatProposedOrderAddress(order)}</p>
+                              <p className="mt-0.5 leading-5 text-slate-600 dark:text-slate-400">{formatProposedOrderAddress(order)}</p>
                             </div>
                           </div>
 
                           <div>
-                            <p className="mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">Items ({order.items?.length || 0})</p>
+                            <p className="mb-1.5 sm:mb-2 text-xs font-bold text-slate-700 dark:text-slate-300">Items ({order.items?.length || 0})</p>
                             <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
                               {(order.items || []).map((item) => (
                                 <div key={item.id} className="flex items-start justify-between gap-3 px-3 py-2 text-xs">
@@ -758,8 +758,8 @@ export function DispatchTab({
       {/* WORKSPACE 2: Manual / Active Dispatch board */}
       {!isPlanningMode && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
               <Truck className="h-4 w-4 text-dailyveg-600" />
               Active Dispatch Runs & Rider Handover
             </h3>
@@ -767,7 +767,7 @@ export function DispatchTab({
             {!isClosed && (
               <Button
                 size="sm"
-                className="h-9 text-xs gap-1.5"
+                className="w-full sm:w-auto h-9 text-xs gap-1.5 font-bold rounded-xl"
                 onClick={() => setIsCreateOpen(true)}
                 disabled={isCreatingRun}
               >
@@ -777,14 +777,14 @@ export function DispatchTab({
           </div>
 
           {runsList.length === 0 ? (
-            <Card className="p-8 text-center text-slate-500">
+            <Card className="p-8 text-center text-slate-500 rounded-2xl">
               <Truck className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-              <p className="font-medium">No delivery runs created yet.</p>
+              <p className="font-medium text-xs sm:text-sm">No delivery runs created yet.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-4">
               {/* Runs list column */}
-              <div className="space-y-3 lg:col-span-1">
+              <div className={`space-y-2.5 sm:space-y-3 lg:col-span-1 ${selectedRunId ? "hidden lg:block" : "block"}`}>
                 {runsList.map((run) => {
                   const isSelected = selectedRunId === run.id;
                   const partnerName = run.delivery_partner?.full_name || run.delivery_partner?.phone || "Unassigned";
@@ -793,7 +793,7 @@ export function DispatchTab({
                   return (
                     <Card
                       key={run.id}
-                      className={`p-4 cursor-pointer transition-all ${
+                      className={`p-3.5 sm:p-4 rounded-2xl cursor-pointer transition-all ${
                         isSelected
                           ? "border-dailyveg-500 shadow-md ring-1 ring-dailyveg-500"
                           : "border-slate-200/80 hover:border-dailyveg-300 dark:border-slate-800"
@@ -802,20 +802,24 @@ export function DispatchTab({
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <span className="font-bold text-slate-900 dark:text-white text-sm">
+                          <span className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
                             {run.run_code || `RUN #${run.id.slice(0, 6)}`}
                           </span>
-                          <p className="text-xs text-slate-500 mt-0.5 font-medium">{partnerName}</p>
+                          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">{partnerName}</p>
                         </div>
                         <StatusBadge value={run.status || "draft"} />
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mt-3 pt-2 border-t border-slate-100 dark:border-slate-900 font-semibold">
+                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-900 font-semibold">
                         <span>{orderCount} Packages</span>
-                        <span>COD expected: {formatPaiseToRupees(run.expected_cod_paise)}</span>
+                        <span>COD: {formatPaiseToRupees(run.expected_cod_paise)}</span>
                       </div>
 
-                      <div className="flex justify-end gap-1.5 mt-3">
+                      <div className="flex items-center justify-between gap-1.5 mt-2.5">
+                        <span className="text-[11px] text-dailyveg-600 lg:hidden font-bold flex items-center gap-0.5">
+                          View manifest →
+                        </span>
+                        <div className="ml-auto">
                         {run.status === "cancelled" ? (
                           <span className="flex items-center rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-700 dark:bg-rose-950/20 dark:text-rose-300">
                             Canceled
@@ -823,7 +827,7 @@ export function DispatchTab({
                         ) : canHandoverDeliveryRun(run) ? (
                           <Button
                             size="sm"
-                            className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm"
+                            className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm px-3"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleHandover(run.id);
@@ -833,10 +837,11 @@ export function DispatchTab({
                             Rider Handover
                           </Button>
                         ) : (
-                          <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5 px-2 bg-emerald-50 rounded-lg">
+                          <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5 px-2 py-1 bg-emerald-50 rounded-lg">
                             <Check className="h-3 w-3" /> Dispatched
                           </span>
                         )}
+                        </div>
                       </div>
                     </Card>
                   );
@@ -844,37 +849,49 @@ export function DispatchTab({
               </div>
 
               {/* Run detail column */}
-              <div className="lg:col-span-2">
+              <div className={`lg:col-span-2 ${selectedRunId ? "block" : "hidden lg:block"}`}>
                 {!selectedRunId ? (
-                  <Card className="p-8 text-center text-slate-500">
+                  <Card className="p-8 text-center text-slate-500 rounded-2xl">
                     <p className="text-xs font-semibold">Select a delivery run to view manifest details.</p>
                   </Card>
                 ) : loadingDetail ? (
-                  <Card className="p-8 text-center text-slate-500">Loading run detail...</Card>
+                  <Card className="p-8 text-center text-slate-500 rounded-2xl">Loading run detail...</Card>
                 ) : !runDetail ? (
-                  <Card className="p-8 text-center text-slate-500">Run detail unavailable.</Card>
+                  <Card className="p-8 text-center text-slate-500 rounded-2xl">Run detail unavailable.</Card>
                 ) : (
-                  <Card className="p-5 space-y-4">
+                  <Card className="p-3.5 sm:p-5 rounded-2xl space-y-3.5 sm:space-y-4">
+                    {/* Mobile Back Button */}
+                    <div className="lg:hidden pb-1 border-b border-slate-100 dark:border-slate-900">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs font-bold gap-1 text-dailyveg-600 hover:text-dailyveg-700 hover:bg-dailyveg-50 dark:hover:bg-dailyveg-950/30 p-0 h-7"
+                        onClick={() => setSelectedRunId(null)}
+                      >
+                        ← Back to runs list ({runsList.length})
+                      </Button>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-lg text-slate-900 dark:text-white">
+                          <h4 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white">
                             {runDetail.run_code || `RUN #${runDetail.id.slice(0, 6)}`}
                           </h4>
                           <StatusBadge value={runDetail.status || "draft"} />
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
-                          Rider: <span className="font-semibold text-slate-800 dark:text-slate-200">{runDetail.delivery_partner?.full_name || "Unassigned"}</span> (
+                          Rider: <span className="font-bold text-slate-800 dark:text-slate-200">{runDetail.delivery_partner?.full_name || "Unassigned"}</span> (
                           {runDetail.delivery_partner?.phone || "—"})
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         {!isClosed && canHandoverDeliveryRun(runDetail) && (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 text-xs gap-1"
+                            className="flex-1 sm:flex-initial h-8 text-xs gap-1 rounded-xl font-bold"
                             onClick={() => setIsAddOrdersOpen(true)}
                           >
                             <Plus className="h-3.5 w-3.5" /> Add Orders
@@ -884,7 +901,7 @@ export function DispatchTab({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 text-xs gap-1"
+                          className="flex-1 sm:flex-initial h-8 text-xs gap-1 rounded-xl font-bold"
                           onClick={() => handlePrintManifest(runDetail)}
                         >
                           <Printer className="h-3.5 w-3.5" /> Print Manifest
@@ -894,7 +911,7 @@ export function DispatchTab({
 
                     {/* Orders check */}
                     <div className="space-y-2">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                         Rider Runs Package Manifest ({(runDetail.orders || []).length})
                       </span>
 
@@ -920,38 +937,38 @@ export function DispatchTab({
                                     setSelectedManifestOrder(order);
                                   }
                                 }}
-                                className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50 text-xs cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50 text-xs cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               >
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono font-bold text-slate-400 w-5 text-center">
+                                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                                  <span className="font-mono font-bold text-slate-400 w-4 sm:w-5 text-center shrink-0">
                                     {index + 1}
                                   </span>
-                                  <div>
-                                    <div className="flex items-center gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                       {dailyLabel && (
-                                        <span className="font-bold text-dailyveg-700 dark:text-dailyveg-300 bg-dailyveg-100 dark:bg-dailyveg-950 px-1.5 py-0.5 rounded">
+                                        <span className="font-bold text-dailyveg-700 dark:text-dailyveg-300 bg-dailyveg-100 dark:bg-dailyveg-950 px-1.5 py-0.5 rounded text-[11px]">
                                           {dailyLabel}
                                         </span>
                                       )}
-                                      <span className="font-bold text-slate-900 dark:text-white">
+                                      <span className="font-bold text-slate-900 dark:text-white truncate max-w-[120px] sm:max-w-xs">
                                         {primaryLabel}
                                       </span>
-                                      <span className={`px-1.5 py-0.5 text-[9px] font-black rounded uppercase ${isCod ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>
+                                      <span className={`px-1.5 py-0.2 text-[9px] font-black rounded uppercase ${isCod ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>
                                         {isCod ? "COD" : "Prepaid"}
                                       </span>
                                     </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">
+                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                                       {order.user?.full_name || order.delivery_name} · {order.delivery_area || "—"}
                                     </p>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 shrink-0 ml-2">
                                   {!isClosed && runDetail.status !== "handed_over" && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      className="h-7 w-7 p-0 text-rose-600 hover:text-rose-700"
+                                      className="h-7 w-7 p-0 text-rose-600 hover:text-rose-700 rounded-lg"
                                       onClick={(event) => {
                                         event.stopPropagation();
                                         handleRemoveOrder(order.id);
@@ -976,18 +993,19 @@ export function DispatchTab({
                           <summary className="font-bold cursor-pointer text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
                             <Layers className="h-4 w-4" /> Advanced Route Sequence Override
                           </summary>
-                          <div className="pl-6 pt-3 space-y-2">
+                          <div className="pl-4 sm:pl-6 pt-3 space-y-2">
                             <p className="text-[11px] text-slate-400">
-                              Adjust rider delivery sequence sequence:
+                              Adjust rider delivery sequence:
                             </p>
                             <div className="space-y-1.5">
                               {(runDetail.orders || []).map((order, idx) => (
-                                <div key={order.id} className="flex justify-between items-center bg-slate-100 dark:bg-slate-900 p-2 rounded">
-                                  <span>{idx + 1}. {getPrimaryOrderLabel(order)}</span>
-                                  <div className="flex gap-1">
+                                <div key={order.id} className="flex justify-between items-center bg-slate-100 dark:bg-slate-900 p-2 rounded-xl text-xs">
+                                  <span className="truncate max-w-[180px] sm:max-w-md">{idx + 1}. {getPrimaryOrderLabel(order)}</span>
+                                  <div className="flex gap-1 shrink-0">
                                     <Button
                                       size="xs"
                                       variant="ghost"
+                                      className="h-7 w-7 p-0"
                                       disabled={idx === 0}
                                       onClick={() => handleMoveOrder(idx, -1)}
                                     >
@@ -996,6 +1014,7 @@ export function DispatchTab({
                                     <Button
                                       size="xs"
                                       variant="ghost"
+                                      className="h-7 w-7 p-0"
                                       disabled={idx === (runDetail.orders || []).length - 1}
                                       onClick={() => handleMoveOrder(idx, 1)}
                                     >
@@ -1019,41 +1038,41 @@ export function DispatchTab({
 
       {/* Active run manifest order detail */}
       <Dialog open={Boolean(selectedManifestOrder)} onOpenChange={(open) => !open && setSelectedManifestOrder(null)}>
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex flex-wrap items-center gap-2">
+            <DialogTitle className="flex flex-wrap items-center gap-2 text-sm sm:text-base">
               Order {selectedManifestOrder ? getPrimaryOrderLabel(selectedManifestOrder) : ""}
               {selectedManifestOrder?.status && <StatusBadge value={selectedManifestOrder.status} />}
             </DialogTitle>
           </DialogHeader>
 
           {selectedManifestOrder && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl bg-slate-50 p-4 text-xs dark:bg-slate-900 sm:grid-cols-2">
+            <div className="space-y-3.5 sm:space-y-4">
+              <div className="grid grid-cols-1 gap-2.5 sm:gap-x-6 sm:gap-y-3 rounded-xl bg-slate-50 p-3 sm:p-4 text-xs dark:bg-slate-900 sm:grid-cols-2">
                 <div className="min-w-0">
-                  <span className="block text-slate-500">Daily order</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-500">Daily order</span>
                   <strong className="block break-words">{getDailyOrderLabel(selectedManifestOrder) || "—"}</strong>
                 </div>
                 <div className="min-w-0">
-                  <span className="block text-slate-500">Order number</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-500">Order number</span>
                   <strong className="block break-all leading-5" title={selectedManifestOrder.order_number || undefined}>
                     {selectedManifestOrder.order_number || "—"}
                   </strong>
                 </div>
                 <div className="min-w-0">
-                  <span className="block text-slate-500">Delivery date</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-500">Delivery date</span>
                   <strong className="block">{selectedManifestOrder.delivery_date || "—"}</strong>
                 </div>
                 <div className="min-w-0">
-                  <span className="block text-slate-500">Order amount</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-500">Order amount</span>
                   <strong className="block">{formatPaiseToRupees(selectedManifestOrder.grand_total_paise ?? selectedManifestOrder.total_paise ?? 0)}</strong>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card className="p-4">
-                  <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Delivery details</h4>
-                  <div className="space-y-2 text-xs">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                <Card className="p-3.5 sm:p-4 rounded-xl">
+                  <h4 className="mb-2.5 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Delivery details</h4>
+                  <div className="space-y-1.5 sm:space-y-2 text-xs">
                     <div>
                       <span className="font-bold text-slate-700 dark:text-slate-300">Customer:</span>{" "}
                       {selectedManifestOrder.user?.full_name || selectedManifestOrder.delivery_name || "—"}
@@ -1069,26 +1088,26 @@ export function DispatchTab({
                     </div>
                     <div>
                       <span className="font-bold text-slate-700 dark:text-slate-300">Address:</span>
-                      <p className="mt-1 leading-5 text-slate-600 dark:text-slate-400">
+                      <p className="mt-0.5 leading-5 text-slate-600 dark:text-slate-400">
                         {formatProposedOrderAddress(selectedManifestOrder)}
                       </p>
                     </div>
                     {selectedManifestOrder.delivery_notes && (
                       <div>
                         <span className="font-bold text-slate-700 dark:text-slate-300">Delivery notes:</span>
-                        <p className="mt-1 text-slate-600 dark:text-slate-400">{selectedManifestOrder.delivery_notes}</p>
+                        <p className="mt-0.5 text-slate-600 dark:text-slate-400">{selectedManifestOrder.delivery_notes}</p>
                       </div>
                     )}
                   </div>
                 </Card>
 
-                <Card className="p-4">
-                  <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                <Card className="p-3.5 sm:p-4 rounded-xl">
+                  <h4 className="mb-2.5 text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Ordered items ({selectedManifestOrder.items?.length || 0})
                   </h4>
-                  <div className="divide-y divide-slate-100 h-[300px] overflow-y-auto thin-scrollbar rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                  <div className="divide-y divide-slate-100 max-h-[220px] sm:max-h-[300px] overflow-y-auto thin-scrollbar rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
                     {(selectedManifestOrder.items || []).map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
+                      <div key={item.id} className="flex items-start justify-between gap-3 px-3 py-2 text-xs">
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-white">{item.product_name}</p>
                           {item.pack_label && <p className="mt-0.5 text-[10px] text-slate-500">{item.pack_label}</p>}
@@ -1112,7 +1131,7 @@ export function DispatchTab({
               </div>
 
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setSelectedManifestOrder(null)}>Close</Button>
+                <Button variant="outline" className="w-full sm:w-auto h-9 text-xs font-bold" onClick={() => setSelectedManifestOrder(null)}>Close</Button>
               </div>
             </div>
           )}
@@ -1121,12 +1140,12 @@ export function DispatchTab({
 
       {/* Create Delivery Run Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Create New Delivery Run</DialogTitle>
+            <DialogTitle className="text-sm sm:text-base">Create New Delivery Run</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-3.5 sm:space-y-4 text-xs">
             <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border">
               <p className="text-slate-500">
                 Warehouse: <span className="font-semibold text-slate-900 dark:text-white">{operation?.warehouse_name}</span>
@@ -1152,6 +1171,7 @@ export function DispatchTab({
             <div>
               <Label className="text-xs font-bold">Run Notes</Label>
               <Input
+                className="rounded-xl h-9 text-xs"
                 placeholder="Optional delivery instructions..."
                 value={createNotes}
                 onChange={(e) => setCreateNotes(e.target.value)}
@@ -1159,10 +1179,10 @@ export function DispatchTab({
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
+              <Button variant="outline" size="sm" className="rounded-xl flex-1 sm:flex-initial" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleCreateRun} disabled={isCreatingRun || !createPartnerId}>
+              <Button size="sm" className="rounded-xl font-bold flex-1 sm:flex-initial" onClick={handleCreateRun} disabled={isCreatingRun || !createPartnerId}>
                 {isCreatingRun ? "Creating..." : "Create Run"}
               </Button>
             </div>
@@ -1172,9 +1192,9 @@ export function DispatchTab({
 
       {/* Add Orders to Run Dialog */}
       <Dialog open={isAddOrdersOpen} onOpenChange={setIsAddOrdersOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Add Packed Orders to Delivery Run</DialogTitle>
+            <DialogTitle className="text-sm sm:text-base">Add Packed Orders to Delivery Run</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-xs">
@@ -1185,7 +1205,7 @@ export function DispatchTab({
             {eligiblePackedOrders.length === 0 ? (
               <p className="py-6 text-center text-slate-500">No unassigned packed orders available.</p>
             ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2 border p-2 rounded-xl">
+              <div className="max-h-60 overflow-y-auto space-y-1.5 border p-2 rounded-xl">
                 {eligiblePackedOrders.map((o) => {
                   const dailyLabel = getDailyOrderLabel(o);
                   const primaryLabel = getPrimaryOrderLabel(o);
@@ -1199,6 +1219,7 @@ export function DispatchTab({
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
+                          className="rounded h-4 w-4 text-dailyveg-600"
                           checked={isChecked}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -1208,10 +1229,10 @@ export function DispatchTab({
                             }
                           }}
                         />
-                        {dailyLabel && <span className="font-bold text-dailyveg-700">{dailyLabel}</span>}
-                        <span className="font-semibold text-slate-900 dark:text-white">{primaryLabel}</span>
+                        {dailyLabel && <span className="font-bold text-dailyveg-700 bg-dailyveg-50 px-1 rounded text-[11px]">{dailyLabel}</span>}
+                        <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-none">{primaryLabel}</span>
                       </div>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-slate-500 truncate max-w-[100px] sm:max-w-none">
                         {o.user?.full_name || o.delivery_name}
                       </span>
                     </label>
@@ -1221,11 +1242,12 @@ export function DispatchTab({
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setIsAddOrdersOpen(false)}>
+              <Button variant="outline" size="sm" className="rounded-xl flex-1 sm:flex-initial" onClick={() => setIsAddOrdersOpen(false)}>
                 Cancel
               </Button>
               <Button
                 size="sm"
+                className="rounded-xl font-bold flex-1 sm:flex-initial"
                 onClick={handleAddOrdersSubmit}
                 disabled={selectedOrderIdsToAdd.length === 0}
               >

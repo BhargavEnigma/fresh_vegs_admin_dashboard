@@ -235,6 +235,7 @@ export const ENDPOINTS = {
       updatePackingItem: (id, orderId, packingItemId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/items/${packingItemId}`,
       completePackingOrder: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/complete`,
       confirmCleanPacking: (id, orderId) => `/v1/ops/daily-operations/${id}/packing/orders/${orderId}/clean-confirm`,
+      packingPlan: (id) => `/v1/ops/daily-operations/${id}/packing-plan`,
 
       deliveryRuns: (id) => `/v1/ops/daily-operations/${id}/delivery-runs`,
       createDeliveryRun: (id) => `/v1/ops/daily-operations/${id}/delivery-runs`,

@@ -143,23 +143,23 @@ export function VendorWorkflowGuide() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-1.5 border-dailyveg-200 bg-dailyveg-50/50 text-dailyveg-800 hover:bg-dailyveg-100 hover:text-dailyveg-900 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200 dark:hover:bg-slate-900">
+        <Button variant="outline" className="flex items-center justify-center gap-1.5 border-dailyveg-200 bg-dailyveg-50/50 text-dailyveg-800 hover:bg-dailyveg-100 hover:text-dailyveg-900 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200 dark:hover:bg-slate-900 h-10 w-full sm:w-auto">
           <BookOpen className="h-4 w-4" />
           <span>{lang === "gu" ? "વેન્ડર ગાઇડ" : "Vendor Guide"}</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
-        <div className="bg-gradient-to-r from-dailyveg-600 to-emerald-600 p-6 text-white rounded-t-2xl relative overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90dvh] overflow-y-auto thin-scrollbar p-0 rounded-2xl">
+        <div className="bg-gradient-to-r from-dailyveg-600 to-emerald-600 p-4 sm:p-6 text-white rounded-t-2xl relative overflow-hidden">
           <div className="absolute -right-8 -top-8 opacity-10">
             <BookOpen className="h-32 w-32" />
           </div>
-          <DialogHeader className="space-y-1">
+          <DialogHeader className="space-y-1 text-left">
             <div className="flex items-center gap-2">
               <span className="bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider">
                 {lang === "gu" ? "સરળ માર્ગદર્શિકા" : "Operator Guide"}
               </span>
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight text-white mt-1">
+            <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-white mt-1">
               {lang === "gu" ? "વેન્ડર કામગીરી અને નેવિગેશન ફ્લો" : "Vendor Operations & Navigation Flow"}
             </DialogTitle>
             <p className="text-white/80 text-xs font-medium">
@@ -170,7 +170,7 @@ export function VendorWorkflowGuide() {
           </DialogHeader>
         </div>
 
-        <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/20">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 bg-slate-50/50 dark:bg-slate-950/20">
           {/* Top Controls: Role & Language Selectors */}
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-white dark:bg-slate-900 border p-3 rounded-2xl shadow-sm">
             {/* Role Tabs */}

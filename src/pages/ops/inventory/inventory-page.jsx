@@ -223,7 +223,8 @@ export function InventoryPage() {
         ) : filtered.length === 0 ? (
           <div className="p-16 text-center text-sm font-semibold text-slate-400">No products found.</div>
         ) : (
-          <div className="overflow-x-auto thin-scrollbar">
+          <>
+          <div className="hidden overflow-x-auto thin-scrollbar lg:block">
             <table className="w-full min-w-[1380px] text-sm">
               <thead className="bg-slate-50/90 text-xs uppercase tracking-wider text-slate-500 dark:bg-slate-900/70">
                 <tr>
@@ -364,6 +365,70 @@ export function InventoryPage() {
               </tbody>
             </table>
           </div>
+          <div className="space-y-3 p-3 lg:hidden">
+            {sortedProducts.map((product) => {
+              const unit = (product.tracking_unit || "KG").toUpperCase();
+              const totalStock = Number(product.total_stock_quantity || 0);
+              const reserved = Number(product.reserved_quantity || 0);
+              const available = Number(product.available_quantity || 0);
+              const usable = Number(product.usable_quantity || 0);
+              const expired = Number(product.expired_quantity || 0);
+              const expiringSoon = Number(product.expiring_soon_quantity || 0);
+
+              return (
+                <article key={product.product_id} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                  <div className="flex items-start gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-emerald-50/40 p-3.5 dark:border-slate-800 dark:from-slate-900 dark:to-emerald-950/20">
+                    <ProductAvatar item={product} size="md" fallbackIcon={Boxes} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="truncate text-sm font-extrabold text-slate-950 dark:text-white">{product.product_name}</h3>
+                        <span className="shrink-0 rounded-lg bg-slate-200/70 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">{unit}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] font-medium text-slate-500">
+                        {product.earliest_expiry ? `Next expiry ${new Date(product.earliest_expiry).toLocaleDateString("en-IN")}` : "No active batch"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800">
+                    {[
+                      { label: "Total stock", value: totalStock, tone: "text-slate-900 dark:text-white" },
+                      { label: "Available", value: available, tone: available > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-slate-400" },
+                      { label: "Reserved", value: reserved, tone: reserved > 0 ? "text-blue-700 dark:text-blue-300" : "text-slate-400" },
+                      { label: "Usable", value: usable, tone: usable > 0 ? "text-teal-700 dark:text-teal-300" : "text-slate-400" },
+                    ].map((metric) => (
+                      <div key={metric.label} className="bg-white px-3.5 py-2.5 dark:bg-slate-950">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-400">{metric.label}</p>
+                        <p className={cn("mt-0.5 font-mono text-sm font-black", metric.tone)}>{metric.value.toFixed(2)} <span className="text-[10px]">{unit}</span></p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
+                    <div className="min-w-0">
+                      {expired > 0 || expiringSoon > 0 ? (
+                        <p className="truncate text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                          {expired > 0 ? `${expired.toFixed(2)} ${unit} expired` : `${expiringSoon.toFixed(2)} ${unit} expires soon`}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Fresh stock status clear</p>
+                      )}
+                      {!product.freshness_policy_configured && <p className="mt-0.5 text-[10px] font-bold text-rose-500">Freshness policy required</p>}
+                    </div>
+                    <Button size="sm" variant="outline" className="h-8 shrink-0 gap-1 rounded-lg px-2" onClick={() => setLotsDialogProduct(product)}>
+                      <Layers3 className="h-3.5 w-3.5" /> Lots {product.lot_count ?? product.active_lot_count ?? 0}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3 dark:border-slate-800">
+                    <Button size="sm" className="h-9 rounded-xl text-xs" onClick={() => openDialog(product, "add")} disabled={!product.freshness_policy_configured}><Plus className="mr-1 h-3.5 w-3.5" /> Add stock</Button>
+                    <Button size="sm" variant="outline" className="h-9 rounded-xl text-xs" onClick={() => openDialog(product, "remove")} disabled={available <= 0}><Minus className="mr-1 h-3.5 w-3.5" /> Remove</Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          </>
         )}
       </Card>
     </div>

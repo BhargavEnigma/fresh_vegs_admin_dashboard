@@ -115,6 +115,17 @@ export function DailyOperationsPage() {
   const isAdmin = roles.includes("admin");
   const isWarehouseManager = roles.includes("warehouse_manager") && !isAdmin;
   const [procurementView, setProcurementView] = useState("active");
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 639px)").matches : false
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const syncViewport = () => setIsMobileViewport(media.matches);
+    syncViewport();
+    media.addEventListener("change", syncViewport);
+    return () => media.removeEventListener("change", syncViewport);
+  }, []);
 
   // Read URL query params with defaults and tab mapping
   const dateFromUrl = searchParams.get("delivery_date");
@@ -354,12 +365,15 @@ export function DailyOperationsPage() {
   const deliveryPartners = deliveryPartnersData?.partners || [];
 
   const { data: opsOrdersData } = useQuery({
-    queryKey: ["ops", "orders", "packed", selectedDate, selectedWarehouseId],
+    queryKey: ["ops", "orders", "full", selectedDate, selectedWarehouseId],
     queryFn: () =>
       OpsOrdersService.list({
         delivery_date: selectedDate,
         warehouse_id: selectedWarehouseId,
         limit: 1000,
+        // The Pack tab needs the address snapshot chosen at checkout, not only
+        // the compact area/city fields used by list views.
+        view: "full",
       }),
     enabled: Boolean(selectedDate && selectedWarehouseId),
   });
@@ -416,9 +430,9 @@ export function DailyOperationsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-4 animate-in fade-in duration-300 sm:space-y-6">
       {/* Sticky Header and Filters Panel */}
-      <div className="sticky top-[61px] lg:top-0 z-30 -mx-4 px-4 sm:-mx-8 sm:px-8 py-3.5 bg-slate-50/80 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm transition-all duration-300">
+      <div className="sticky top-[61px] lg:top-0 z-30 -mx-4 border-b border-slate-200/80 bg-slate-50/90 px-4 py-3.5 shadow-sm backdrop-blur-xl transition-all duration-300 dark:border-slate-800/80 dark:bg-slate-950/90 sm:-mx-8 sm:px-8">
         <div className="max-w-full flex flex-col md:flex-row md:items-center justify-between gap-3 min-w-0">
           {/* Title & Subtitle */}
           <div className="min-w-0">
@@ -430,13 +444,13 @@ export function DailyOperationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_104px] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-2.5 shrink-0">
             {/* Quick Date Selector Group */}
-            <div className="flex items-center rounded-xl border border-slate-250/60 bg-white p-1 dark:border-slate-800 dark:bg-slate-900 shrink-0">
+            <div className="flex min-w-0 items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:justify-start shrink-0">
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
+                className="h-7 w-7 shrink-0 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
                 onClick={handlePrevDay}
                 title="Previous Day"
               >
@@ -446,7 +460,7 @@ export function DailyOperationsPage() {
               <Button
                 size="sm"
                 variant={selectedDate === getIstYyyyMmDd() ? "default" : "ghost"}
-                className={`h-7 px-3.5 text-xs font-bold rounded-lg transition-all ${selectedDate === getIstYyyyMmDd()
+                className={`h-8 min-w-0 flex-1 px-2 text-xs font-bold rounded-xl transition-all sm:h-7 sm:flex-none sm:px-3.5 ${selectedDate === getIstYyyyMmDd()
                   ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
                   : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
                   }`}
@@ -458,7 +472,7 @@ export function DailyOperationsPage() {
               <Button
                 size="sm"
                 variant={selectedDate === addDaysYyyyMmDd(getIstYyyyMmDd(), 1) ? "default" : "ghost"}
-                className={`h-7 px-3.5 text-xs font-bold rounded-lg transition-all ${selectedDate === addDaysYyyyMmDd(getIstYyyyMmDd(), 1)
+                className={`h-8 min-w-0 flex-1 px-2 text-xs font-bold rounded-xl transition-all sm:h-7 sm:flex-none sm:px-3.5 ${selectedDate === addDaysYyyyMmDd(getIstYyyyMmDd(), 1)
                   ? "bg-gradient-to-r from-dailyveg-500 to-dailyveg-600 text-white shadow-sm"
                   : "text-slate-600 dark:text-slate-300 hover:text-dailyveg-600"
                   }`}
@@ -470,7 +484,7 @@ export function DailyOperationsPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
+                className="h-7 w-7 shrink-0 p-0 text-slate-500 hover:text-dailyveg-600 rounded-lg"
                 onClick={handleNextDay}
                 title="Next Day"
               >
@@ -479,18 +493,19 @@ export function DailyOperationsPage() {
             </div>
 
             {/* Date Picker Input */}
-            <div className="relative shrink-0">
+            <div className="relative min-w-0 sm:shrink-0">
               <DatePicker
                 selected={parseYyyyMmDd(selectedDate)}
                 onChange={(d) => d && handleDateChange(toYyyyMmDd(d))}
                 dateFormat="dd-MM-yyyy"
-                className="flex h-[36px] w-36 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-800 shadow-sm transition-all focus:border-dailyveg-500 focus:outline-none focus:ring-2 focus:ring-dailyveg-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                withPortal={isMobileViewport}
+                className="flex h-[38px] w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-800 shadow-sm transition-all focus:border-dailyveg-500 focus:outline-none focus:ring-2 focus:ring-dailyveg-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 sm:h-[36px] sm:w-36 sm:px-3.5 sm:text-xs"
               />
             </div>
 
             {/* Admin Warehouse Selector */}
             {isAdmin && (
-              <div className="w-52 shrink-0">
+              <div className="w-full min-w-0 sm:w-52 sm:shrink-0">
                 <PremiumSelect
                   value={selectedWarehouseId}
                   onChange={(val) => handleWarehouseChange(val)}
@@ -508,7 +523,7 @@ export function DailyOperationsPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-[36px] px-4 text-xs font-bold gap-2 rounded-xl border-slate-200 bg-white shadow-sm hover:border-dailyveg-300 hover:bg-dailyveg-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-dailyveg-950/50 shrink-0"
+              className="h-[38px] w-full px-2 text-xs font-bold gap-1.5 rounded-xl border-slate-200 bg-white shadow-sm hover:border-dailyveg-300 hover:bg-dailyveg-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-dailyveg-950/50 shrink-0 sm:h-[36px] sm:w-auto sm:gap-2 sm:px-4"
               onClick={handleRefresh}
               disabled={mutations.refreshMutation.isPending}
             >
@@ -520,39 +535,41 @@ export function DailyOperationsPage() {
       </div>
 
       {/* Glassmorphic Context Header Bar */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-dailyveg-50/30 to-emerald-50/40 p-4 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:from-slate-950 dark:via-slate-900/60 dark:to-dailyveg-950/20">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-dailyveg-50/30 to-emerald-50/40 p-3.5 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:from-slate-950 dark:via-slate-900/60 dark:to-dailyveg-950/20 sm:bg-gradient-to-r sm:p-4">
+        <div className="grid grid-cols-2 items-center gap-x-1 gap-y-2 sm:flex sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="contents sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
             {/* Delivery Date Tag */}
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-800">
+            <div className="col-span-2 flex min-w-0 items-center gap-2 rounded-xl border border-slate-200/70 bg-white/80 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/80 sm:py-1.5">
               <Calendar className="h-4 w-4 text-dailyveg-600" />
               <span className="text-xs font-semibold text-slate-500">Delivery Date:</span>
               <span className="text-xs font-extrabold text-slate-900 dark:text-white">{formatDateLabel(selectedDate)}</span>
             </div>
 
             {/* Warehouse Tag */}
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-200/70 dark:border-slate-800">
+            <div className="col-span-2 flex min-w-0 items-center gap-2 rounded-xl border border-slate-200/70 bg-white/80 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/80 sm:py-1.5">
               <Warehouse className="h-4 w-4 text-dailyveg-600" />
               <span className="text-xs font-semibold text-slate-500">Warehouse:</span>
-              <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+              <span className="truncate text-xs font-extrabold text-slate-900 dark:text-white">
                 {operation.warehouse_name || "Assigned Warehouse"}
               </span>
             </div>
 
             {/* Status Badge */}
-            <div className="flex items-center gap-2">
+            <div className="col-span-1 flex min-w-0 items-center gap-2 px-1 sm:px-0">
               <span className="text-xs font-semibold text-slate-500">Status:</span>
               <StatusBadge value={operation.status || "open"} />
             </div>
           </div>
 
           {/* Real React Query dataUpdatedAt timestamp in IST */}
-          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-white/60 dark:bg-slate-900/60 px-3 py-1 rounded-xl">
+          <div className="col-span-1 flex min-w-0 items-center gap-1 rounded-xl bg-white/60 px-1.5 py-2 text-[9px] font-semibold text-slate-500 whitespace-nowrap dark:bg-slate-900/60 dark:text-slate-400 sm:w-auto sm:gap-1.5 sm:px-3 sm:py-1 sm:text-[11px]">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            Last refreshed IST: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("en-IN") : "—"}
+            <span className="sm:hidden">Last Refreshed IST:</span>
+            <span className="hidden sm:inline">Last refreshed IST:</span>
+            {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("en-IN") : "—"}
           </div>
         </div>
       </div>
@@ -571,8 +588,8 @@ export function DailyOperationsPage() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 overflow-x-auto no-scrollbar">
-        <div className="grid grid-cols-7 min-w-[720px] lg:min-w-0 items-center gap-1.5 xl:gap-2">
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1.5 shadow-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70">
+        <div className="grid grid-cols-2 min-[430px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 items-center gap-1.5 xl:gap-2">
           {TABS.map((tab, index) => {
             const Icon = tab.icon;
             const activeIndex = TABS.findIndex((t) => t.key === activeTab);
@@ -585,7 +602,8 @@ export function DailyOperationsPage() {
                 <button
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
-                  className={`group relative flex w-full items-center justify-center gap-1.5 xl:gap-2 px-2 py-2 xl:px-3 xl:py-2.5 text-xs xl:text-sm font-bold rounded-xl transition-all duration-300 whitespace-nowrap min-w-0 ${active
+                  aria-current={active ? "page" : undefined}
+                  className={`group relative flex min-h-12 w-full items-center justify-center gap-1.5 px-2 py-2 text-[11px] font-bold rounded-xl transition-all duration-300 min-w-0 sm:min-h-0 sm:text-xs xl:gap-2 xl:px-3 xl:py-2.5 xl:text-sm ${active
                     ? "bg-gradient-to-r from-dailyveg-500 to-emerald-600 text-white shadow-md shadow-dailyveg-500/20 scale-[1.02] border border-emerald-500/20"
                     : completed
                       ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-500/10 hover:bg-emerald-100/40 dark:hover:bg-emerald-950/30"
@@ -606,7 +624,7 @@ export function DailyOperationsPage() {
 
                   {/* Icon */}
                   <Icon
-                    className={`h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110 ${active
+                    className={`hidden h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110 min-[430px]:block ${active
                       ? "text-white"
                       : completed
                         ? "text-emerald-600 dark:text-emerald-400"
@@ -615,9 +633,9 @@ export function DailyOperationsPage() {
                   />
 
                   {/* Label */}
-                  <span className="truncate">
-                    <span className="hidden xl:inline">{tab.label}</span>
-                    <span className="inline xl:hidden">{tab.shortLabel}</span>
+                  <span className="min-w-0 truncate">
+                    <span className="hidden lg:inline">{tab.label}</span>
+                    <span className="inline lg:hidden">{tab.shortLabel}</span>
                   </span>
 
                   {/* Notification Badge */}

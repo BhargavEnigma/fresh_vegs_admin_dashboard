@@ -102,6 +102,11 @@ export const DailyOperationsService = {
     return res.data?.data;
   },
 
+  async getPackingPlan(operationId) {
+    const res = await api.get(ENDPOINTS.ops.dailyOperations.packingPlan(operationId));
+    return res.data?.data;
+  },
+
   // Delivery Runs
   async getDeliveryRuns(operationId) {
     const res = await api.get(ENDPOINTS.ops.dailyOperations.deliveryRuns(operationId));

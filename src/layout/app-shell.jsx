@@ -22,8 +22,8 @@ import {
   KeyRound,
 } from "lucide-react";
 import * as React from "react";
-import Image from "../assets/logo-light-trans.png";
-import ImageDark from "../assets/logo-dark-trans.png";
+import Image from "../assets/dailyveg-logo-light.png";
+import ImageDark from "../assets/dailyveg-logo-dark.png";
 
 function useDarkMode() {
   const [dark, setDark] = React.useState(() =>
@@ -151,20 +151,6 @@ export function AppShell() {
                 sidebarOpen ? "gap-3" : "justify-center"
               )}
             >
-              {/* <div
-                  className={cn(
-                      "flex shrink-0 items-center justify-center rounded-3xl bg-dailyveg-50 ring-1 ring-dailyveg-200 dark:bg-dailyveg-950/70 dark:ring-dailyveg-800",
-                      sidebarOpen ? "h-16 w-16" : "h-16 w-16"
-                  )}
-              > */}
-              {/* <img
-                src={dark ? ImageDark : Image}
-                alt="FreshVeg"
-                className={sidebarOpen ? "h-11 max-w-14 object-contain" : "h-11 w-11 object-contain"}
-                className={"h-11 w-41 object-contain"}
-              /> */}
-              {/* </div> */}
-
               {!sidebarOpen ? (
                 <div
                   className={cn(
@@ -175,7 +161,7 @@ export function AppShell() {
                   <img
                     src={dark ? ImageDark : Image}
                     alt="FreshVeg"
-                    className={sidebarOpen ? "h-11 max-w-14 object-contain" : "h-11 w-11 object-contain"}
+                    className={sidebarOpen ? "h-11 max-w-14 object-fill" : "w-11 object-fill"}
                   // className={"h-11 w-41 object-contain"}
                   />
                 </div>
@@ -183,7 +169,7 @@ export function AppShell() {
                 <img
                   src={dark ? ImageDark : Image}
                   alt="FreshVeg"
-                  className={"h-11 w-40 object-contain"}
+                  className="h-10 object-fill"
                 // className={"h-11 w-41 object-contain"}
                 />
               }

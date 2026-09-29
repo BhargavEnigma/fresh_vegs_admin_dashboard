@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useGlobalLoader } from "./global-loader-context";
 import { cn } from "../../lib/utils";
-import LogoLight from "../../assets/logo-light-trans.png";
-import LogoDark from "../../assets/logo-dark-trans.png";
+import LogoLight from "../../assets/dailyveg-logo-light.png";
+import LogoDark from "../../assets/dailyveg-logo-dark.png";
 
 function useActiveThemeLogo() {
   const [isDark, setIsDark] = React.useState(() =>

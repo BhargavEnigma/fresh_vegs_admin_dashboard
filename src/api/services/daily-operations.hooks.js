@@ -24,6 +24,7 @@ export const dailyOperationsKeys = {
     operationId || "none",
   ],
   packing: (operationId) => [...dailyOperationsKeys.all, "packing", operationId || "none"],
+  packingPlan: (operationId) => [...dailyOperationsKeys.all, "packingPlan", operationId || "none"],
   packingOrder: (operationId, orderId) => [
     ...dailyOperationsKeys.all,
     "packingOrder",
@@ -96,6 +97,15 @@ export function useDailyOperationsPacking(operationId, { enabled = true } = {}) 
   return useQuery({
     queryKey: dailyOperationsKeys.packing(operationId),
     queryFn: () => DailyOperationsService.getPacking(operationId),
+    enabled: Boolean(enabled && operationId),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useDailyOperationsPackingPlan(operationId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: dailyOperationsKeys.packingPlan(operationId),
+    queryFn: () => DailyOperationsService.getPackingPlan(operationId),
     enabled: Boolean(enabled && operationId),
     staleTime: 30 * 1000,
   });
@@ -338,6 +348,7 @@ export function useDailyOperationsMutations(operationId) {
     onSuccess: (_, orderId) => {
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingOrder(operationId, orderId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingPlan(operationId) });
       invalidateOverview();
     },
     meta: { globalLoaderMessage: "Starting order packing..." },
@@ -379,6 +390,7 @@ export function useDailyOperationsMutations(operationId) {
       queryClient.invalidateQueries({ queryKey: [...dailyOperationsKeys.all, "overview"], refetchType: "active" });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.inventorySummary(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingPlan(operationId) });
     },
     onError: (_error, { orderId, packingItemId }, context) => {
       const rollback = (current) => {
@@ -389,6 +401,7 @@ export function useDailyOperationsMutations(operationId) {
       queryClient.setQueryData(dailyOperationsKeys.packing(operationId), rollback);
       queryClient.setQueryData(dailyOperationsKeys.packingOrder(operationId, orderId), rollback);
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingOrder(operationId, orderId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingPlan(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
     },
     meta: { globalLoaderMessage: "Updating packing item..." },
@@ -399,6 +412,7 @@ export function useDailyOperationsMutations(operationId) {
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packing(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingOrder(operationId, orderId) });
+      queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.packingPlan(operationId) });
       queryClient.invalidateQueries({ queryKey: dailyOperationsKeys.exceptions(operationId) });
       invalidateOverview();
     },

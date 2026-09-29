@@ -264,9 +264,9 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {!operationId && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-900 shadow-xs dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5 sm:p-4 text-amber-900 shadow-xs dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
             <div>
@@ -280,86 +280,86 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
       )}
 
       {/* Top Metrics Banner */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Usable Fresh Stock</span>
-            <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-              <Boxes className="h-5 w-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Usable Fresh Stock</span>
+            <div className="rounded-xl bg-emerald-50 p-1.5 sm:p-2 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+              <Boxes className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900 dark:text-white">
+          <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
               {Number(summary.usable_today_quantity || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-xs font-bold text-slate-400">{Number(summary.usable_today_quantity || 0) >= 1 ? "KG" : "g"} available</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400">{Number(summary.usable_today_quantity || 0) >= 1 ? "KG" : "g"} available</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Live unexpired physical stock in warehouse</p>
+          <p className="mt-1 hidden sm:block text-[11px] text-slate-500">Live unexpired physical stock in warehouse</p>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Reserved For Today</span>
-            <div className="rounded-xl bg-blue-50 p-2 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-              <Lock className="h-5 w-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Reserved For Today</span>
+            <div className="rounded-xl bg-blue-50 p-1.5 sm:p-2 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+          <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-lg sm:text-2xl font-black text-blue-600 dark:text-blue-400">
               {Number(summary.reserved_for_orders_quantity || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-xs font-bold text-slate-400">{Number(summary.reserved_for_orders_quantity || 0) >= 1 ? "KG" : "g"} committed</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400">{Number(summary.reserved_for_orders_quantity || 0) >= 1 ? "KG" : "g"} committed</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Allocated via FEFO for today&apos;s customer orders</p>
+          <p className="mt-1 hidden sm:block text-[11px] text-slate-500">Allocated via FEFO for today&apos;s customer orders</p>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Free / Excess Stock</span>
-            <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
-              <Sparkles className="h-5 w-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Free / Excess Stock</span>
+            <div className="rounded-xl bg-indigo-50 p-1.5 sm:p-2 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+          <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-lg sm:text-2xl font-black text-indigo-600 dark:text-indigo-400">
               {Number(summary.extra_available_quantity || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-xs font-bold text-slate-400">{Number(summary.extra_available_quantity || 0) >= 1 ? "KG" : "g"} free</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400">{Number(summary.extra_available_quantity || 0) >= 1 ? "KG" : "g"} free</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Remaining extra stock for new or subsequent orders</p>
+          <p className="mt-1 hidden sm:block text-[11px] text-slate-500">Remaining extra stock for new or subsequent orders</p>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <Card className="relative overflow-hidden rounded-2xl border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Net Vendor Purchase</span>
-            <div className="rounded-xl bg-amber-50 p-2 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-              <ShoppingBag className="h-5 w-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Net Vendor Purchase</span>
+            <div className="rounded-xl bg-amber-50 p-1.5 sm:p-2 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
+              <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+          <div className="mt-2 sm:mt-3 flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-lg sm:text-2xl font-black text-amber-600 dark:text-amber-400">
               {Number(summary.vendor_purchase_needed_quantity || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-xs font-bold text-slate-400">{Number(summary.vendor_purchase_needed_quantity || 0) >= 1 ? "KG" : "g"} shortfall</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400">{Number(summary.vendor_purchase_needed_quantity || 0) >= 1 ? "KG" : "g"} shortfall</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500">Uncovered order demand to buy from vendors</p>
+          <p className="mt-1 hidden sm:block text-[11px] text-slate-500">Uncovered order demand to buy from vendors</p>
         </Card>
       </div>
 
       {/* Action and Filter Bar */}
-      <Card className="rounded-2xl border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-[240px] max-w-sm">
+      <Card className="rounded-2xl border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-2.5 sm:gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full min-w-0 sm:min-w-[240px] sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search fresh products..."
-                className="h-10 rounded-xl pl-9"
+                className="h-10 rounded-xl pl-9 text-xs sm:text-sm"
               />
             </div>
-            <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 no-scrollbar sm:mx-0 sm:overflow-visible sm:p-1 sm:rounded-xl sm:bg-slate-100 sm:dark:bg-slate-900">
               {[
                 { key: "all", label: "All" },
                 { key: "in_stock", label: "In Stock products" },
@@ -372,10 +372,10 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                   type="button"
                   onClick={() => setFilterAction(tab.key)}
                   className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
+                    "shrink-0 rounded-xl px-3 py-2 text-xs font-bold transition-all sm:rounded-lg sm:py-1.5",
                     filterAction === tab.key
-                      ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                      : "text-slate-500 hover:text-slate-950 dark:hover:text-white"
+                      ? "bg-slate-900 text-white shadow-sm dark:bg-emerald-600 dark:text-white sm:bg-white sm:text-slate-950 sm:dark:bg-slate-800 sm:dark:text-white"
+                      : "bg-slate-100/90 text-slate-600 hover:text-slate-950 dark:bg-slate-800/80 dark:text-slate-400 sm:bg-transparent sm:text-slate-500 sm:hover:text-slate-950 sm:dark:hover:text-white"
                   )}
                 >
                   {tab.label}
@@ -384,7 +384,7 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -396,9 +396,9 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                 }
               }}
               disabled={summaryQuery.isFetching || !operationId || operationId === "null"}
-              className="rounded-xl"
+              className="w-full rounded-xl sm:w-auto"
             >
-              <RefreshCw className={cn("mr-2 h-4 w-4", summaryQuery.isFetching && "animate-spin")} />
+              <RefreshCw className={cn("mr-1.5 sm:mr-2 h-4 w-4", summaryQuery.isFetching && "animate-spin")} />
               Refresh
             </Button>
             {!isClosed && (
@@ -406,212 +406,365 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
                 size="sm"
                 onClick={handleReplan}
                 disabled={replanInventoryMutation.isPending || !operationId || operationId === "null"}
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
+                className="w-full rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 sm:w-auto truncate"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {replanInventoryMutation.isPending ? "Replanning..." : "Replan & Re-allocate Stock"}
+                <Sparkles className="mr-1.5 sm:mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">
+                  {replanInventoryMutation.isPending ? (
+                    "Replanning..."
+                  ) : (
+                    <>
+                      <span className="sm:hidden">Replan Stock</span>
+                      <span className="hidden sm:inline">Replan & Re-allocate Stock</span>
+                    </>
+                  )}
+                </span>
               </Button>
             )}
           </div>
         </div>
       </Card>
 
-      {/* Main Stock Table */}
-      <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] dark:border-slate-800 dark:bg-slate-950">
-        <div className="max-h-[calc(100vh-280px)] min-h-[540px] overflow-auto thin-scrollbar">
-          <table className="w-full text-left text-xs border-separate border-spacing-0">
-            <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md dark:bg-slate-900/95">
-              <tr className="border-b border-slate-200/80 dark:border-slate-800">
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Product & Canonical Unit
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Gross Demand
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Covered From Stock
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Available Stock
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Usable
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Vendor Required
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Earliest Expiry
-                </th>
-                <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Status & Next Action
-                </th>
-                <th className="sticky top-0 right-0 z-30 border-b border-l border-slate-200/80 bg-slate-50/95 px-5 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.5)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
-              {summaryQuery.isLoading ? (
-                <tr>
-                  <td colSpan={9} className="p-12 text-center text-slate-400">
-                    <RefreshCw className="mx-auto h-7 w-7 animate-spin text-emerald-500" />
-                    <p className="mt-3 text-xs font-bold text-slate-700 dark:text-slate-300">Loading warehouse fresh inventory...</p>
-                  </td>
+      {/* Main Stock Table - Desktop View */}
+      <div className="hidden md:block">
+        <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] dark:border-slate-800 dark:bg-slate-950">
+          <div className="max-h-[calc(100vh-280px)] min-h-[420px] overflow-auto thin-scrollbar sm:min-h-[540px]">
+            <table className="min-w-[860px] w-full text-left text-xs border-separate border-spacing-0">
+              <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur-md dark:bg-slate-900/95">
+                <tr className="border-b border-slate-200/80 dark:border-slate-800">
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Product & Canonical Unit
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Gross Demand
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Covered From Stock
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Available Stock
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Usable
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Vendor Required
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Earliest Expiry
+                  </th>
+                  <th className="sticky top-0 z-20 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Status & Next Action
+                  </th>
+                  <th className="sticky top-0 right-0 z-30 border-b border-l border-slate-200/80 bg-slate-50/95 px-5 py-4 text-right text-[10px] font-black uppercase tracking-wider text-slate-500 shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.5)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-12 text-center text-slate-400">
-                    <Boxes className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
-                    <p className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">No inventory products found</p>
-                    <p className="mt-0.5 text-xs text-slate-500">Run Replan to sync current order demand with fresh lots.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map((row) => {
-                  const unit = row.tracking_unit || "KG";
-                  const grossDemand = Number(row.gross_order_demand_quantity || 0);
-                  const reserved = Number(row.reserved_from_stock_quantity || 0);
-                  const available = Number(row.available_stock_quantity ?? row.usable_stock_quantity ?? 0);
-                  const usable = Number(row.usable_stock_quantity || 0);
-                  const vendorNeeded = Number(row.net_vendor_required_quantity || 0);
-                  const isFullyCovered = grossDemand > 0 && vendorNeeded === 0;
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                {summaryQuery.isLoading ? (
+                  <tr>
+                    <td colSpan={9} className="p-12 text-center text-slate-400">
+                      <RefreshCw className="mx-auto h-7 w-7 animate-spin text-emerald-500" />
+                      <p className="mt-3 text-xs font-bold text-slate-700 dark:text-slate-300">Loading warehouse fresh inventory...</p>
+                    </td>
+                  </tr>
+                ) : filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="p-12 text-center text-slate-400">
+                      <Boxes className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
+                      <p className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">No inventory products found</p>
+                      <p className="mt-0.5 text-xs text-slate-500">Run Replan to sync current order demand with fresh lots.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((row) => {
+                    const unit = row.tracking_unit || "KG";
+                    const grossDemand = Number(row.gross_order_demand_quantity || 0);
+                    const reserved = Number(row.reserved_from_stock_quantity || 0);
+                    const available = Number(row.available_stock_quantity ?? row.usable_stock_quantity ?? 0);
+                    const usable = Number(row.usable_stock_quantity || 0);
+                    const vendorNeeded = Number(row.net_vendor_required_quantity || 0);
+                    const isFullyCovered = grossDemand > 0 && vendorNeeded === 0;
 
-                  return (
-                    <tr
-                      key={row.product_id}
-                      className={cn(
-                        "group bg-white transition-all hover:bg-slate-50/80 dark:bg-slate-950 dark:hover:bg-slate-900/60",
-                        isFullyCovered && "bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20"
-                      )}
-                    >
-                      <td className="border-b border-slate-100 px-5 py-4 whitespace-nowrap dark:border-slate-800/70">
-                        <div className="flex items-center gap-3">
-                          <ProductAvatar item={row} size="md" fallbackIcon={Boxes} />
-                          <div className="min-w-0 max-w-[200px]">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-950 dark:text-white truncate text-sm" title={row.product_name}>
-                                {row.product_name}
-                              </span>
-                              <span className="flex-shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                {unit}
-                              </span>
+                    return (
+                      <tr
+                        key={row.product_id}
+                        className={cn(
+                          "group bg-white transition-all hover:bg-slate-50/80 dark:bg-slate-950 dark:hover:bg-slate-900/60",
+                          isFullyCovered && "bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20"
+                        )}
+                      >
+                        <td className="border-b border-slate-100 px-5 py-4 whitespace-nowrap dark:border-slate-800/70">
+                          <div className="flex items-center gap-3">
+                            <ProductAvatar item={row} size="md" fallbackIcon={Boxes} />
+                            <div className="min-w-0 max-w-[200px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-950 dark:text-white truncate text-sm" title={row.product_name}>
+                                  {row.product_name}
+                                </span>
+                                <span className="flex-shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                  {unit}
+                                </span>
+                              </div>
+                              {row.safety_stock_quantity > 0 ? (
+                                <p className="mt-0.5 text-[10px] font-medium text-slate-400 truncate">
+                                  Buffer: {row.safety_stock_quantity} {unit}
+                                </p>
+                              ) : (
+                                <p className="mt-0.5 text-[10px] text-slate-400">Canonical tracking</p>
+                              )}
                             </div>
-                            {row.safety_stock_quantity > 0 ? (
-                              <p className="mt-0.5 text-[10px] font-medium text-slate-400 truncate">
-                                Buffer: {row.safety_stock_quantity} {unit}
-                              </p>
-                            ) : (
-                              <p className="mt-0.5 text-[10px] text-slate-400">Canonical tracking</p>
-                            )}
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap font-mono text-xs dark:border-slate-800/70">
-                        {grossDemand > 0 ? (
-                          <span className="font-bold text-slate-900 dark:text-slate-100">
-                            {grossDemand.toFixed(2)}{" "}
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase">{unit}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-600 font-normal">—</span>
-                        )}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap font-mono text-xs dark:border-slate-800/70">
+                          {grossDemand > 0 ? (
+                            <span className="font-bold text-slate-900 dark:text-slate-100">
+                              {grossDemand.toFixed(2)}{" "}
+                              <span className="text-[10px] font-semibold text-slate-400 uppercase">{unit}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600 font-normal">—</span>
+                          )}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
-                        {reserved > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/80 px-2.5 py-1 font-mono text-xs font-black text-blue-700 shadow-2xs dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
-                            <Lock className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                            {reserved.toFixed(2)}{" "}
-                            <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
-                          </span>
-                        ) : (
-                          <span className="font-mono text-xs text-slate-400 dark:text-slate-600">—</span>
-                        )}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
+                          {reserved > 0 ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200/80 bg-blue-50/80 px-2.5 py-1 font-mono text-xs font-black text-blue-700 shadow-2xs dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
+                              <Lock className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              {reserved.toFixed(2)}{" "}
+                              <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-slate-400 dark:text-slate-600">—</span>
+                          )}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
-                        {available > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 font-mono text-xs font-black text-emerald-700 shadow-2xs dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
-                            {available.toFixed(2)}{" "}
-                            <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
-                          </span>
-                        ) : (
-                          <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>
-                        )}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
+                          {available > 0 ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 font-mono text-xs font-black text-emerald-700 shadow-2xs dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
+                              {available.toFixed(2)}{" "}
+                              <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>
+                          )}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
-                        {usable > 0 ? <span className="inline-flex items-center rounded-xl border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-black text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-300">{usable.toFixed(2)} <span className="ml-1 text-[10px] uppercase opacity-80">{unit}</span></span> : <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
+                          {usable > 0 ? <span className="inline-flex items-center rounded-xl border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-black text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-300">{usable.toFixed(2)} <span className="ml-1 text-[10px] uppercase opacity-80">{unit}</span></span> : <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0.00 <span className="text-[10px] uppercase">{unit}</span></span>}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
-                        {vendorNeeded > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 font-mono text-xs font-black text-amber-800 shadow-2xs dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300">
-                            <ShoppingBag className="h-3 w-3 text-amber-600 flex-shrink-0" />
-                            {vendorNeeded.toFixed(2)}{" "}
-                            <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
-                          </span>
-                        ) : isFullyCovered ? (
-                          <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-2xs">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" /> Covered
-                          </span>
-                        ) : (
-                          <span className="font-mono text-xs text-slate-400 dark:text-slate-600">—</span>
-                        )}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 text-right whitespace-nowrap dark:border-slate-800/70">
+                          {vendorNeeded > 0 ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 font-mono text-xs font-black text-amber-800 shadow-2xs dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-300">
+                              <ShoppingBag className="h-3 w-3 text-amber-600 flex-shrink-0" />
+                              {vendorNeeded.toFixed(2)}{" "}
+                              <span className="text-[10px] font-bold uppercase opacity-80">{unit}</span>
+                            </span>
+                          ) : isFullyCovered ? (
+                            <span className="inline-flex items-center gap-1 rounded-xl border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-2xs">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" /> Covered
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-slate-400 dark:text-slate-600">—</span>
+                          )}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 whitespace-nowrap dark:border-slate-800/70">
-                        {row.earliest_expiry ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                            <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                            {formatIndianDateTime(row.earliest_expiry)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-600 text-xs">—</span>
-                        )}
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 whitespace-nowrap dark:border-slate-800/70">
+                          {row.earliest_expiry ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                              <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                              {formatIndianDateTime(row.earliest_expiry)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600 text-xs">—</span>
+                          )}
+                        </td>
 
-                      <td className="border-b border-slate-100 px-4 py-4 whitespace-nowrap dark:border-slate-800/70">
-                        <div className="flex flex-col gap-1.5 items-start">
-                          <FreshnessBadge status={row.freshness_status} />
-                          <NextActionBadge code={row.next_action_code} />
-                        </div>
-                      </td>
+                        <td className="border-b border-slate-100 px-4 py-4 whitespace-nowrap dark:border-slate-800/70">
+                          <div className="flex flex-col gap-1.5 items-start">
+                            <FreshnessBadge status={row.freshness_status} />
+                            <NextActionBadge code={row.next_action_code} />
+                          </div>
+                        </td>
 
-                      <td className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white/95 px-5 py-4 text-right whitespace-nowrap shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.25)] backdrop-blur-md group-hover:bg-slate-50/95 dark:border-slate-800/70 dark:bg-slate-950/95 dark:group-hover:bg-slate-900/95">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {!isClosed && (
+                        <td className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white/95 px-5 py-4 text-right whitespace-nowrap shadow-[-10px_0_20px_-20px_rgba(15,23,42,0.25)] backdrop-blur-md group-hover:bg-slate-50/95 dark:border-slate-800/70 dark:bg-slate-950/95 dark:group-hover:bg-slate-900/95">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {!isClosed && (
+                              <Button
+                                size="sm"
+                                onClick={() => setAddStockProduct(row)}
+                                className="h-8 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all inline-flex items-center gap-1"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Stock
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              onClick={() => setAddStockProduct(row)}
-                              className="h-8 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all inline-flex items-center gap-1"
+                              variant="outline"
+                              onClick={() => setSelectedProduct(row)}
+                              className="h-8 rounded-xl border-slate-200/80 bg-white text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 active:scale-95 transition-all inline-flex items-center gap-1"
                             >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add Stock
+                              <Boxes className="h-3.5 w-3.5" />
+                              View Lots
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedProduct(row)}
-                            className="h-8 rounded-xl border-slate-200/80 bg-white text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 active:scale-95 transition-all inline-flex items-center gap-1"
-                          >
-                            <Boxes className="h-3.5 w-3.5" />
-                            View Lots
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Dedicated Premium Mobile Cards View */}
+      <div className="space-y-3 md:hidden">
+        {summaryQuery.isLoading ? (
+          <Card className="rounded-2xl border border-slate-200/80 bg-white p-10 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950">
+            <RefreshCw className="mx-auto h-7 w-7 animate-spin text-emerald-500" />
+            <p className="mt-3 text-xs font-bold text-slate-700 dark:text-slate-300">Loading warehouse fresh inventory...</p>
+          </Card>
+        ) : filteredProducts.length === 0 ? (
+          <Card className="rounded-2xl border border-slate-200/80 bg-white p-10 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950">
+            <Boxes className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
+            <p className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">No inventory products found</p>
+            <p className="mt-0.5 text-xs text-slate-500">Run Replan to sync current order demand with fresh lots.</p>
+          </Card>
+        ) : (
+          filteredProducts.map((row) => {
+            const unit = row.tracking_unit || "KG";
+            const grossDemand = Number(row.gross_order_demand_quantity || 0);
+            const reserved = Number(row.reserved_from_stock_quantity || 0);
+            const available = Number(row.available_stock_quantity ?? row.usable_stock_quantity ?? 0);
+            const usable = Number(row.usable_stock_quantity || 0);
+            const vendorNeeded = Number(row.net_vendor_required_quantity || 0);
+            const isFullyCovered = grossDemand > 0 && vendorNeeded === 0;
+
+            return (
+              <Card
+                key={row.product_id}
+                className={cn(
+                  "overflow-hidden rounded-2xl border bg-white p-3.5 shadow-sm transition-all dark:bg-slate-950 space-y-3",
+                  isFullyCovered
+                    ? "border-emerald-200/90 bg-gradient-to-b from-emerald-50/30 via-white to-white dark:border-emerald-900/50 dark:from-emerald-950/20 dark:to-slate-950"
+                    : vendorNeeded > 0
+                    ? "border-amber-200/80 bg-gradient-to-b from-amber-50/20 via-white to-white dark:border-amber-900/50 dark:from-amber-950/15 dark:to-slate-950"
+                    : "border-slate-200/80 dark:border-slate-800"
+                )}
+              >
+                {/* Header: Product Avatar + Full Product Name + Canonical Unit */}
+                <div className="flex items-start gap-3">
+                  <ProductAvatar item={row} size="md" fallbackIcon={Boxes} className="mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-950 dark:text-white text-sm leading-snug break-words">
+                        {row.product_name}
+                      </span>
+                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {unit}
+                      </span>
+                    </div>
+                    {row.safety_stock_quantity > 0 ? (
+                      <p className="mt-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                        Buffer: {row.safety_stock_quantity} {unit}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[10px] text-slate-400">Canonical tracking</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status, Freshness & Expiry Strip */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <FreshnessBadge status={row.freshness_status} />
+                  <NextActionBadge code={row.next_action_code} />
+                  {row.earliest_expiry && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                      <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+                      Exp: {formatIndianDateTime(row.earliest_expiry)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Metrics Breakdown Grid */}
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100 dark:bg-slate-900/60 dark:border-slate-800/60">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gross Demand</span>
+                    <p className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {grossDemand > 0 ? (
+                        <>
+                          {grossDemand.toFixed(2)} <span className="text-[9px] font-semibold uppercase text-slate-400">{unit}</span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Covered From Stock</span>
+                    <p className="font-mono text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                      {reserved > 0 && <Lock className="h-3 w-3 shrink-0" />}
+                      {reserved > 0 ? `${reserved.toFixed(2)} ${unit}` : "—"}
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Available / Usable</span>
+                    <p className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                      {available.toFixed(2)} <span className="text-[9px] font-normal text-slate-400">({usable.toFixed(2)}) {unit}</span>
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vendor Required</span>
+                    {vendorNeeded > 0 ? (
+                      <p className="font-mono text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                        <ShoppingBag className="h-3 w-3 shrink-0 text-amber-600" />
+                        {vendorNeeded.toFixed(2)} <span className="text-[9px] font-semibold">{unit}</span>
+                      </p>
+                    ) : isFullyCovered ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" /> Covered
+                      </span>
+                    ) : (
+                      <p className="font-mono text-xs text-slate-400">—</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions Bar */}
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                  {!isClosed && (
+                    <Button
+                      size="sm"
+                      onClick={() => setAddStockProduct(row)}
+                      className="flex-1 h-9 rounded-xl bg-emerald-600 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5 shrink-0" />
+                      Add Stock
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedProduct(row)}
+                    className="flex-1 h-9 rounded-xl border-slate-200/80 bg-white text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/80 active:scale-95 transition-all inline-flex items-center justify-center gap-1.5"
+                  >
+                    <Boxes className="h-3.5 w-3.5 shrink-0" />
+                    View Lots
+                  </Button>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
 
 
       {/* Add Stock Dialog */}
@@ -649,7 +802,7 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
 
       {/* Lot Action Dialog (Waste / Quarantine / Adjust) */}
       <Dialog open={actionDialog.open} onOpenChange={(open) => !open && setActionDialog({ open: false, lot: null, action: null })}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               {actionDialog.action === "waste" && <Trash2 className="h-5 w-5 text-rose-500" />}
@@ -702,11 +855,11 @@ export function FreshStockTab({ operationId, warehouseId, isClosed }) {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setActionDialog({ open: false, lot: null, action: null })} className="rounded-xl">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
+            <Button variant="ghost" onClick={() => setActionDialog({ open: false, lot: null, action: null })} className="rounded-xl w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleExecuteLotAction} className="rounded-xl">
+            <Button onClick={handleExecuteLotAction} className="rounded-xl w-full sm:w-auto">
               Confirm Action
             </Button>
           </DialogFooter>
@@ -779,12 +932,12 @@ function AddStockDialog({ product, warehouseId, operationId, isClosed, onClose, 
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md overflow-hidden rounded-2xl p-0">
-        <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-6 py-4 dark:border-slate-800 dark:from-emerald-950/30 dark:via-slate-950 dark:to-slate-900">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full overflow-hidden rounded-2xl p-0">
+        <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-slate-800 dark:from-emerald-950/30 dark:via-slate-950 dark:to-slate-900">
           <div className="flex items-center gap-3">
             <ProductAvatar item={product} size="md" fallbackIcon={Boxes} />
-            <div>
-              <DialogTitle className="text-base font-bold text-slate-950 dark:text-white">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-950 dark:text-white truncate">
                 Add Stock: {product.product_name}
               </DialogTitle>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -794,7 +947,7 @@ function AddStockDialog({ product, warehouseId, operationId, isClosed, onClose, 
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-6 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6 text-xs">
           {/* Quantity Input */}
           <div>
             <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">
@@ -929,12 +1082,12 @@ function AddStockDialog({ product, warehouseId, operationId, isClosed, onClose, 
             </label>
           </div>
 
-          <DialogFooter className="gap-2 pt-2">
+          <DialogFooter className="gap-2 pt-2 flex flex-col-reverse sm:flex-row">
             <Button
               type="button"
               variant="ghost"
               onClick={onClose}
-              className="rounded-xl"
+              className="rounded-xl w-full sm:w-auto"
               disabled={addStockMutation.isPending}
             >
               Cancel
@@ -942,7 +1095,7 @@ function AddStockDialog({ product, warehouseId, operationId, isClosed, onClose, 
             <Button
               type="submit"
               disabled={addStockMutation.isPending}
-              className="rounded-xl bg-emerald-600 font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20"
+              className="rounded-xl bg-emerald-600 font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 w-full sm:w-auto"
             >
               {addStockMutation.isPending ? "Adding Stock..." : "Confirm & Inward Stock"}
             </Button>
@@ -960,13 +1113,13 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden rounded-2xl p-0">
-        <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-6 py-5 dark:border-slate-800 dark:from-emerald-950/30 dark:via-slate-950 dark:to-slate-900">
-          <div className="flex items-center justify-between pr-8">
-            <div className="flex items-center gap-3">
+      <DialogContent className="max-h-[90vh] max-w-4xl w-[95vw] sm:w-full overflow-hidden rounded-2xl p-0">
+        <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-4 py-3.5 sm:px-6 sm:py-5 dark:border-slate-800 dark:from-emerald-950/30 dark:via-slate-950 dark:to-slate-900">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-6 sm:pr-8">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <ProductAvatar item={product} size="lg" fallbackIcon={Boxes} />
               <div>
-                <DialogTitle className="text-base font-bold text-slate-950 dark:text-white">
+                <DialogTitle className="text-sm sm:text-base font-bold text-slate-950 dark:text-white leading-snug">
                   {product.product_name} · Physical Inventory Lots
                 </DialogTitle>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -974,18 +1127,18 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               {!isClosed && onAddStock && (
                 <Button
                   size="sm"
                   onClick={onAddStock}
-                  className="rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20"
+                  className="flex-1 sm:flex-initial rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20"
                 >
                   <Plus className="mr-1 h-3.5 w-3.5" />
                   Add Stock
                 </Button>
               )}
-              <Button size="sm" variant="outline" onClick={() => lotsQuery.refetch()} className="rounded-xl">
+              <Button size="sm" variant="outline" onClick={() => lotsQuery.refetch()} className="flex-1 sm:flex-initial rounded-xl">
                 <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", lotsQuery.isFetching && "animate-spin")} />
                 Refresh Lots
               </Button>
@@ -993,7 +1146,7 @@ function ProductLotsDrawer({ product, warehouseId, isClosed, onClose, onAddStock
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(90vh-100px)] space-y-3 overflow-y-auto p-6 thin-scrollbar">
+        <div className="max-h-[calc(90vh-100px)] space-y-3 overflow-y-auto p-3.5 sm:p-6 thin-scrollbar">
           {lotsQuery.isLoading ? (
             <div className="p-12 text-center text-slate-400">
               <RefreshCw className="mx-auto h-6 w-6 animate-spin text-emerald-500" />
@@ -1221,13 +1374,13 @@ function LotMovementsModal({ lot, onClose }) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden rounded-2xl p-0">
-        <DialogHeader className="border-b border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between pr-8">
+      <DialogContent className="max-h-[85vh] max-w-2xl w-[95vw] sm:w-full overflow-hidden rounded-2xl p-0">
+        <DialogHeader className="border-b border-slate-200 bg-slate-50 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-6 sm:pr-8">
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-indigo-600" />
+              <History className="h-5 w-5 text-indigo-600 shrink-0" />
               <div>
-                <DialogTitle className="text-base font-bold">
+                <DialogTitle className="text-sm sm:text-base font-bold">
                   Audit History: Lot #{lot.id.slice(0, 8)}
                 </DialogTitle>
                 <p className="text-xs text-slate-500">
@@ -1235,14 +1388,14 @@ function LotMovementsModal({ lot, onClose }) {
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => movementsQuery.refetch()} className="rounded-xl">
+            <Button size="sm" variant="outline" onClick={() => movementsQuery.refetch()} className="rounded-xl w-full sm:w-auto">
               <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", movementsQuery.isFetching && "animate-spin")} />
               Refresh
             </Button>
           </div>
         </DialogHeader>
 
-        <div className="max-h-[calc(85vh-90px)] space-y-3 overflow-y-auto p-6 thin-scrollbar">
+        <div className="max-h-[calc(85vh-90px)] space-y-3 overflow-y-auto p-3.5 sm:p-6 thin-scrollbar">
           {movementsQuery.isLoading ? (
             <div className="p-8 text-center text-slate-400">
               <RefreshCw className="mx-auto h-6 w-6 animate-spin text-emerald-500" />
@@ -1258,9 +1411,9 @@ function LotMovementsModal({ lot, onClose }) {
               return (
                 <div
                   key={movement.id}
-                  className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-950"
+                  className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-950"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider", badge.className)}>
@@ -1294,7 +1447,7 @@ function LotMovementsModal({ lot, onClose }) {
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-slate-50 px-3 py-2 text-right text-[11px] dark:bg-slate-900">
+                    <div className="rounded-xl bg-slate-50 px-3 py-2 text-left sm:text-right text-[11px] dark:bg-slate-900 w-full sm:w-auto">
                       <span className="block text-[9px] font-bold uppercase text-slate-400">Available Balance</span>
                       <span className="font-mono text-slate-500">
                         {movement.previous_available_quantity} → <strong className="text-slate-900 dark:text-white">{movement.new_available_quantity}</strong> {movement.unit}

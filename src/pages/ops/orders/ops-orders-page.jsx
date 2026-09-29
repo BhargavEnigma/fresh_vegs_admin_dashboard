@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isValid, addDays } from "date-fns";
 import DatePicker from "react-datepicker";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { Eye, LayoutGrid, Table2, Truck, UserPlus, AlertTriangle, Check, CheckCircle2, Clock, Package, Box, CalendarDays, Search, Warehouse, SlidersHorizontal, FileDown, LockKeyhole, ArrowRight, ClipboardList, UsersRound, Hash, Copy, MapPin, IndianRupee, Phone, CreditCard, ExternalLink, RefreshCw, ChevronLeft, ChevronRight, Trash2, ShieldAlert } from "lucide-react";
 
 import "react-datepicker/dist/react-datepicker.css";
@@ -30,7 +30,6 @@ import { useToast } from "../../../components/toast/toast-context";
 import { useGlobalLoader } from "../../../components/common/global-loader-context";
 
 import { OpsOrdersListPdf } from "./ops-orders-list-pdf";
-import { exportOrdersCsv } from "./ops-orders-export";
 import { downloadBlob } from "../../../utils/download";
 import { PremiumSelect } from "../../../components/ui/premium-select";
 import { RiResetLeftFill } from "react-icons/ri";
@@ -595,68 +594,87 @@ function OrderPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="p-4 sm:p-5 gap-3 max-w-lg">
-                <DialogHeader>
-                    <DialogTitle className="text-base sm:text-lg">Order Preview</DialogTitle>
+            <DialogContent className="p-3.5 sm:p-5 gap-3 w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden thin-scrollbar rounded-2xl min-w-0">
+                <DialogHeader className="min-w-0">
+                    <DialogTitle className="flex items-center justify-between gap-2 text-sm sm:text-base min-w-0 w-full pr-6">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            {getDailyOrderLabel(order) && (
+                                <span className="shrink-0 rounded-md bg-dailyveg-500 px-2 py-0.5 text-xs font-black text-white">
+                                    {getDailyOrderLabel(order)}
+                                </span>
+                            )}
+                            <span className="truncate font-bold text-slate-900 dark:text-white">
+                                {getPrimaryOrderLabel(order)}
+                            </span>
+                        </div>
+                        <div className="shrink-0">
+                            <StatusBadge value={order.status} label={ORDER_STATUS_LABELS[order.status]} />
+                        </div>
+                    </DialogTitle>
                 </DialogHeader>
 
-                <div className="grid gap-2 text-xs sm:text-sm">
-                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800 space-y-0.5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-[10px] sm:text-xs text-slate-500">Operational Order</div>
-                                <div className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{getPrimaryOrderLabel(order)}</div>
+                <div className="grid gap-2.5 text-xs sm:text-sm min-w-0 w-full overflow-hidden">
+                    {/* Top Reference & Amount Banner */}
+                    <div className="rounded-xl border border-dailyveg-200/70 bg-gradient-to-r from-dailyveg-50/70 via-white to-slate-50 p-2.5 sm:p-3 dark:border-dailyveg-900/50 dark:from-dailyveg-950/30 dark:via-slate-900 dark:to-slate-900 min-w-0">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                            <div className="min-w-0 flex-1 truncate">
+                                {order.order_number ? (
+                                    <div className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                                        Ref: <span className="font-mono font-bold text-slate-900 dark:text-white">{order.order_number}</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-slate-500 truncate">Operational Order</div>
+                                )}
                             </div>
-                            {getDailyOrderLabel(order) && (
-                                <div className="rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs font-bold text-dailyveg-700 dark:text-dailyveg-300">
-                                    {getDailyOrderLabel(order)}
-                                </div>
-                            )}
+                            <span className="text-sm sm:text-base font-black text-dailyveg-700 dark:text-dailyveg-400 shrink-0">
+                                {money(getOrderTotal(order))}
+                            </span>
                         </div>
-                        {order.order_number && (
-                            <div className="text-[10px] sm:text-xs text-slate-500">
-                                Customer Reference: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
-                            </div>
-                        )}
-                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
-                            <span>UUID: {order.id}</span>
+                        <div className="mt-1 flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 font-mono min-w-0">
+                            <span className="truncate min-w-0 flex-1">UUID: {order.id}</span>
                             <button
+                                type="button"
                                 onClick={() => {
                                     navigator.clipboard.writeText(order.id);
                                     toast.success("UUID copied to clipboard");
                                 }}
-                                className="hover:text-slate-600 dark:hover:text-slate-200"
+                                className="inline-flex items-center gap-1 text-slate-500 hover:text-dailyveg-600 dark:hover:text-dailyveg-400 shrink-0 font-sans text-[11px] font-medium"
                                 title="Copy UUID"
                             >
-                                <Copy className="h-3 w-3 inline-block" />
+                                <Copy className="h-3 w-3" /> Copy
                             </button>
                         </div>
                     </div>
 
-                    {/* Ordered Products Section */}
-                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800 overflow-x-auto">
-                        <div className="text-[10px] sm:text-xs text-slate-500 mb-1.5 font-medium">Ordered Products</div>
+                    {/* Ordered Products Section (Scoped Horizontal Scroll is OK) */}
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-2.5 sm:p-3 dark:border-slate-800 dark:bg-slate-900/40 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between mb-2 min-w-0">
+                            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+                                Ordered Products ({getOrderItemsCount(order)})
+                            </span>
+                            <span className="text-[10px] text-slate-400 shrink-0">Swipe →</span>
+                        </div>
                         {isDetailLoading ? (
-                            <div className="flex gap-3 overflow-x-auto pb-0.5 animate-pulse">
+                            <div className="flex gap-2.5 overflow-x-auto pb-0.5 animate-pulse min-w-0">
                                 {[1, 2, 3].map((n) => (
                                     <div key={n} className="flex flex-col items-center gap-1 shrink-0">
-                                        <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800" />
-                                        <div className="h-2.5 w-10 rounded bg-slate-100 dark:bg-slate-800 mt-1" />
+                                        <div className="h-10 w-10 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                                        <div className="h-2 w-8 rounded bg-slate-200 dark:bg-slate-800 mt-1" />
                                     </div>
                                 ))}
                             </div>
                         ) : items.length > 0 ? (
-                            <div className="flex gap-3 overflow-x-auto pb-1.5 thin-scrollbar">
-                                {items.map((item) => {
+                            <div className="flex gap-2 overflow-x-auto pb-1 thin-scrollbar max-w-full min-w-0">
+                                {items.map((item, idx) => {
                                     const img = pickFirstImageUrl(item);
-                                    const packQtyText = `${item.pack_label || item.unit || "—"}-${formatQuantity(item.quantity)}x`;
+                                    const packQtyText = `${item.pack_label || item.unit || "—"} × ${formatQuantity(item.quantity)}`;
                                     return (
                                         <div
-                                            key={item.id}
-                                            className="flex flex-col items-center gap-0.5 shrink-0 group relative cursor-help"
+                                            key={item.id || idx}
+                                            className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 pr-2.5 shrink-0 shadow-2xs dark:border-slate-800 dark:bg-slate-950"
                                             title={item.product_name}
                                         >
-                                            <div className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm">
+                                            <div className="h-9 w-9 overflow-hidden rounded-lg border border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 flex items-center justify-center shrink-0">
                                                 {img ? (
                                                     <img
                                                         src={img}
@@ -664,89 +682,113 @@ function OrderPreviewDialog({
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <Package className="h-5 w-5 text-slate-400 dark:text-slate-600" />
+                                                    <Package className="h-4 w-4 text-slate-400 dark:text-slate-600" />
                                                 )}
                                             </div>
-                                            <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 mt-1 max-w-[56px] truncate text-center" title={packQtyText}>
-                                                {packQtyText}
-                                            </span>
+                                            <div className="min-w-0 max-w-[110px]">
+                                                <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
+                                                    {item.product_name}
+                                                </div>
+                                                <div className="text-[10px] font-semibold text-dailyveg-700 dark:text-dailyveg-400 truncate">
+                                                    {packQtyText}
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         ) : (
-                            <div className="text-[10px] sm:text-xs text-slate-400 italic">No products found in this order.</div>
+                            <div className="text-xs text-slate-400 italic">No products found in this order.</div>
                         )}
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                            <div className="text-[10px] sm:text-xs text-slate-500">Customer</div>
-                            <div className="mt-0.5 font-medium">{getCustomerName(order)}</div>
-                            <div className="text-slate-500 dark:text-slate-400">{getCustomerPhone(order)}</div>
+                    {/* 2x2 Details Grid with min-w-0 to prevent cell expansion */}
+                    <div className="grid grid-cols-2 gap-2 min-w-0 w-full">
+                        <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900/50 min-w-0 overflow-hidden">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Customer</div>
+                            <div className="mt-0.5 font-bold text-xs text-slate-900 dark:text-white truncate" title={getCustomerName(order)}>
+                                {getCustomerName(order)}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">{getCustomerPhone(order)}</div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                            <div className="text-[10px] sm:text-xs text-slate-500">Delivery</div>
-                            <div className="mt-0.5 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
-                            <div className="text-slate-500 dark:text-slate-400">{getOrderArea(order)}</div>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                            <div className="text-[10px] sm:text-xs text-slate-500">Status</div>
-                            <div className="mt-1">
-                                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
+                        <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900/50 min-w-0 overflow-hidden">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delivery</div>
+                            <div className="mt-0.5 font-bold text-xs text-slate-900 dark:text-white truncate">
+                                {formatIndianDateTime(order.delivery_date) || "—"}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate" title={getOrderArea(order)}>
+                                {getOrderArea(order)}
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                            <div className="text-[10px] sm:text-xs text-slate-500">Payment</div>
-                            <div className="mt-0.5 font-medium">{order.payment_method || "—"}</div>
-                            <div className="text-slate-500 dark:text-slate-400">{order.payment_status || "—"}</div>
+                        <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900/50 min-w-0 overflow-hidden">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Payment</div>
+                            <div className="mt-0.5 font-bold text-xs uppercase text-slate-900 dark:text-white truncate">
+                                {order.payment_method || "—"}
+                            </div>
+                            <div className="text-[11px] capitalize text-slate-500 truncate">
+                                {String(order.payment_status || "—").replaceAll("_", " ")}
+                            </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                            <div className="text-[10px] sm:text-xs text-slate-500">Total</div>
-                            <div className="mt-0.5 font-medium">{money(getOrderTotal(order))}</div>
-                            <div className="text-slate-500 dark:text-slate-400">Items: {getOrderItemsCount(order)}</div>
+                        <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900/50 min-w-0 overflow-hidden">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rider</div>
+                            <div className="mt-0.5 font-bold text-xs text-slate-900 dark:text-white truncate" title={deliveryPartnerText}>
+                                {deliveryPartnerText}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">
+                                {order.delivery_assigned_at ? formatIndianDateTime(order.delivery_assigned_at) : "Unassigned"}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 p-2.5 dark:border-slate-800">
-                        <div className="text-[10px] sm:text-xs text-slate-500">Delivery Partner</div>
-                        <div className="mt-0.5 font-medium">{deliveryPartnerText}</div>
-                        <div className="text-slate-500 dark:text-slate-400">
-                            Assigned at: {order.delivery_assigned_at || "—"}
-                        </div>
-                    </div>
+                    {/* Action Buttons Footer */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 sm:pt-3.5 border-t border-slate-100 dark:border-slate-800 min-w-0">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:w-auto">
+                            {canAssignDeliveryPartner(order) ? (
+                                <Button
+                                    className="w-full sm:w-auto text-xs sm:text-sm h-auto min-h-[38px] sm:min-h-[40px] py-2.5 px-3 truncate font-medium"
+                                    variant="outline"
+                                    onClick={() => onAssignClick(order)}
+                                    disabled={isAssignPending}
+                                >
+                                    {order.delivery_partner_user_id ? "Reassign" : "Assign Rider"}
+                                </Button>
+                            ) : null}
 
-                    <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-                        {canAssignDeliveryPartner(order) ? (
-                            <Button variant="outline" onClick={() => onAssignClick(order)} disabled={isAssignPending}>
-                                {order.delivery_partner_user_id ? "Reassign Partner" : "Assign Partner"}
-                            </Button>
-                        ) : null}
+                            {canUnassignDeliveryPartner(order) ? (
+                                <Button
+                                    className="w-full sm:w-auto text-xs sm:text-sm h-auto min-h-[38px] sm:min-h-[40px] py-2.5 px-3 truncate font-medium"
+                                    variant="outline"
+                                    onClick={() => {
+                                        onOpenChange(false);
+                                        onUnassignClick(order);
+                                    }}
+                                    disabled={isUnassignPending}
+                                >
+                                    {isUnassignPending ? "Removing..." : "Unassign"}
+                                </Button>
+                            ) : null}
 
-                        {canUnassignDeliveryPartner(order) ? (
                             <Button
+                                className={cn(
+                                    "w-full sm:w-auto text-xs sm:text-sm h-auto min-h-[38px] sm:min-h-[40px] py-2.5 px-4 font-medium",
+                                    (!canAssignDeliveryPartner(order) && !canUnassignDeliveryPartner(order)) && "col-span-2 sm:col-span-1"
+                                )}
                                 variant="outline"
-                                onClick={() => {
-                                    onOpenChange(false);
-                                    onUnassignClick(order);
-                                }}
-                                disabled={isUnassignPending}
+                                onClick={() => onOpenChange(false)}
                             >
-                                {isUnassignPending ? "Removing..." : "Unassign"}
+                                Close
                             </Button>
-                        ) : null}
+                        </div>
 
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
-                            Close
+                        <Button
+                            className="w-full sm:w-auto text-xs sm:text-sm h-auto min-h-[38px] sm:min-h-[40px] py-2.5 px-4 font-bold bg-dailyveg-600 hover:bg-dailyveg-700 text-white shadow-sm"
+                            onClick={() => onViewDetails(order.id)}
+                        >
+                            View Full Details
                         </Button>
-
-                        <Button onClick={() => onViewDetails(order.id)}>View Full Details</Button>
                     </div>
                 </div>
             </DialogContent>
@@ -870,77 +912,103 @@ function MobileOrderCard({
     };
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+        <article className={cn(
+            "group relative flex flex-col overflow-hidden rounded-2xl border transition-all",
+            selected 
+                ? "border-dailyveg-400 bg-dailyveg-50/50 shadow-md shadow-dailyveg-500/10 dark:border-dailyveg-500/50 dark:bg-dailyveg-950/20" 
+                : "border-slate-200/80 bg-white shadow-sm hover:border-slate-300 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-950"
+        )}>
+            {/* Top section: Checkbox, Order ID, Status */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/50 p-3.5 dark:border-slate-800/50 dark:bg-slate-900/30">
+                <label className="flex min-w-0 flex-1 items-start gap-3">
+                    <div className="flex h-5 items-center">
                         <input
                             type="checkbox"
                             checked={selected}
                             onChange={() => onToggleSelect(order.id)}
-                            className="shrink-0"
+                            className="h-4.5 w-4.5 rounded border-slate-300 accent-dailyveg-600 dark:border-slate-700 dark:bg-slate-800"
                             aria-label={`Select order ${getPrimaryOrderLabel(order)}`}
                         />
-                        {getDailyOrderLabel(order) && (
-                            <span className="shrink-0 rounded bg-dailyveg-100 dark:bg-dailyveg-950 px-2 py-0.5 text-xs font-extrabold text-dailyveg-700 dark:text-dailyveg-300">
-                                {getDailyOrderLabel(order)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {getDailyOrderLabel(order) && (
+                                <span className="shrink-0 rounded-md bg-dailyveg-100 px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-dailyveg-700 dark:bg-dailyveg-900/60 dark:text-dailyveg-300">
+                                    {getDailyOrderLabel(order)}
+                                </span>
+                            )}
+                            <span className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                                {getPrimaryOrderLabel(order)}
                             </span>
-                        )}
-                        <span className="font-semibold text-slate-900 dark:text-white truncate">
-                            {getPrimaryOrderLabel(order)}
-                        </span>
-                    </div>
-                    {order.order_number && (
-                        <div className="mt-1 text-xs text-slate-500">
-                            Ref: <span className="font-mono text-slate-700 dark:text-slate-300">{order.order_number}</span>
                         </div>
-                    )}
-                    <div className="mt-1 text-xs text-slate-500">
-                        {getCustomerName(order)} · {getCustomerPhone(order)}
+                        {order.order_number && (
+                            <div className="mt-0.5 truncate text-[11px] text-slate-500">
+                                Ref: <span className="font-mono font-medium text-slate-700 dark:text-slate-400">{order.order_number}</span>
+                            </div>
+                        )}
                     </div>
-                </div>
-
-                <StatusBadge value={ORDER_STATUS_LABELS[order.status]} />
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                    <div className="text-xs text-slate-500">Delivery</div>
-                    <div className="mt-1 font-medium">{formatIndianDateTime(order.delivery_date)}</div>
-                    <div className="text-xs text-slate-500">{getOrderArea(order)}</div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                    <div className="text-xs text-slate-500">Amount</div>
-                    <div className="mt-1 font-semibold">{money(getOrderTotal(order))}</div>
-                    <div className="text-xs text-slate-500">
-                        Items: {getOrderItemsCount(order)}
-                    </div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                    <div className="text-xs text-slate-500">Payment</div>
-                    <div className="mt-1 font-medium">{order.payment_method || "—"}</div>
-                    <div className="text-xs text-slate-500">{order.payment_status || "—"}</div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-                    <div className="text-xs text-slate-500">Rider</div>
-                    <div className="mt-1 truncate font-medium">
-                        {order.delivery_partner ? getDeliveryPartnerName(order) : "Not assigned"}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                        {order.delivery_partner ? getDeliveryPartnerPhone(order) || "—" : "—"}
-                    </div>
+                </label>
+                <div className="shrink-0">
+                    <StatusBadge value={order.status} label={ORDER_STATUS_LABELS[order.status]} />
                 </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => onPreview(order)}>
-                    Preview
+            {/* Middle section: Customer, Date, Amount */}
+            <div className="p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-100">
+                            <span className="truncate">{getCustomerName(order)}</span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{getCustomerPhone(order)}</span>
+                        </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
+                            {money(getOrderTotal(order))}
+                        </div>
+                        <div className="mt-0.5 text-[11px] font-medium text-slate-500">
+                            {getOrderItemsCount(order)} items
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            <CalendarDays className="h-3 w-3" /> Delivery
+                        </div>
+                        <div className="mt-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
+                            {formatIndianDateTime(order.delivery_date) || "—"}
+                        </div>
+                        <div className="mt-0.5 truncate text-[11px] text-slate-500">
+                            {getOrderArea(order)}
+                        </div>
+                    </div>
+                    
+                    <div className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-900/50">
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            <Truck className="h-3 w-3" /> Rider
+                        </div>
+                        <div className="mt-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
+                            {order.delivery_partner ? getDeliveryPartnerName(order) : "Unassigned"}
+                        </div>
+                        <div className="mt-0.5 truncate text-[11px] text-slate-500">
+                            {order.delivery_partner ? getDeliveryPartnerPhone(order) : "—"}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom section: Actions */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-50/50 p-3 dark:bg-slate-900/30">
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2.5" onClick={() => onPreview(order)}>
+                    <Eye className="mr-1.5 h-3 w-3" /> Preview
                 </Button>
 
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2.5" asChild>
                     <Link to={`/ops/orders/${order.id}`}>View</Link>
                 </Button>
 
@@ -948,6 +1016,7 @@ function MobileOrderCard({
                     <Button
                         variant="outline"
                         size="sm"
+                        className="h-7 text-[11px] px-2.5"
                         onClick={() => onAssign(order)}
                         disabled={isAssignPending}
                     >
@@ -959,6 +1028,7 @@ function MobileOrderCard({
                     <Button
                         variant="outline"
                         size="sm"
+                        className="h-7 text-[11px] px-2.5"
                         onClick={() => onUnassign(order)}
                         disabled={isUnassignPending}
                     >
@@ -969,7 +1039,9 @@ function MobileOrderCard({
                 {nextActions.map((action) => (
                     <Button
                         key={action.key}
+                        variant="default"
                         size="sm"
+                        className="h-7 text-[11px] px-2.5 bg-dailyveg-600 hover:bg-dailyveg-700 text-white"
                         onClick={() => onQuickAction(order.id, action.key)}
                         disabled={isUpdatePending}
                     >
@@ -978,17 +1050,20 @@ function MobileOrderCard({
                 ))}
 
                 {canDelete ? (
-                    <Button variant="redoutline" size="sm" onClick={() => onDelete(order)}>
-                        <Trash2 className="mr-1.5 h-4 w-4" />
-                        Delete
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 ml-auto" onClick={() => onDelete(order)}>
+                        <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                 ) : null}
             </div>
-
-            <div className="mt-3 text-xs text-slate-500">
-                {order.is_locked ? "Locked" : "Not locked"}
-            </div>
-        </div>
+            
+            {order.is_locked && (
+                <div className="absolute top-0 right-0 h-10 w-10 overflow-hidden">
+                    <div className="absolute top-1 right-1">
+                        {/* Lock indicator could go here if we wanted */}
+                    </div>
+                </div>
+            )}
+        </article>
     );
 }
 
@@ -1306,6 +1381,7 @@ export function OpsOrdersPage() {
     const [deleteOrder, setDeleteOrder] = useState(null);
     const [deleteConfirmation, setDeleteConfirmation] = useState("");
     const [deleteReason, setDeleteReason] = useState("");
+    const [exportScope, setExportScope] = useState(null);
 
     const [filters, setFilters] = useState({
         page: 1,
@@ -1717,23 +1793,67 @@ export function OpsOrdersPage() {
         });
     }
 
-    async function handleExportAllCsv() {
-        try {
-            const { blob, filename } = await withLoader(
-                OpsOrdersService.exportAllCsv({
-                    warehouse_id: filters.warehouse_id,
-                    delivery_partner_user_id: filters.delivery_partner_user_id,
-                    delivery_date: filters.delivery_date,
-                    q: filters.q,
-                    status: queueToStatusFilter(queue),
-                    isOrderAssigned: queueToAssignedFilter(queue),
-                }),
-                "Exporting CSV..."
-            );
+    function pdfFilters(scope) {
+        if (scope === "all") {
+            return {
+                exportScope: "all",
+                delivery_date: filters.delivery_date,
+            };
+        }
+        const warehouse = warehouses.find((item) => item.id === filters.warehouse_id);
+        const partner = deliveryPartners.find((item) => item.id === filters.delivery_partner_user_id);
+        return {
+            exportScope: "filtered",
+            delivery_date: filters.delivery_date,
+            warehouse_name: warehouse?.name,
+            delivery_partner_name: partner?.full_name || partner?.phone,
+            q: filters.q,
+            status: queueToStatusFilter(queue),
+            assigned: queueToAssignedFilter(queue),
+        };
+    }
 
-            downloadBlob(blob, filename);
+    async function handleExportPdf(scope) {
+        if (!filters.delivery_date) {
+            toast.warning("Select a delivery date before exporting orders.");
+            return;
+        }
+        const isAll = scope === "all";
+        try {
+            setExportScope(scope);
+            const orders = await withLoader(async () => {
+                const exportFilters = isAll
+                    ? {
+                        // "All" means every warehouse's orders for the selected
+                        // delivery date, not every order ever created in the database.
+                        delivery_date: filters.delivery_date,
+                    }
+                    : {
+                        warehouse_id: filters.warehouse_id,
+                        delivery_partner_user_id: filters.delivery_partner_user_id,
+                        delivery_date: filters.delivery_date,
+                        q: filters.q,
+                        status: queueToStatusFilter(queue),
+                        isOrderAssigned: queueToAssignedFilter(queue),
+                    };
+                return OpsOrdersService.listAllForPdf(exportFilters);
+            }, isAll ? "Preparing all orders PDF..." : "Preparing filtered orders PDF...");
+
+            if (!orders.length) {
+                toast.info("No orders match this export.");
+                return;
+            }
+
+            const blob = await withLoader(
+                pdf(<OpsOrdersListPdf orders={orders} filters={pdfFilters(scope)} />).toBlob(),
+                "Building print-ready PDF...",
+            );
+            const dateTag = new Date().toISOString().slice(0, 10);
+            downloadBlob(blob, `${isAll ? "all" : "filtered"}_ops_orders_${dateTag}.pdf`);
         } catch (e) {
-            toast.error("Failed to export CSV");
+            toast.error("Failed to export orders PDF", e?.message || "Please try again.");
+        } finally {
+            setExportScope(null);
         }
     }
 
@@ -2031,28 +2151,23 @@ export function OpsOrdersPage() {
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         {/* <QueueTabs value={queue} onChange={handleQueueChange} /> */}
 
-                        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:flex xl:w-auto xl:flex-wrap">
-                            <PDFDownloadLink
-                                document={<OpsOrdersListPdf orders={visibleRows} filters={{ ...filters, queue }} />}
-                                fileName={`ops_orders_${filters.delivery_date || getIstYyyyMmDd()}.pdf`}
+                        <div className="grid w-full grid-cols-1 gap-2 xl:flex xl:w-auto xl:flex-row">
+                            <Button
+                                className="w-full gap-1.5 bg-dailyveg-600 px-2.5 text-xs text-white hover:bg-dailyveg-700 sm:gap-2 sm:px-4 sm:text-sm"
+                                disabled={Boolean(exportScope) || !filters.delivery_date}
+                                onClick={() => handleExportPdf("all")}
                             >
-                                {({ loading }) => (
-                                    <Button className="gap-2" variant="outline" disabled={loading || !visibleRows.length}>
-                                        <FileDown className="h-4 w-4" />{loading ? "Preparing PDF..." : "Export PDF"}
-                                    </Button>
-                                )}
-                            </PDFDownloadLink>
-
-                            <Button className="gap-2"
-                                variant="outline"
-                                disabled={!visibleRows.length}
-                                onClick={() => exportOrdersCsv({ orders: visibleRows, filters: { ...filters, queue } })}
-                            >
-                                <FileDown className="h-4 w-4" />Export Visible
+                                <FileDown className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{exportScope === "all" ? "Preparing..." : "Export All"}</span>
                             </Button>
-
-                            <Button className="gap-2" variant="outline" onClick={handleExportAllCsv}>
-                                <FileDown className="h-4 w-4" />Export All
+                            <Button
+                                className="w-full gap-1.5 px-2.5 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                variant="outline"
+                                disabled={Boolean(exportScope) || !filters.delivery_date}
+                                onClick={() => handleExportPdf("filtered")}
+                            >
+                                <FileDown className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{exportScope === "filtered" ? "Preparing..." : "Export Filtered"}</span>
                             </Button>
                         </div>
 

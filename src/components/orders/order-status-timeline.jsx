@@ -142,31 +142,39 @@ export function OrderStatusTimeline({
     const resolvedCurrentStatusAt = currentStatusAt || normalizedItems[normalizedItems.length - 1]?.occurred_at;
 
     return (
-        <Card className={cn("p-5", compact ? "shadow-none border-0 p-0" : "")}>
+        <Card className={cn(
+            "overflow-hidden border-slate-200/80 bg-white/90 p-4 sm:p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/90",
+            compact ? "shadow-none border-0 p-0 bg-transparent dark:bg-transparent" : ""
+        )}>
             {!compact && (
-                <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
-                    <div>
-                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">
-                            Order Status Timeline
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                            Real-time tracking of order lifecycle events
-                        </p>
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 dark:border-slate-800/80">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-dailyveg-50 text-dailyveg-600 ring-1 ring-dailyveg-500/20 dark:bg-dailyveg-950/60 dark:text-dailyveg-400">
+                            <Clock className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50">
+                                Order Status Timeline
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Step-by-step lifecycle & audit trail
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="text-xs">
-                            <span className="text-slate-500">Current status:</span>{" "}
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50/90 px-3 py-2 text-xs border border-slate-200/60 dark:bg-slate-900/60 dark:border-slate-800">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                            <span className="font-bold text-dailyveg-700 dark:text-dailyveg-300">
                                 {getOrderStatusLabel(resolvedCurrentStatus)}
                             </span>
                         </div>
                         {resolvedCurrentStatusAt && (
-                            <div className="text-xs">
-                                <span className="text-slate-500">Last changed:</span>{" "}
-                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            <>
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
                                     {formatOrderStatusDateTime(resolvedCurrentStatusAt)}
-                                </span>
-                            </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -174,7 +182,7 @@ export function OrderStatusTimeline({
 
             <ol
                 aria-label="Order status history"
-                className="relative border-l-2 border-slate-100 pl-6 dark:border-slate-800/60 space-y-6 ml-3"
+                className="relative border-l-2 border-slate-200/80 dark:border-slate-800 ml-3.5 space-y-3.5"
             >
                 {normalizedItems.map((item, idx) => {
                     const isLast = idx === normalizedItems.length - 1;
@@ -182,35 +190,43 @@ export function OrderStatusTimeline({
                     
                     const toneClasses = {
                         green: {
-                            dot: "border-dailyveg-500 bg-dailyveg-50 text-dailyveg-600 dark:bg-dailyveg-950/40 dark:text-dailyveg-400",
-                            card: isLast ? "bg-dailyveg-50/30 border-dailyveg-100 dark:bg-dailyveg-950/10 dark:border-dailyveg-900/40" : "",
+                            dot: "border-dailyveg-500 bg-dailyveg-50 text-dailyveg-600 shadow-sm shadow-dailyveg-500/20 dark:bg-dailyveg-950 dark:text-dailyveg-400",
+                            card: isLast
+                                ? "bg-gradient-to-r from-dailyveg-50/70 via-white to-white border-dailyveg-200/90 shadow-sm dark:from-dailyveg-950/30 dark:via-slate-900/60 dark:to-slate-900/40 dark:border-dailyveg-800/60"
+                                : "bg-slate-50/60 border-slate-200/60 dark:bg-slate-900/30 dark:border-slate-800/60",
                         },
                         amber: {
-                            dot: "border-amber-500 bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-                            card: isLast ? "bg-amber-50/30 border-amber-100 dark:bg-amber-950/10 dark:border-amber-900/40" : "",
+                            dot: "border-amber-500 bg-amber-50 text-amber-600 shadow-sm shadow-amber-500/20 dark:bg-amber-950 dark:text-amber-400",
+                            card: isLast
+                                ? "bg-gradient-to-r from-amber-50/70 via-white to-white border-amber-200/90 shadow-sm dark:from-amber-950/30 dark:via-slate-900/60 dark:to-slate-900/40 dark:border-amber-800/60"
+                                : "bg-slate-50/60 border-slate-200/60 dark:bg-slate-900/30 dark:border-slate-800/60",
                         },
                         red: {
-                            dot: "border-red-500 bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400",
-                            card: isLast ? "bg-red-50/30 border-red-100 dark:bg-red-950/10 dark:border-red-900/40" : "",
+                            dot: "border-rose-500 bg-rose-50 text-rose-600 shadow-sm shadow-rose-500/20 dark:bg-rose-950 dark:text-rose-400",
+                            card: isLast
+                                ? "bg-gradient-to-r from-rose-50/70 via-white to-white border-rose-200/90 shadow-sm dark:from-rose-950/30 dark:via-slate-900/60 dark:to-slate-900/40 dark:border-rose-800/60"
+                                : "bg-slate-50/60 border-slate-200/60 dark:bg-slate-900/30 dark:border-slate-800/60",
                         },
                         slate: {
-                            dot: "border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
-                            card: isLast ? "bg-slate-50/30 border-slate-200 dark:bg-slate-900/20 dark:border-slate-800" : "",
+                            dot: "border-slate-300 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
+                            card: isLast
+                                ? "bg-slate-50/90 border-slate-300/80 shadow-sm dark:bg-slate-900/60 dark:border-slate-700"
+                                : "bg-slate-50/60 border-slate-200/60 dark:bg-slate-900/30 dark:border-slate-800/60",
                         },
                     }[tone] || {
-                        dot: "border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
-                        card: "",
+                        dot: "border-slate-300 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
+                        card: "bg-slate-50/60 border-slate-200/60 dark:bg-slate-900/30 dark:border-slate-800/60",
                     };
 
                     const actorText = getActorText(item);
                     const noteText = getHumanizedNote(item.note);
 
                     return (
-                        <li key={item.id || idx} className="relative group">
-                            {/* Connector dot */}
+                        <li key={item.id || idx} className="relative pl-6 group">
+                            {/* Connector dot centered on border-l-2 */}
                             <div
                                 className={cn(
-                                    "absolute -left-[35px] top-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-transform duration-200 group-hover:scale-110",
+                                    "absolute -left-[14px] top-3 flex h-6.5 w-6.5 items-center justify-center rounded-full border-2 transition-transform duration-200 group-hover:scale-110",
                                     toneClasses.dot
                                 )}
                             >
@@ -220,35 +236,31 @@ export function OrderStatusTimeline({
                             {/* Event content card */}
                             <div
                                 className={cn(
-                                    "rounded-xl border border-transparent p-3 transition-all duration-200 hover:border-slate-200 hover:bg-slate-50/50 dark:hover:border-slate-800 dark:hover:bg-slate-900/30",
+                                    "rounded-xl border p-3 sm:p-3.5 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700",
                                     toneClasses.card
                                 )}
                             >
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-4">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 sm:gap-4">
                                     <div className="flex-1 min-w-0 space-y-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
+                                            <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                                                 {getOrderStatusLabel(item.status)}
                                             </span>
                                             {isLast && (
                                                 <Badge
                                                     variant={tone === "green" ? "default" : tone === "amber" ? "warning" : tone === "red" ? "danger" : "outline"}
-                                                    className="h-4.5 px-1.5 py-0 text-[10px]"
+                                                    className="h-5 px-2 py-0 text-[10px] font-bold uppercase tracking-wider"
                                                 >
-                                                    Current
+                                                    Latest
                                                 </Badge>
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-500 dark:text-slate-400">
                                             {actorText}
                                         </div>
-                                        {noteText && (
-                                            <div className="text-xs bg-white border border-slate-100 rounded-lg p-2 mt-1.5 text-slate-600 dark:bg-slate-900 dark:border-slate-800/80 dark:text-slate-350 break-words max-w-full">
-                                                {noteText}
-                                            </div>
-                                        )}
                                     </div>
-                                    <div className="text-xs text-slate-400 sm:text-right shrink-0 mt-0.5 font-medium">
+                                    <div className="inline-flex items-center gap-1.5 self-start rounded-lg bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 border border-slate-200/60 dark:bg-slate-950/60 dark:border-slate-800 dark:text-slate-400 shrink-0">
+                                        <Clock className="h-3 w-3 text-slate-400" />
                                         {item.occurred_at ? (
                                             <time dateTime={item.occurred_at}>
                                                 {formatOrderStatusDateTime(item.occurred_at)}
@@ -258,6 +270,13 @@ export function OrderStatusTimeline({
                                         )}
                                     </div>
                                 </div>
+
+                                {noteText && (
+                                    <div className="mt-2.5 rounded-lg bg-white/90 border border-slate-200/70 p-2.5 text-xs text-slate-700 dark:bg-slate-950/80 dark:border-slate-800 dark:text-slate-300 break-words max-w-full">
+                                        <span className="font-semibold text-slate-900 dark:text-white mr-1">Note:</span>
+                                        {noteText}
+                                    </div>
+                                )}
                             </div>
                         </li>
                     );

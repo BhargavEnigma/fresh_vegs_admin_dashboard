@@ -17,4 +17,11 @@ export const AdminOrdersService = {
         const res = await api.delete(`/v1/admin/orders/${orderId}`, { data: payload });
         return res.data?.data;
     },
+
+    async downloadInvoice(orderId) {
+        const res = await api.get(`/v1/admin/orders/${orderId}/invoice`, {
+            responseType: "blob",
+        });
+        return res.data;
+    },
 };

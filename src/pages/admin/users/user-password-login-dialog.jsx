@@ -93,14 +93,126 @@ export function UserPasswordLoginDialog({ user, open, onOpenChange }) {
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto" onEscapeKeyDown={(event) => { if (mutation.isPending) event.preventDefault(); }} onPointerDownOutside={(event) => { if (mutation.isPending) event.preventDefault(); }}>
-          <DialogHeader><div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-dailyveg-100 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300"><KeyRound className="h-5 w-5" /></div><DialogTitle>Login &amp; Security</DialogTitle><DialogDescription>Enable, reset, or disable password login without changing OTP access or roles.</DialogDescription></DialogHeader>
+        <DialogContent 
+          className="w-[95vw] sm:max-w-2xl max-h-[90dvh] overflow-y-auto thin-scrollbar rounded-2xl p-4 sm:p-6" 
+          onEscapeKeyDown={(event) => { if (mutation.isPending) event.preventDefault(); }} 
+          onPointerDownOutside={(event) => { if (mutation.isPending) event.preventDefault(); }}
+        >
+          <DialogHeader className="text-left">
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-dailyveg-100 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-lg sm:text-xl font-bold">Login &amp; Security</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">Enable, reset, or disable password login without changing OTP access or roles.</DialogDescription>
+          </DialogHeader>
+
           {detailQuery.isLoading ? <p className="py-6 text-center text-sm text-slate-500">Loading security details…</p> : null}
           {detailQuery.isError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">Unable to load current security details. No password status has been assumed.</div> : null}
-          {!detailQuery.isLoading && !detailQuery.isError ? <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:grid-cols-2"><div><span className="text-slate-500">User</span><p className="font-medium">{detail?.full_name || "Unnamed user"}</p></div><div><span className="text-slate-500">Contact</span><p>{maskPhone(detail?.phone)} · {maskEmail(detail?.email)}</p></div><div><span className="text-slate-500">Roles</span><p>{(detail?.roles || []).map((role) => typeof role === "string" ? role : role?.name).filter(Boolean).join(", ") || "—"}</p></div><div><span className="text-slate-500">Account status</span><p className="capitalize">{detail?.status || "—"}</p></div><div><span className="text-slate-500">Password login</span><div className="mt-1"><PasswordLoginStatusBadge user={detail} /></div></div><div><span className="text-slate-500">Last password change</span><p>{detail?.password_changed_at ? formatIndianDateTime(detail.password_changed_at) : "Not available"}</p></div></div> : null}
-          {isCustomer ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"><div className="flex gap-2"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" /><div><p>This customer normally uses MSG91 OTP. Enabling password login adds another login method and does not disable OTP authentication.</p><p className="mt-2">The customer can use this password only in a client application that supports password login.</p></div></div></div> : null}
-          {requestError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{requestError}</div> : null}
-          {!detailQuery.isLoading && !detailQuery.isError ? <form className="space-y-4" noValidate onSubmit={form.handleSubmit(requestEnable)}><h3 className="font-semibold">{enabled ? "Reset Password" : "Enable Password Login"}</h3><div className="grid gap-4 sm:grid-cols-2"><PasswordField id="managed-password" label="New password" autoComplete="new-password" error={form.formState.errors.password} disabled={mutation.isPending} {...form.register("password")} /><PasswordField id="managed-confirm-password" label="Confirm new password" autoComplete="new-password" error={form.formState.errors.confirm_password} disabled={mutation.isPending} {...form.register("confirm_password")} /></div><PasswordRequirements password={password} /><DialogFooter className="gap-2"><Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={mutation.isPending}>Cancel</Button>{enabled ? <Button type="button" variant="destructive" onClick={() => setConfirmation({ type: "disable", payload: { enabled: false } })} disabled={mutation.isPending}>Disable Password Login</Button> : null}<Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Updating…" : enabled ? "Reset Password" : "Enable Password Login"}</Button></DialogFooter></form> : null}
+          
+          {!detailQuery.isLoading && !detailQuery.isError ? (
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 sm:p-4 text-xs sm:text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:grid-cols-2">
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">User</span>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{detail?.full_name || "Unnamed user"}</p>
+              </div>
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Contact</span>
+                <p className="font-medium text-slate-700 dark:text-slate-200 mt-0.5">{maskPhone(detail?.phone)} · {maskEmail(detail?.email)}</p>
+              </div>
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Roles</span>
+                <p className="font-medium text-slate-700 dark:text-slate-200 mt-0.5">{(detail?.roles || []).map((role) => typeof role === "string" ? role : role?.name).filter(Boolean).join(", ") || "—"}</p>
+              </div>
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Account status</span>
+                <p className="font-medium text-slate-700 dark:text-slate-200 mt-0.5 capitalize">{detail?.status || "—"}</p>
+              </div>
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Password login</span>
+                <div className="mt-1"><PasswordLoginStatusBadge user={detail} /></div>
+              </div>
+              <div>
+                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Last password change</span>
+                <p className="font-medium text-slate-700 dark:text-slate-200 mt-0.5">{detail?.password_changed_at ? formatIndianDateTime(detail.password_changed_at) : "Not available"}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {isCustomer ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs sm:text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              <div className="flex gap-2">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <div className="space-y-1">
+                  <p className="font-medium">This customer normally uses MSG91 OTP. Enabling password login adds another login method and does not disable OTP authentication.</p>
+                  <p className="text-[11px] sm:text-xs text-amber-800 dark:text-amber-300">The customer can use this password only in a client application that supports password login.</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {requestError ? (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              {requestError}
+            </div>
+          ) : null}
+
+          {!detailQuery.isLoading && !detailQuery.isError ? (
+            <form className="space-y-4" noValidate onSubmit={form.handleSubmit(requestEnable)}>
+              <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">
+                {enabled ? "Reset Password" : "Enable Password Login"}
+              </h3>
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                <PasswordField 
+                  id="managed-password" 
+                  label="New password" 
+                  autoComplete="new-password" 
+                  error={form.formState.errors.password} 
+                  disabled={mutation.isPending} 
+                  {...form.register("password")} 
+                />
+                <PasswordField 
+                  id="managed-confirm-password" 
+                  label="Confirm new password" 
+                  autoComplete="new-password" 
+                  error={form.formState.errors.confirm_password} 
+                  disabled={mutation.isPending} 
+                  {...form.register("confirm_password")} 
+                />
+              </div>
+              <PasswordRequirements password={password} />
+              <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-3">
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="h-10 sm:h-9 rounded-xl flex-1 sm:flex-initial"
+                    onClick={() => handleOpenChange(false)} 
+                    disabled={mutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  {enabled ? (
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      className="h-10 sm:h-9 rounded-xl flex-1 sm:flex-initial"
+                      onClick={() => setConfirmation({ type: "disable", payload: { enabled: false } })} 
+                      disabled={mutation.isPending}
+                    >
+                      Disable Login
+                    </Button>
+                  ) : null}
+                </div>
+                <Button 
+                  type="submit" 
+                  className="h-10 sm:h-9 rounded-xl w-full sm:w-auto"
+                  disabled={mutation.isPending}
+                >
+                  {mutation.isPending ? "Updating…" : enabled ? "Reset Password" : "Enable Password Login"}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : null}
         </DialogContent>
       </Dialog>
       <ConfirmDialog open={Boolean(confirmation)} onOpenChange={(next) => { if (!next && !mutation.isPending) setConfirmation(null); }} title={confirmation?.type === "reset" ? "Reset user password?" : confirmation?.type === "disable" ? "Disable Password Login?" : "Enable password login for this customer?"} description={confirmation?.type === "reset" ? "This will replace the user’s current password and may revoke active sessions." : confirmation?.type === "disable" ? "This user will no longer be able to sign in using a password. Existing sessions may also be revoked." : "This adds password login as another method. The customer’s normal MSG91 OTP authentication will remain available."} confirmText={confirmation?.type === "reset" ? "Reset Password" : confirmation?.type === "disable" ? "Disable Password Login" : "Enable Password Login"} variant={confirmation?.type === "disable" ? "destructive" : "default"} onConfirm={() => { pendingPayloadRef.current = confirmation.payload; return mutation.mutateAsync(); }} />

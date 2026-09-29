@@ -98,16 +98,16 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto"
+        className="w-[95vw] sm:max-w-lg max-h-[90dvh] overflow-y-auto thin-scrollbar rounded-2xl p-4 sm:p-6"
         onEscapeKeyDown={(event) => { if (mutation.isPending) event.preventDefault(); }}
         onPointerDownOutside={(event) => { if (mutation.isPending) event.preventDefault(); }}
       >
-        <DialogHeader>
+        <DialogHeader className="text-left">
           <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-dailyveg-100 text-dailyveg-700 dark:bg-dailyveg-950 dark:text-dailyveg-300">
             <UserRound className="h-5 w-5" />
           </div>
-          <DialogTitle>Edit User Details</DialogTitle>
-          <DialogDescription>Update this user's personal identity, contact details, or account status.</DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl font-bold">Edit User Details</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">Update this user's personal identity, contact details, or account status.</DialogDescription>
         </DialogHeader>
 
         {requestError ? (
@@ -118,13 +118,13 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-user-name">Full name</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-name" className="text-xs font-semibold">Full name</Label>
               <div className="relative">
                 <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="edit-user-name"
-                  className="h-11 pl-10"
+                  className="h-11 pl-10 rounded-xl"
                   placeholder="Full name"
                   disabled={mutation.isPending}
                   {...form.register("full_name")}
@@ -135,31 +135,31 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
               ) : null}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="edit-user-phone">Phone number *</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-phone" className="text-xs font-semibold">Phone number *</Label>
               <div className="relative">
                 <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="edit-user-phone"
-                  className="h-11 pl-10"
+                  className="h-11 pl-10 rounded-xl"
                   placeholder="91XXXXXXXXXX"
                   disabled={mutation.isPending}
                   {...form.register("phone")}
                 />
               </div>
-              <p className="text-xs text-slate-500">Must include country code, e.g. 918128635446</p>
+              <p className="text-[11px] text-slate-500">Must include country code, e.g. 918128635446</p>
               {form.formState.errors.phone ? (
                 <p className="text-xs font-medium text-red-600">{form.formState.errors.phone.message}</p>
               ) : null}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="edit-user-email">Email</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-user-email" className="text-xs font-semibold">Email</Label>
               <div className="relative">
                 <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   id="edit-user-email"
-                  className="h-11 pl-10"
+                  className="h-11 pl-10 rounded-xl"
                   placeholder="email@example.com"
                   disabled={mutation.isPending}
                   {...form.register("email")}
@@ -170,8 +170,8 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
               ) : null}
             </div>
 
-            <div className="grid gap-2">
-              <Label>Account status</Label>
+            <div className="grid gap-1.5">
+              <Label className="text-xs font-semibold">Account status</Label>
               <PremiumSelect
                 value={form.watch("status")}
                 onChange={(value) => form.setValue("status", value || "active")}
@@ -187,16 +187,17 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }) {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-4">
+          <DialogFooter className="grid grid-cols-2 gap-2 pt-4 sm:flex sm:justify-end">
             <Button 
               type="button" 
               variant="outline" 
+              className="h-10 sm:h-9 rounded-xl"
               onClick={() => handleOpenChange(false)} 
               disabled={mutation.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" className="h-10 sm:h-9 rounded-xl" disabled={mutation.isPending}>
               {mutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />

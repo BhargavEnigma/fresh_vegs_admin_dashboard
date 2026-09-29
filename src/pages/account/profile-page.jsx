@@ -25,7 +25,7 @@ import { cn } from "../../lib/utils";
 import { formatIndianDateTime } from "../../utils/date-formatter";
 
 const ROLE_LABELS = {
-  admin: "Administrator",
+  admin: "Admin",
   warehouse_manager: "Warehouse Manager",
   support_manager: "Support Manager",
   delivery_partner: "Delivery Partner",

@@ -10,6 +10,7 @@ import {
   Store,
   Users,
   Warehouse,
+  X,
 } from "lucide-react";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
@@ -113,10 +114,10 @@ function packRequirementsLabel(item) {
   return packLabel || item.procurement_unit || "unit";
 }
 
-function ProductPackRequirements({ item }) {
+function ProductPackRequirements({ item, className }) {
   const breakdown = packRequirementsLabel(item);
   return (
-    <p className="mt-0.5 max-w-[280px] truncate text-[11px] font-medium leading-tight text-slate-500 dark:text-slate-400" title={breakdown}>
+    <p className={cn("mt-0.5 max-w-[280px] truncate text-[11px] font-medium leading-tight text-slate-500 dark:text-slate-400", className)} title={breakdown}>
       {breakdown}
     </p>
   );
@@ -148,13 +149,13 @@ function SummaryCard({ icon: Icon, label, value, tone = "slate" }) {
     indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
   };
   return (
-    <Card className="flex items-center gap-3.5 rounded-2xl border-slate-200/80 p-3.5 shadow-xs transition-shadow hover:shadow-sm dark:border-slate-800">
-      <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", tones[tone])}>
+    <Card className="flex items-center gap-2.5 sm:gap-3.5 rounded-2xl border-slate-200/80 p-2.5 sm:p-3.5 shadow-xs transition-shadow hover:shadow-sm dark:border-slate-800">
+      <span className={cn("grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-xl", tones[tone])}>
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0">
-        <p className="text-lg font-bold tracking-tight text-slate-950 dark:text-white truncate font-mono">{value}</p>
-        <p className="text-[11px] font-medium text-slate-500 truncate">{label}</p>
+        <p className="text-base sm:text-lg font-bold tracking-tight text-slate-950 dark:text-white truncate font-mono">{value}</p>
+        <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 truncate">{label}</p>
       </div>
     </Card>
   );
@@ -173,7 +174,7 @@ function vendorName(assignment) {
     || "Assigned vendor";
 }
 
-function VendorAssignmentCell({ assignments, item, onOpen }) {
+function VendorAssignmentCell({ assignments, item, onOpen, className }) {
   if (!assignments.length) return <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>;
   const first = assignments[0];
   const name = vendorName(first);
@@ -183,7 +184,10 @@ function VendorAssignmentCell({ assignments, item, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen({ assignments, item })}
-      className="group mx-auto flex h-9 w-full max-w-[210px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 shadow-2xs transition-all hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/40 dark:border-slate-800 dark:bg-slate-900/90 dark:hover:border-indigo-700/80 dark:hover:bg-indigo-950/30 active:scale-[0.98]"
+      className={cn(
+        "group mx-auto flex h-9 w-full max-w-[210px] min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 shadow-2xs transition-all hover:border-indigo-300 hover:bg-indigo-50/40 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/40 dark:border-slate-800 dark:bg-slate-900/90 dark:hover:border-indigo-700/80 dark:hover:bg-indigo-950/30 active:scale-[0.98]",
+        className
+      )}
       title={`${name}${multiple ? ` (+${assignments.length - 1} more)` : ""} · Click to view details`}
       aria-label={`View assigned vendor details for ${item.product_name || item.product?.name || "product"}`}
     >
@@ -191,7 +195,7 @@ function VendorAssignmentCell({ assignments, item, onOpen }) {
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100/80 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-900/60 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/80 transition-colors">
           {multiple ? <Users className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
         </span>
-        <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" title={name}>
+        <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-left" title={name}>
           {name}
         </span>
       </div>
@@ -231,6 +235,7 @@ export function ProcurementWorkTable({
   onReceive,
   onCheckProblem,
   onViewDetails,
+  purchaseExportControls,
 }) {
   const [categoryFilter, setCategoryFilter] = useState("");
   const categoryOptions = useMemo(() => Array.from(new Map((data?.items || [])
@@ -355,16 +360,19 @@ export function ProcurementWorkTable({
             { value: "history", title: "Completed", description: "Product packs and quantities already received", count: completedCount },
           ].map((option) => (
             <button key={option.value} type="button" onClick={() => onViewChange(option.value)} aria-pressed={view === option.value}
-              className={cn("rounded-xl border px-4 py-3 text-left transition-colors", view === option.value ? "border-dailyveg-300 bg-dailyveg-50 dark:border-dailyveg-800 dark:bg-dailyveg-950/30" : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-900")}>
-              <span className="flex items-center justify-between gap-3"><strong className="text-sm text-slate-950 dark:text-white">{option.title}</strong><Badge variant={view === option.value ? "success" : "secondary"}>{Number(option.count || 0)}</Badge></span>
-              <span className="mt-1 block text-[11px] text-slate-500">{option.description}</span>
+              className={cn("rounded-xl border px-3.5 py-2.5 sm:px-4 sm:py-3 text-left transition-colors", view === option.value ? "border-dailyveg-300 bg-dailyveg-50/90 shadow-2xs dark:border-dailyveg-800 dark:bg-dailyveg-950/40" : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-900")}>
+              <span className="flex items-center justify-between gap-3">
+                <strong className="text-sm font-bold text-slate-950 dark:text-white">{option.title}</strong>
+                <Badge variant={view === option.value ? "success" : "secondary"} className="font-mono text-xs">{Number(option.count || 0)}</Badge>
+              </span>
+              <span className="mt-0.5 sm:mt-1 block text-[11px] text-slate-500 leading-snug">{option.description}</span>
             </button>
           ))}
         </div>
       </Card>
 
       {!isHistory && !isLoading && !isError ? (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
           <SummaryCard icon={Package} label="Products Needing Action" value={viewItems.length} />
           <SummaryCard icon={ShoppingCart} label="Quantity Still to Assign" value={quantitiesByUnit(totals.unassigned_by_unit)} tone="blue" />
           <SummaryCard icon={Store} label="Waiting for Vendor" value={totals.waitingVendor} tone="amber" />
@@ -372,48 +380,64 @@ export function ProcurementWorkTable({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="relative w-full sm:max-w-xs md:max-w-sm">
+      <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
+        <div className="flex flex-col gap-2 md:flex-1 md:flex-row md:items-center">
+          <div className="relative w-full md:min-w-[220px] md:flex-[1.35]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={searchTerm}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Search product or vendor"
-              className="h-10 rounded-xl pl-9"
+              className="h-10 w-full rounded-xl pl-9 pr-8"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-          <div className="w-full sm:w-60 md:w-64 shrink-0">
-            <PremiumSelect
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              options={categoryOptions}
-              placeholder="Filter by category"
-              isClearable
-            />
-          </div>
-          <div className="w-full sm:w-60 md:w-64 shrink-0">
-            <PremiumSelect
-              value={vendorFilter}
-              onChange={(val) => onVendorFilterChange && onVendorFilterChange(val)}
-              options={vendorOptions}
-              placeholder={isLoadingVendors ? "Loading vendors…" : "Filter by vendor"}
-              isDisabled={isLoadingVendors}
-              isClearable
-            />
+          <div className="grid grid-cols-2 gap-2 md:contents">
+            <div className="w-full md:min-w-[170px] md:flex-1">
+              <PremiumSelect
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                options={categoryOptions}
+                placeholder="Category"
+                isClearable
+              />
+            </div>
+            <div className="w-full md:min-w-[190px] md:flex-1">
+              <PremiumSelect
+                value={vendorFilter}
+                onChange={(val) => onVendorFilterChange && onVendorFilterChange(val)}
+                options={vendorOptions}
+                placeholder={isLoadingVendors ? "Loading…" : "Vendor"}
+                isDisabled={isLoadingVendors}
+                isClearable
+              />
+            </div>
           </div>
         </div>
-        {!isHistory && isAdmin && !isClosed ? (
-          <Button
-            variant="outline"
-            onClick={onAutoAssign}
-            className="rounded-xl shrink-0"
-            disabled={isUpdating || autoAssignDisabled}
-          >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Auto Assign
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap md:shrink-0">
+          <div className="flex flex-1 items-center gap-2 sm:flex-initial">
+            {purchaseExportControls}
+          </div>
+          {!isHistory && isAdmin && !isClosed ? (
+            <Button
+              variant="outline"
+              onClick={onAutoAssign}
+              className="h-10 rounded-xl flex-1 sm:flex-initial font-semibold text-xs sm:text-sm"
+              disabled={isUpdating || autoAssignDisabled}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Auto Assign
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {isLoading ? (
@@ -423,242 +447,467 @@ export function ProcurementWorkTable({
       ) : items.length === 0 ? (
         <Card className="rounded-2xl p-10 text-center"><CheckCircle2 className={cn("mx-auto h-9 w-9", isHistory ? "text-slate-400" : "text-emerald-500")} /><h3 className="mt-3 font-bold text-slate-950 dark:text-white">{emptyTitle}</h3><p className="mt-1 text-sm text-slate-500">{emptyDescription}</p></Card>
       ) : (
-        <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] dark:border-slate-800 dark:bg-slate-950">
-          <div className="max-h-[calc(100vh-270px)] min-h-[420px] overflow-auto thin-scrollbar">
-            <table className={cn("w-full border-separate border-spacing-0 text-left text-sm", isHistory ? "min-w-[1240px]" : "min-w-[1100px]")}>
-              <thead className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md dark:bg-slate-900/95">
-                <tr className="border-b border-slate-200/80 dark:border-slate-800">
-                  <th className="sticky top-0 z-30 w-12 min-w-[48px] max-w-[48px] border-b border-slate-200/80 bg-slate-50/95 px-2 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                    #
-                  </th>
-                  <th className="sticky top-0 z-30 min-w-[240px] border-b border-slate-200/80 bg-slate-50/95 px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                    Product
-                  </th>
-                  {isHistory ? (
-                    <>
-                      <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Required Qty
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_4px_25px_-5px_rgba(0,0,0,0.05)] dark:border-slate-800 dark:bg-slate-950">
+              <div className="max-h-[calc(100vh-270px)] min-h-[420px] overflow-auto thin-scrollbar">
+                <table className={cn("w-full border-separate border-spacing-0 text-left text-sm", isHistory ? "min-w-[1240px]" : "min-w-[1100px]")}>
+                  <thead className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-md dark:bg-slate-900/95">
+                    <tr className="border-b border-slate-200/80 dark:border-slate-800">
+                      <th className="sticky top-0 z-30 w-12 min-w-[48px] max-w-[48px] border-b border-slate-200/80 bg-slate-50/95 px-2 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                        #
                       </th>
-                      <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Purchased Qty
+                      <th className="sticky top-0 z-30 min-w-[240px] border-b border-slate-200/80 bg-slate-50/95 px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                        Product
                       </th>
-                      <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Received Qty
-                      </th>
-                      <th className="sticky top-0 z-30 w-[100px] min-w-[90px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Rejected Qty
-                      </th>
-                      <th className="sticky top-0 z-30 w-[95px] min-w-[85px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Waste Qty
-                      </th>
-                      <th className="sticky top-0 z-30 w-[220px] min-w-[210px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Vendor
-                      </th>
-                      <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Unit Cost
-                      </th>
-                      <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Final Cost
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Total Needed
-                      </th>
-                      <th className="sticky top-0 z-30 w-[125px] min-w-[110px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Vendor Arranged
-                      </th>
-                      <th className="sticky top-0 z-30 w-[105px] min-w-[95px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Received
-                      </th>
-                      <th className="sticky top-0 z-30 w-[120px] min-w-[110px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Still to Assign
-                      </th>
-                      <th className="sticky top-0 z-30 w-[220px] min-w-[210px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                        Assigned Vendor
-                      </th>
-                    </>
-                  )}
-                  <th className="sticky top-0 z-30 w-[150px] min-w-[140px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
-                    Current Step
-                  </th>
-                  {!isHistory && (
-                    <th className="sticky top-0 right-0 z-40 w-[140px] min-w-[130px] border-b border-l border-slate-200/80 bg-slate-50 px-4 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 shadow-[-8px_0_16px_-12px_rgba(15,23,42,0.15)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 whitespace-nowrap">
-                      Action
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
-                {items.map((item, index) => {
-                  const code = item.next_action_code;
-                  const vendorAssignments = item.product_group_assignments
-                    || (item.is_product_group
-                      ? (item.child_procurement_cost_ids || [])
-                          .flatMap((id) => vendorAssignmentsByCost[String(id)] || [])
-                          .filter((assignment, index, rows) => (
-                            rows.findIndex((row) => row.id === assignment.id) === index
-                          ))
-                      : vendorAssignmentsByCost[String(item.procurement_cost_id || item.id)] || []);
-                  return (
-                    <tr
-                      key={item.id || item.procurement_cost_id}
-                      className={cn(
-                        "group transition-colors",
-                        isHistory
-                          ? "bg-white hover:bg-emerald-50/30 dark:bg-slate-950 dark:hover:bg-emerald-950/20"
-                          : "bg-white hover:bg-slate-50/80 dark:bg-slate-950 dark:hover:bg-slate-900/40"
-                      )}
-                    >
-                      <td className="w-12 min-w-[48px] max-w-[48px] border-b border-slate-100 px-2 py-3 text-center text-sm font-bold text-slate-400 dark:border-slate-800/70 dark:text-slate-500">
-                        {index + 1}
-                      </td>
-                      <td className="min-w-[240px] border-b border-slate-100 px-4 py-3 dark:border-slate-800/70">
-                        <div className="flex items-center gap-3">
-                          <ProductAvatar item={item} size="md" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-base font-bold text-slate-900 dark:text-white" title={item.product_name || item.product?.name || "Product"}>
-                              {item.product_name || item.product?.name || "Product"}
-                            </p>
-                            <ProductPackRequirements item={item} />
-                          </div>
-                        </div>
-                      </td>
                       {isHistory ? (
                         <>
-                          <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-slate-100 whitespace-nowrap">
-                            {quantity(item, item.required_quantity, "required_quantity")}
-                          </td>
-                          <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-indigo-600 dark:border-slate-800/70 dark:text-indigo-400 whitespace-nowrap">
-                            {quantity(item, item.purchased_quantity, "purchased_quantity")}
-                          </td>
-                          <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-emerald-700 dark:border-slate-800/70 dark:text-emerald-400 whitespace-nowrap">
-                            {quantity(item, item.received_quantity, "received_quantity")}
-                          </td>
-                          <td className="w-[100px] min-w-[90px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-rose-600 dark:border-slate-800/70 dark:text-rose-400 whitespace-nowrap">
-                            {Number(item.rejected_quantity || 0) > 0 ? quantity(item, item.rejected_quantity, "rejected_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
-                          </td>
-                          <td className="w-[95px] min-w-[85px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-amber-600 dark:border-slate-800/70 dark:text-amber-400 whitespace-nowrap">
-                            {Number(item.waste_quantity || 0) > 0 ? quantity(item, item.waste_quantity, "waste_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
-                          </td>
-                          <td className="w-[220px] min-w-[210px] border-b border-slate-100 px-3 py-2 text-center dark:border-slate-800/70">
-                            {vendorAssignments.length > 0 ? (
-                              <VendorAssignmentCell assignments={vendorAssignments} item={item} onOpen={setVendorDetails} />
-                            ) : item.vendor_name ? (
-                              <div className="mx-auto flex h-9 w-full max-w-[210px] min-w-0 items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900" title={item.vendor_name}>
-                                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                                  <Store className="h-3.5 w-3.5" />
-                                </span>
-                                <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
-                                  {item.vendor_name}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>
-                            )}
-                          </td>
-                          <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-semibold text-slate-600 dark:border-slate-800/70 dark:text-slate-400 whitespace-nowrap">
-                            {formatPaiseToRupees(completedUnitCostPerKgPaise(item, vendorAssignments))} / KG
-                          </td>
-                          <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-white whitespace-nowrap">
-                            {formatPaiseToRupees(completedTotalCostPaise(item, vendorAssignments))}
-                          </td>
+                          <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Required Qty
+                          </th>
+                          <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Purchased Qty
+                          </th>
+                          <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Received Qty
+                          </th>
+                          <th className="sticky top-0 z-30 w-[100px] min-w-[90px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Rejected Qty
+                          </th>
+                          <th className="sticky top-0 z-30 w-[95px] min-w-[85px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Waste Qty
+                          </th>
+                          <th className="sticky top-0 z-30 w-[220px] min-w-[210px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Vendor
+                          </th>
+                          <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Unit Cost
+                          </th>
+                          <th className="sticky top-0 z-30 w-[115px] min-w-[105px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Final Cost
+                          </th>
                         </>
                       ) : (
                         <>
-                          <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-slate-100 whitespace-nowrap">
-                            {quantity(item, item.required_quantity, "required_quantity")}
-                          </td>
-                          <td className="w-[125px] min-w-[110px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-700 dark:border-slate-800/70 dark:text-slate-300 whitespace-nowrap">
-                            {quantity(item, item.effective_allocated_quantity ?? item.allocated_quantity, "effective_allocated_quantity")}
-                          </td>
-                          <td className="w-[105px] min-w-[95px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-emerald-700 dark:border-slate-800/70 dark:text-emerald-400 whitespace-nowrap">
-                            {quantity(item, item.received_quantity, "received_quantity")}
-                          </td>
-                          <td className="w-[120px] min-w-[110px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm whitespace-nowrap dark:border-slate-800/70">
-                            {Number(item.unassigned_quantity ?? item.quantity_to_assign ?? 0) > 0 ? (
-                              <span className="inline-flex items-center justify-end rounded-md border border-rose-200/80 bg-rose-50 px-2 py-0.5 font-mono text-sm font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
-                                {quantity(item, item.unassigned_quantity ?? item.quantity_to_assign, "unassigned_quantity")}
-                              </span>
-                            ) : (
-                              <span className="font-mono text-sm font-normal text-slate-400 dark:text-slate-600">0</span>
-                            )}
-                          </td>
-                          <td className="w-[220px] min-w-[210px] border-b border-slate-100 px-3 py-2 text-center dark:border-slate-800/70">
-                            <VendorAssignmentCell assignments={vendorAssignments} item={item} onOpen={setVendorDetails} />
-                          </td>
+                          <th className="sticky top-0 z-30 w-[110px] min-w-[100px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Total Needed
+                          </th>
+                          <th className="sticky top-0 z-30 w-[125px] min-w-[110px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Vendor Arranged
+                          </th>
+                          <th className="sticky top-0 z-30 w-[105px] min-w-[95px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Received
+                          </th>
+                          <th className="sticky top-0 z-30 w-[120px] min-w-[110px] border-b border-slate-200/80 bg-slate-50/95 px-3.5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Still to Assign
+                          </th>
+                          <th className="sticky top-0 z-30 w-[220px] min-w-[210px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                            Assigned Vendor
+                          </th>
                         </>
                       )}
-                      <td className="w-[150px] min-w-[140px] border-b border-slate-100 px-3 py-3 text-center dark:border-slate-800/70">
-                        <StepBadge item={isHistory ? { ...item, next_action_code: "completed" } : item} />
-                      </td>
+                      <th className="sticky top-0 z-30 w-[150px] min-w-[140px] border-b border-slate-200/80 bg-slate-50/95 px-3 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-slate-500 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-400 whitespace-nowrap">
+                        Current Step
+                      </th>
                       {!isHistory && (
-                        <td className="sticky right-0 z-10 w-[140px] min-w-[130px] border-b border-l border-slate-100 bg-white px-4 py-3 text-right shadow-[-8px_0_16px_-12px_rgba(15,23,42,0.15)] group-hover:bg-slate-50 dark:border-slate-800/70 dark:bg-slate-950 dark:group-hover:bg-slate-900 whitespace-nowrap">
-                          {canStartVendorAssignment(item, view) && (isAdmin || isWarehouseManager) && !isClosed ? (
-                            <Button
-                              size="sm"
-                              className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:scale-[1.02] active:scale-95"
-                              onClick={() => onAssignVendor(item)}
-                              disabled={isUpdating}
-                            >
-                              {vendorAssignments.length > 0 || Number(item.vendor_assignment_count || 0) > 0
-                                ? "Assign Remaining"
-                                : "Assign Vendor"}
-                            </Button>
-                          ) : ["warehouse_receipt", "receive_remaining"].includes(code) && !isClosed ? (
-                            <Button
-                              size="sm"
-                              className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all hover:scale-[1.02] active:scale-95"
-                              onClick={() => onReceive(item)}
-                              disabled={isUpdating}
-                            >
-                              Receive Stock
-                            </Button>
-                          ) : code === "resolve_issue" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/50"
-                              onClick={() => onCheckProblem(item)}
-                            >
-                              Check Problem
-                            </Button>
-                          ) : onViewDetails ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 rounded-lg px-3 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                              onClick={() => onViewDetails(item)}
-                            >
-                              View Details
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">No action needed</span>
-                          )}
-                        </td>
+                        <th className="sticky top-0 right-0 z-40 w-[140px] min-w-[130px] border-b border-l border-slate-200/80 bg-slate-50 px-4 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500 shadow-[-8px_0_16px_-12px_rgba(15,23,42,0.15)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 whitespace-nowrap">
+                          Action
+                        </th>
                       )}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                    {items.map((item, index) => {
+                      const code = item.next_action_code;
+                      const vendorAssignments = item.product_group_assignments
+                        || (item.is_product_group
+                          ? (item.child_procurement_cost_ids || [])
+                              .flatMap((id) => vendorAssignmentsByCost[String(id)] || [])
+                              .filter((assignment, index, rows) => (
+                                rows.findIndex((row) => row.id === assignment.id) === index
+                              ))
+                          : vendorAssignmentsByCost[String(item.procurement_cost_id || item.id)] || []);
+                      return (
+                        <tr
+                          key={item.id || item.procurement_cost_id}
+                          className={cn(
+                            "group transition-colors",
+                            isHistory
+                              ? "bg-white hover:bg-emerald-50/30 dark:bg-slate-950 dark:hover:bg-emerald-950/20"
+                              : "bg-white hover:bg-slate-50/80 dark:bg-slate-950 dark:hover:bg-slate-900/40"
+                          )}
+                        >
+                          <td className="w-12 min-w-[48px] max-w-[48px] border-b border-slate-100 px-2 py-3 text-center text-sm font-bold text-slate-400 dark:border-slate-800/70 dark:text-slate-500">
+                            {index + 1}
+                          </td>
+                          <td className="min-w-[240px] border-b border-slate-100 px-4 py-3 dark:border-slate-800/70">
+                            <div className="flex items-center gap-3">
+                              <ProductAvatar item={item} size="md" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-base font-bold text-slate-900 dark:text-white" title={item.product_name || item.product?.name || "Product"}>
+                                  {item.product_name || item.product?.name || "Product"}
+                                </p>
+                                <ProductPackRequirements item={item} />
+                              </div>
+                            </div>
+                          </td>
+                          {isHistory ? (
+                            <>
+                              <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-slate-100 whitespace-nowrap">
+                                {quantity(item, item.required_quantity, "required_quantity")}
+                              </td>
+                              <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-indigo-600 dark:border-slate-800/70 dark:text-indigo-400 whitespace-nowrap">
+                                {quantity(item, item.purchased_quantity, "purchased_quantity")}
+                              </td>
+                              <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-emerald-700 dark:border-slate-800/70 dark:text-emerald-400 whitespace-nowrap">
+                                {quantity(item, item.received_quantity, "received_quantity")}
+                              </td>
+                              <td className="w-[100px] min-w-[90px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-rose-600 dark:border-slate-800/70 dark:text-rose-400 whitespace-nowrap">
+                                {Number(item.rejected_quantity || 0) > 0 ? quantity(item, item.rejected_quantity, "rejected_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
+                              </td>
+                              <td className="w-[95px] min-w-[85px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-amber-600 dark:border-slate-800/70 dark:text-amber-400 whitespace-nowrap">
+                                {Number(item.waste_quantity || 0) > 0 ? quantity(item, item.waste_quantity, "waste_quantity") : <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>}
+                              </td>
+                              <td className="w-[220px] min-w-[210px] border-b border-slate-100 px-3 py-2 text-center dark:border-slate-800/70">
+                                {vendorAssignments.length > 0 ? (
+                                  <VendorAssignmentCell assignments={vendorAssignments} item={item} onOpen={setVendorDetails} />
+                                ) : item.vendor_name ? (
+                                  <div className="mx-auto flex h-9 w-full max-w-[210px] min-w-0 items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900" title={item.vendor_name}>
+                                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                                      <Store className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+                                      {item.vendor_name}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="font-mono text-sm font-normal text-slate-300 dark:text-slate-700">—</span>
+                                )}
+                              </td>
+                              <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-semibold text-slate-600 dark:border-slate-800/70 dark:text-slate-400 whitespace-nowrap">
+                                {formatPaiseToRupees(completedUnitCostPerKgPaise(item, vendorAssignments))} / KG
+                              </td>
+                              <td className="w-[115px] min-w-[105px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-white whitespace-nowrap">
+                                {formatPaiseToRupees(completedTotalCostPaise(item, vendorAssignments))}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="w-[110px] min-w-[100px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-900 dark:border-slate-800/70 dark:text-slate-100 whitespace-nowrap">
+                                {quantity(item, item.required_quantity, "required_quantity")}
+                              </td>
+                              <td className="w-[125px] min-w-[110px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-slate-700 dark:border-slate-800/70 dark:text-slate-300 whitespace-nowrap">
+                                {quantity(item, item.effective_allocated_quantity ?? item.allocated_quantity, "effective_allocated_quantity")}
+                              </td>
+                              <td className="w-[105px] min-w-[95px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm font-bold text-emerald-700 dark:border-slate-800/70 dark:text-emerald-400 whitespace-nowrap">
+                                {quantity(item, item.received_quantity, "received_quantity")}
+                              </td>
+                              <td className="w-[120px] min-w-[110px] border-b border-slate-100 px-3.5 py-3 text-right font-mono text-sm whitespace-nowrap dark:border-slate-800/70">
+                                {Number(item.unassigned_quantity ?? item.quantity_to_assign ?? 0) > 0 ? (
+                                  <span className="inline-flex items-center justify-end rounded-md border border-rose-200/80 bg-rose-50 px-2 py-0.5 font-mono text-sm font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                                    {quantity(item, item.unassigned_quantity ?? item.quantity_to_assign, "unassigned_quantity")}
+                                  </span>
+                                ) : (
+                                  <span className="font-mono text-sm font-normal text-slate-400 dark:text-slate-600">0</span>
+                                )}
+                              </td>
+                              <td className="w-[220px] min-w-[210px] border-b border-slate-100 px-3 py-2 text-center dark:border-slate-800/70">
+                                <VendorAssignmentCell assignments={vendorAssignments} item={item} onOpen={setVendorDetails} />
+                              </td>
+                            </>
+                          )}
+                          <td className="w-[150px] min-w-[140px] border-b border-slate-100 px-3 py-3 text-center dark:border-slate-800/70">
+                            <StepBadge item={isHistory ? { ...item, next_action_code: "completed" } : item} />
+                          </td>
+                          {!isHistory && (
+                            <td className="sticky right-0 z-10 w-[140px] min-w-[130px] border-b border-l border-slate-100 bg-white px-4 py-3 text-right shadow-[-8px_0_16px_-12px_rgba(15,23,42,0.15)] group-hover:bg-slate-50 dark:border-slate-800/70 dark:bg-slate-950 dark:group-hover:bg-slate-900 whitespace-nowrap">
+                              {canStartVendorAssignment(item, view) && (isAdmin || isWarehouseManager) && !isClosed ? (
+                                <Button
+                                  size="sm"
+                                  className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white transition-all hover:scale-[1.02] active:scale-95"
+                                  onClick={() => onAssignVendor(item)}
+                                  disabled={isUpdating}
+                                >
+                                  {vendorAssignments.length > 0 || Number(item.vendor_assignment_count || 0) > 0
+                                    ? "Assign Remaining"
+                                    : "Assign Vendor"}
+                                </Button>
+                              ) : ["warehouse_receipt", "receive_remaining"].includes(code) && !isClosed ? (
+                                <Button
+                                  size="sm"
+                                  className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all hover:scale-[1.02] active:scale-95"
+                                  onClick={() => onReceive(item)}
+                                  disabled={isUpdating}
+                                >
+                                  Receive Stock
+                                </Button>
+                              ) : code === "resolve_issue" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 rounded-lg px-3 text-xs font-bold shadow-xs border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/50"
+                                  onClick={() => onCheckProblem(item)}
+                                >
+                                  Check Problem
+                                </Button>
+                              ) : onViewDetails ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 rounded-lg px-3 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                                  onClick={() => onViewDetails(item)}
+                                >
+                                  View Details
+                                </Button>
+                              ) : (
+                                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">No action needed</span>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
-        </Card>
+
+          {/* Dedicated Mobile Cards View */}
+          <div className="space-y-3 md:hidden">
+            {items.map((item, index) => {
+              const code = item.next_action_code;
+              const vendorAssignments = item.product_group_assignments
+                || (item.is_product_group
+                  ? (item.child_procurement_cost_ids || [])
+                      .flatMap((id) => vendorAssignmentsByCost[String(id)] || [])
+                      .filter((assignment, index, rows) => (
+                        rows.findIndex((row) => row.id === assignment.id) === index
+                      ))
+                  : vendorAssignmentsByCost[String(item.procurement_cost_id || item.id)] || []);
+
+              return (
+                <Card
+                  key={item.id || item.procurement_cost_id}
+                  className={cn(
+                    "overflow-hidden rounded-2xl border bg-white p-3.5 shadow-sm dark:bg-slate-950 transition-all space-y-3",
+                    isHistory
+                      ? "border-emerald-100/80 dark:border-emerald-950/40"
+                      : "border-slate-200/80 dark:border-slate-800"
+                  )}
+                >
+                  {/* Card Header: Avatar + Full Product Name + Pack Info */}
+                  <div className="flex items-start gap-3">
+                    <ProductAvatar item={item} size="md" className="shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+                          #{index + 1}
+                        </span>
+                        {item.category_name && (
+                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate">
+                            {item.category_name}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug break-words">
+                        {item.product_name || item.product?.name || "Product"}
+                      </h4>
+                      <div className="mt-1">
+                        <ProductPackRequirements item={item} className="max-w-none text-slate-500" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Strip: gives "Waiting for Vendor Confirmation" full room with no truncation */}
+                  <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 px-3 py-1.5 border border-slate-100 dark:border-slate-800/60">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Workflow Status
+                    </span>
+                    <StepBadge item={isHistory ? { ...item, next_action_code: "completed" } : item} />
+                  </div>
+
+                  {/* Quantities Grid */}
+                  {isHistory ? (
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800/60">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Required Qty</p>
+                        <p className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {quantity(item, item.required_quantity, "required_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Purchased Qty</p>
+                        <p className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                          {quantity(item, item.purchased_quantity, "purchased_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Received Qty</p>
+                        <p className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                          {quantity(item, item.received_quantity, "received_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rejected / Waste</p>
+                        <p className="font-mono text-xs font-bold">
+                          {Number(item.rejected_quantity || 0) > 0 ? (
+                            <span className="text-rose-600 dark:text-rose-400">{quantity(item, item.rejected_quantity, "rejected_quantity")}</span>
+                          ) : Number(item.waste_quantity || 0) > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">{quantity(item, item.waste_quantity, "waste_quantity")}</span>
+                          ) : (
+                            <span className="font-normal text-slate-400 dark:text-slate-600">0</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="col-span-1 border-t border-slate-200/60 dark:border-slate-800/60 pt-2 space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unit Cost</p>
+                        <p className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {formatPaiseToRupees(completedUnitCostPerKgPaise(item, vendorAssignments))} / KG
+                        </p>
+                      </div>
+                      <div className="col-span-1 border-t border-slate-200/60 dark:border-slate-800/60 pt-2 space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Final Cost</p>
+                        <p className="font-mono text-xs font-black text-slate-900 dark:text-white">
+                          {formatPaiseToRupees(completedTotalCostPaise(item, vendorAssignments))}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800/60">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Needed</p>
+                        <p className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {quantity(item, item.required_quantity, "required_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vendor Arranged</p>
+                        <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {quantity(item, item.effective_allocated_quantity ?? item.allocated_quantity, "effective_allocated_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Received</p>
+                        <p className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                          {quantity(item, item.received_quantity, "received_quantity")}
+                        </p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Still to Assign</p>
+                        {Number(item.unassigned_quantity ?? item.quantity_to_assign ?? 0) > 0 ? (
+                          <span className="inline-flex items-center rounded-md border border-rose-200/80 bg-rose-50 px-1.5 py-0.5 font-mono text-xs font-bold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                            {quantity(item, item.unassigned_quantity ?? item.quantity_to_assign, "unassigned_quantity")}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-xs font-normal text-slate-400 dark:text-slate-600">0</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vendor Assignment Section */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                      <span className="uppercase tracking-wider text-[10px] font-bold text-slate-400">Assigned Vendor</span>
+                      {vendorAssignments.length > 0 && (
+                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                          Tap vendor for details
+                        </span>
+                      )}
+                    </div>
+                    {vendorAssignments.length > 0 ? (
+                      <VendorAssignmentCell
+                        assignments={vendorAssignments}
+                        item={item}
+                        onOpen={setVendorDetails}
+                        className="max-w-none justify-between"
+                      />
+                    ) : item.vendor_name ? (
+                      <div className="flex h-9 w-full items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900" title={item.vendor_name}>
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 border border-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                          <Store className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {item.vendor_name}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex h-9 w-full items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-2.5 text-slate-400 dark:border-slate-800 dark:bg-slate-900/40">
+                        <Store className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span className="text-xs font-medium italic">Unassigned</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Button Section for Mobile */}
+                  {!isHistory && (
+                    <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                      {canStartVendorAssignment(item, view) && (isAdmin || isWarehouseManager) && !isClosed ? (
+                        <Button
+                          className="w-full h-10 rounded-xl px-4 text-xs font-bold shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white transition-all active:scale-98"
+                          onClick={() => onAssignVendor(item)}
+                          disabled={isUpdating}
+                        >
+                          <Store className="mr-2 h-4 w-4" />
+                          {vendorAssignments.length > 0 || Number(item.vendor_assignment_count || 0) > 0
+                            ? "Assign Remaining"
+                            : "Assign Vendor"}
+                        </Button>
+                      ) : ["warehouse_receipt", "receive_remaining"].includes(code) && !isClosed ? (
+                        <Button
+                          className="w-full h-10 rounded-xl px-4 text-xs font-bold shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-98"
+                          onClick={() => onReceive(item)}
+                          disabled={isUpdating}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          Receive Stock
+                        </Button>
+                      ) : code === "resolve_issue" ? (
+                        <Button
+                          variant="outline"
+                          className="w-full h-10 rounded-xl px-4 text-xs font-bold shadow-xs border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/50 active:scale-98"
+                          onClick={() => onCheckProblem(item)}
+                        >
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Check Problem
+                        </Button>
+                      ) : onViewDetails ? (
+                        <Button
+                          variant="outline"
+                          className="w-full h-10 rounded-xl px-4 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                          onClick={() => onViewDetails(item)}
+                        >
+                          View Details
+                        </Button>
+                      ) : (
+                        <div className="flex items-center justify-center py-1 text-xs font-medium text-slate-400 dark:text-slate-500">
+                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                          No action needed
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <Dialog open={Boolean(vendorDetails)} onOpenChange={(open) => !open && setVendorDetails(null)}>
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden rounded-2xl p-0">
-          <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-emerald-50 px-6 py-5 dark:border-slate-800 dark:from-indigo-950/40 dark:via-slate-950 dark:to-emerald-950/30">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90dvh] overflow-hidden rounded-2xl p-0">
+          <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-emerald-50 px-4 sm:px-6 py-4 sm:py-5 dark:border-slate-800 dark:from-indigo-950/40 dark:via-slate-950 dark:to-emerald-950/30">
             <DialogTitle className="flex items-center gap-3">
               <ProductAvatar item={vendorDetails?.item} size="md" fallbackIcon={Package} />
-              <div>
-                <span className="block">Assigned Vendor Details</span>
-                <span className="mt-0.5 block text-xs font-medium text-slate-500">{vendorDetails?.item?.product_name || vendorDetails?.item?.product?.name || "Procurement item"}</span>
+              <div className="min-w-0">
+                <span className="block text-base sm:text-lg font-bold">Assigned Vendor Details</span>
+                <span className="mt-0.5 block truncate text-xs font-medium text-slate-500">{vendorDetails?.item?.product_name || vendorDetails?.item?.product?.name || "Procurement item"}</span>
               </div>
             </DialogTitle>
           </DialogHeader>
-          <div className="max-h-[calc(85vh-90px)] space-y-3 overflow-y-auto p-5 thin-scrollbar">
+          <div className="max-h-[calc(90dvh-80px)] space-y-3 overflow-y-auto p-3.5 sm:p-5 thin-scrollbar">
             {(vendorDetails?.assignments || []).map((assignment) => {
               const assignmentItem = vendorDetails?.item?.product_group_rows?.find((row) => (
                 String(row.procurement_cost_id || row.id) === String(assignment.procurement_cost_id)
@@ -682,10 +931,10 @@ export function ProcurementWorkTable({
               const excessQty = Math.max(0, totalAllocatedForThisItem - requiredQty);
               
               return (
-                <div key={assignment.id || `${assignment.vendor_user_id}-${assignment.allocated_quantity}`} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950 space-y-4">
-                  <div className="flex items-start justify-between gap-4">
+                <div key={assignment.id || `${assignment.vendor_user_id}-${assignment.allocated_quantity}`} className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950 space-y-3 sm:space-y-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-extrabold text-slate-950 dark:text-white">
+                      <p className="truncate text-sm sm:text-base font-extrabold text-slate-950 dark:text-white">
                         {vendorName(assignment)}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] font-semibold text-slate-500">
@@ -706,10 +955,10 @@ export function ProcurementWorkTable({
                     </div>
                     <Badge variant={status.variant} className="shrink-0 rounded-full">{status.label}</Badge>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-900">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Allocated</p>
-                      <p className="mt-1 text-sm font-extrabold">{assignmentQuantity(assignment, assignment.allocated_quantity)}</p>
+                      <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-extrabold">{assignmentQuantity(assignment, assignment.allocated_quantity)}</p>
                       {excessQty > 0.0001 && requiredQty > 0 && (
                         <>
                           <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">
@@ -721,9 +970,9 @@ export function ProcurementWorkTable({
                         </>
                       )}
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplied</p><p className="mt-1 text-sm font-extrabold">{assignmentQuantity(assignment, assignment.supplied_quantity)}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Locked Price</p><p className="mt-1 text-sm font-extrabold">{formatVendorMoney(assignment.unit_cost_paise)}/{unit}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Price Locked</p><p className="mt-1 text-xs font-bold">{formatVendorPriceUpdatedAt(assignment.price_locked_at)}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Supplied</p><p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-extrabold">{assignmentQuantity(assignment, assignment.supplied_quantity)}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Locked Price</p><p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-extrabold">{formatVendorMoney(assignment.unit_cost_paise)}/{unit}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-900"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Price Locked</p><p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs font-bold">{formatVendorPriceUpdatedAt(assignment.price_locked_at)}</p></div>
                   </div>
                   {(Number(assignment.received_quantity || 0) > 0 || Number(assignment.rejected_quantity || 0) > 0) && (
                     <div className="grid grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-900 pt-3">

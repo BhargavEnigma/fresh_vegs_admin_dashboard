@@ -15,6 +15,7 @@ import {
     CheckCircle2,
     XCircle,
     UserRound,
+    Copy,
 } from "lucide-react";
 
 import { AdminUsersService } from "../../../api/services/admin-users.service";
@@ -62,14 +63,14 @@ export function ViewUserDialog({ user, open, onOpenChange, warehouses = [] }) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto thin-scrollbar">
-                <DialogHeader className="relative pr-6">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-dailyveg-200/80 bg-gradient-to-br from-dailyveg-100 to-dailyveg-50 text-xl font-bold text-dailyveg-800 shadow-sm dark:border-dailyveg-800/70 dark:from-dailyveg-900 dark:to-dailyveg-950 dark:text-dailyveg-200">
+            <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90dvh] overflow-y-auto thin-scrollbar rounded-2xl p-4 sm:p-6">
+                <DialogHeader className="relative pr-6 text-left">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl border border-dailyveg-200/80 bg-gradient-to-br from-dailyveg-100 to-dailyveg-50 text-lg sm:text-xl font-bold text-dailyveg-800 shadow-sm dark:border-dailyveg-800/70 dark:from-dailyveg-900 dark:to-dailyveg-950 dark:text-dailyveg-200">
                             {getInitials(detail?.full_name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white truncate">
+                            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">
                                 {detail?.full_name || "Unnamed User"}
                             </DialogTitle>
                             <DialogDescription className="mt-1 flex flex-wrap gap-1.5 items-center">
@@ -93,15 +94,27 @@ export function ViewUserDialog({ user, open, onOpenChange, warehouses = [] }) {
                         Failed to load detailed profile. Some information might be missing.
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-5 sm:space-y-6">
                         {/* Section: General Info */}
-                        <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3.5 sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 sm:p-5 text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:grid-cols-2">
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">User ID</span>
-                                <p className="font-mono text-xs mt-1 text-slate-800 dark:text-slate-200 break-all select-all">{detail?.id}</p>
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">User ID</span>
+                                <div className="mt-1 flex items-center gap-1.5">
+                                    <p className="font-mono text-xs text-slate-800 dark:text-slate-200 break-all select-all font-medium">{detail?.id || "—"}</p>
+                                    {detail?.id ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigator.clipboard.writeText(detail.id)}
+                                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-slate-400 hover:text-slate-600 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                                            title="Copy User ID"
+                                        >
+                                            <Copy className="h-2.5 w-2.5" />
+                                        </button>
+                                    ) : null}
+                                </div>
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Account Status</span>
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Account Status</span>
                                 <div className="mt-1">
                                     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${detail?.status === "active" ? "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/70 dark:text-dailyveg-300" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300"}`}>
                                         <span className={`h-1.5 w-1.5 rounded-full ${detail?.status === "active" ? "bg-dailyveg-500" : "bg-red-500"}`} />
@@ -110,30 +123,34 @@ export function ViewUserDialog({ user, open, onOpenChange, warehouses = [] }) {
                                 </div>
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phone Number</span>
-                                <p className="mt-1 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                    <Phone className="h-4 w-4 text-slate-400" />
-                                    {detail?.phone || "—"}
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Phone Number</span>
+                                <p className="mt-1 flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium">
+                                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                                    {detail?.phone ? (
+                                        <a href={`tel:${detail.phone}`} className="hover:underline text-slate-900 dark:text-slate-100">
+                                            {detail.phone}
+                                        </a>
+                                    ) : "—"}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</span>
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Address</span>
                                 <p className="mt-1 flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate" title={detail?.email || ""}>
                                     <Mail className="h-4 w-4 text-slate-400 shrink-0" />
                                     <span className="truncate">{detail?.email || "No email"}</span>
                                 </p>
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Joined Date</span>
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Joined Date</span>
                                 <p className="mt-1 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                    <Calendar className="h-4 w-4 text-slate-400" />
+                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
                                     {detail?.created_at ? formatIndianDateTime(detail.created_at) : "—"}
                                 </p>
                             </div>
                             <div>
-                                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Last Login At</span>
+                                <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Last Login At</span>
                                 <p className="mt-1 flex items-center gap-2 text-slate-700 dark:text-slate-200">
-                                    <Calendar className="h-4 w-4 text-slate-400" />
+                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
                                     {detail?.last_login_at ? formatIndianDateTime(detail.last_login_at) : "Never"}
                                 </p>
                             </div>
@@ -177,7 +194,7 @@ export function ViewUserDialog({ user, open, onOpenChange, warehouses = [] }) {
                                     <div className="space-y-3">
                                         {detail.addresses.map((addr) => (
                                             <div key={addr.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/20 space-y-2">
-                                                <div className="flex items-center justify-between gap-2">
+                                                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                                                             {addr.label || "Address"}
@@ -271,7 +288,7 @@ export function ViewUserDialog({ user, open, onOpenChange, warehouses = [] }) {
                 )}
 
                 <DialogFooter className="border-t border-slate-100 pt-4 dark:border-slate-900">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto h-10" onClick={() => onOpenChange(false)}>
                         Close View
                     </Button>
                 </DialogFooter>

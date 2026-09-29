@@ -227,7 +227,7 @@ export function ProductFreshnessPolicyCard({ productId, product, isReadOnly = fa
               <Button
                 type="submit"
                 disabled={saveMutation.isPending}
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="w-full sm:w-auto h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
               >
                 {saveMutation.isPending ? "Saving Policy..." : "Save Freshness Policy"}
               </Button>

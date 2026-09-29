@@ -11,8 +11,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { PasswordField } from "../../components/auth/password-field";
-import Image from "../../assets/logo-light-trans.png";
-import ImageDark from "../../assets/logo-dark-trans.png";
+import Image from "../../assets/dailyveg-logo-light.png";
+import ImageDark from "../../assets/dailyveg-logo-dark.png";
 import { useGlobalLoader } from "../../components/common/global-loader-context";
 
 const ACCESS_DENIED_MESSAGE = "This account does not have access to the admin panel.";

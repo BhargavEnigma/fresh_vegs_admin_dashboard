@@ -10,7 +10,20 @@ import { Input } from "../../components/ui/input";
 import { Card, CardContent } from "../../components/ui/card";
 import { StatusBadge } from "../../components/common/status-badge";
 import { assetUrl, cn, formatQuantity } from "../../lib/utils";
-import { Eye, LayoutGrid, Pencil, Power, Table2 } from "lucide-react";
+import {
+  Eye,
+  LayoutGrid,
+  Pencil,
+  Power,
+  Table2,
+  Package,
+  Search,
+  Plus,
+  Sparkles,
+  CheckCircle2,
+  Layers,
+  AlertCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,68 +55,107 @@ function getProductImage(product) {
 }
 
 function ProductMobileCard({ product, onToggleActive }) {
+  const imageUrl = getProductImage(product);
+  const isActive = Boolean(product.is_active);
+  const mrp = Number(product.mrp_paise || 0);
+  const selling = Number(product.selling_price_paise || 0);
+  const discount = mrp - selling;
+  const discountPercent = discount > 0 && mrp > 0 ? Math.round((discount / mrp) * 100) : 0;
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition-all hover:border-dailyveg-300 dark:border-slate-800/90 dark:bg-slate-950">
+      {/* Top Header: Image + Title + Category + Stock Status */}
       <div className="flex gap-3">
-        {product.images?.length ? (
-          <img
-            src={assetUrl(product.images[0].image_url)}
-            alt={product.name}
-            className="h-16 w-16 rounded-2xl object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-900" />
-        )}
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={product.name}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-700">
+              <Package className="h-8 w-8" />
+            </div>
+          )}
 
-        <div className="min-w-0 flex-1">
-          <div className="line-clamp-2 font-semibold">{product.name}</div>
-          <div className="mt-1 text-xs text-slate-500">
-            {product.category?.name || "—"} · {product.unit || "—"}
+          {discountPercent > 0 && (
+            <div className="absolute top-1 left-1 rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-black text-white shadow-xs">
+              {discountPercent}% OFF
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="line-clamp-2 text-sm font-bold text-slate-900 dark:text-white leading-snug">
+              {product.name}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="inline-flex items-center rounded-md bg-dailyveg-50 px-2 py-0.5 text-[11px] font-bold text-dailyveg-700 dark:bg-dailyveg-950/60 dark:text-dailyveg-300">
+                {product.category?.name || "Uncategorized"}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span className="font-medium text-slate-500">
+                {formatQuantity(product.base_quantity)} {product.unit || ""}
+              </span>
+            </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <StatusBadge value={product.is_out_of_stock ? "out_of_stock" : "in_stock"} />
-            <StatusBadge value={product.is_active ? "Active" : "Inactive"} />
+            <StatusBadge value={isActive ? "Active" : "Inactive"} />
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-          <div className="text-xs text-slate-500">MRP</div>
-          <div className="font-semibold">₹{(Number(product.mrp_paise || 0) / 100).toFixed(2)}</div>
+      {/* Price & Packs Highlight Strip */}
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50/80 px-3 py-2 border border-slate-100 dark:bg-slate-900/60 dark:border-slate-800/80">
+        <div className="flex items-baseline gap-2">
+          <div className="text-base font-black text-slate-900 dark:text-white">
+            {formatRupees(product.selling_price_paise)}
+          </div>
+          {mrp > selling && (
+            <div className="text-xs text-slate-400 line-through">
+              {formatRupees(product.mrp_paise)}
+            </div>
+          )}
         </div>
 
-        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-          <div className="text-xs text-slate-500">Selling</div>
-          <div className="font-semibold">₹{(Number(product.selling_price_paise || 0) / 100).toFixed(2)}</div>
-        </div>
-
-        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-900/60">
-          <div className="text-xs text-slate-500">Packs</div>
-          <div className="font-semibold">{product.packs?.length || 0}</div>
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          <Package className="h-3.5 w-3.5 text-slate-400" />
+          <span>{product.packs?.length || 0} {product.packs?.length === 1 ? "pack" : "packs"}</span>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <Button asChild variant="outline" size="sm">
-          <Link to={`/products/${product.id}`}>View</Link>
+      {/* Action Buttons Row */}
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Button asChild variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl font-medium text-xs">
+          <Link to={`/products/${product.id}`}>
+            <Eye className="h-3.5 w-3.5" />
+            <span>View</span>
+          </Link>
         </Button>
 
-        <Button asChild variant="outline" size="sm">
-          <Link to={`/products/${product.id}/edit`}>Edit</Link>
+        <Button asChild variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl font-medium text-xs">
+          <Link to={`/products/${product.id}/edit`}>
+            <Pencil className="h-3.5 w-3.5" />
+            <span>Edit</span>
+          </Link>
         </Button>
 
         <Button
-          variant={product.is_active ? "redoutline" : "outline"}
+          variant={isActive ? "redoutline" : "outline"}
           size="sm"
+          className="h-9 gap-1.5 rounded-xl font-medium text-xs"
           onClick={() => onToggleActive(product)}
         >
-          {product.is_active ? "Deactive" : "Active"}
+          <Power className="h-3.5 w-3.5" />
+          <span>{isActive ? "Deactivate" : "Activate"}</span>
         </Button>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -285,36 +337,82 @@ export function ProductsListPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 space-y-3.5 sm:space-y-4 pb-8">
       <PageHeader
         title="Products"
-        subtitle="List uses GET /v1/products (active products only). Create/Update uses /v1/admin/product/*"
+        subtitle="Inventory catalogue & price management"
         actions={
-          <Button asChild className="w-full sm:w-auto">
-            <Link to="/products/new">Create Product</Link>
+          <Button asChild className="w-full sm:w-auto gap-1.5 h-9 rounded-xl font-bold bg-dailyveg-600 hover:bg-dailyveg-700 text-white shadow-sm">
+            <Link to="/products/new">
+              <Plus className="h-4 w-4" />
+              <span>Create Product</span>
+            </Link>
           </Button>
         }
       />
 
-      <Card className="mb-4 overflow-hidden">
-        <CardContent className="pt-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(220px,0.7fr)_auto]">
+      {/* Quick Summary KPIs on mobile & desktop */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Package className="h-3.5 w-3.5 text-dailyveg-600" /> Total Listed
+          </div>
+          <div className="mt-1 text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+            {total}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Active Now
+          </div>
+          <div className="mt-1 text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+            {products.filter((p) => p.is_active).length}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" /> In Stock
+          </div>
+          <div className="mt-1 text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+            {products.filter((p) => !p.is_out_of_stock).length}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Layers className="h-3.5 w-3.5 text-indigo-500" /> Categories
+          </div>
+          <div className="mt-1 text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+            {categories.length}
+          </div>
+        </div>
+      </div>
+
+      <Card className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <CardContent className="p-3.5 sm:p-5">
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(200px,0.7fr)_auto]">
             <div className="min-w-0">
-              <div className="mb-1 text-xs text-slate-500">Search</div>
-              <Input
-                value={q}
-                onChange={(e) => set("q", e.target.value)}
-                placeholder="Search products…"
-              />
+              <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Search</div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={q}
+                  onChange={(e) => set("q", e.target.value)}
+                  placeholder="Search by product name..."
+                  className="h-10 pl-9 rounded-xl text-xs sm:text-sm"
+                />
+              </div>
             </div>
 
             <div className="min-w-0">
-              <div className="mb-1 text-xs text-slate-500">Category</div>
+              <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Category</div>
               <PremiumSelect
                 value={category_id}
                 onChange={(value) => set("category_id", value)}
                 options={[
-                  { value: "", label: "All" },
+                  { value: "", label: "All categories" },
                   ...categories.map((category) => ({
                     value: category.id,
                     label: category.name,
@@ -325,48 +423,53 @@ export function ProductsListPage() {
               />
             </div>
 
-            <div className="flex items-end">
-              <label className="flex min-h-10 w-full items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={include_out_of_stock}
-                  onChange={(e) => set("include_out_of_stock", e.target.checked ? "true" : "")}
-                />
-                Include out of stock
-              </label>
-            </div>
+            <div className="grid grid-cols-2 gap-2 col-span-1 sm:col-span-2 xl:col-span-2 xl:flex xl:items-end">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 xl:invisible">Filter</div>
+                <label className="flex h-10 w-full cursor-pointer items-center justify-between rounded-xl border border-slate-200 px-3 text-xs sm:text-sm text-slate-700 transition hover:border-slate-300 dark:border-slate-800 dark:text-slate-200">
+                  <span className="truncate">Out of stock</span>
+                  <input
+                    type="checkbox"
+                    checked={include_out_of_stock}
+                    onChange={(e) => set("include_out_of_stock", e.target.checked ? "true" : "")}
+                    className="h-4 w-4 rounded accent-dailyveg-600"
+                  />
+                </label>
+              </div>
 
-            <div className="flex items-end">
-              <div className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/70 xl:w-[112px]">
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
-                    viewMode === VIEW_MODES.table &&
-                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
-                  )}
-                  onClick={() => updateViewMode(VIEW_MODES.table)}
-                  title="Table view"
-                  aria-label="Table view"
-                  aria-pressed={viewMode === VIEW_MODES.table}
-                >
-                  <Table2 className="h-4 w-4" />
-                </button>
+              <div className="w-full xl:w-[112px]">
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 xl:invisible">View</div>
+                <div className="grid h-10 w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/70">
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                      viewMode === VIEW_MODES.table &&
+                      "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                    )}
+                    onClick={() => updateViewMode(VIEW_MODES.table)}
+                    title="Table view"
+                    aria-label="Table view"
+                    aria-pressed={viewMode === VIEW_MODES.table}
+                  >
+                    <Table2 className="h-4 w-4" />
+                  </button>
 
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
-                    viewMode === VIEW_MODES.grid &&
-                    "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
-                  )}
-                  onClick={() => updateViewMode(VIEW_MODES.grid)}
-                  title="Grid view"
-                  aria-label="Grid view"
-                  aria-pressed={viewMode === VIEW_MODES.grid}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:text-dailyveg-700 dark:text-slate-400 dark:hover:text-dailyveg-300",
+                      viewMode === VIEW_MODES.grid &&
+                      "bg-white text-dailyveg-700 shadow-sm dark:bg-slate-950 dark:text-dailyveg-300"
+                    )}
+                    onClick={() => updateViewMode(VIEW_MODES.grid)}
+                    title="Grid view"
+                    aria-label="Grid view"
+                    aria-pressed={viewMode === VIEW_MODES.grid}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -518,7 +621,7 @@ export function ProductsListPage() {
 
               <PremiumSelect
                 size="sm"
-                className="w-28"
+                className="w-full sm:w-28"
                 value={limit}
                 onChange={(val) => set("limit", val)}
                 options={[

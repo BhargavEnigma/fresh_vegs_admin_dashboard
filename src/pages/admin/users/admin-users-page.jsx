@@ -23,6 +23,7 @@ import {
     UserPlus,
     UsersRound,
     Eye,
+    Copy,
 } from "lucide-react";
 
 import { AdminUsersService } from "../../../api/services/admin-users.service";
@@ -246,12 +247,53 @@ export function AdminUsersPage() {
         });
     };
 
+    const userStats = useMemo(() => {
+        const items = listQuery.data?.items || [];
+        const total = listQuery.data?.total ?? items.length;
+        const active = items.filter((u) => u.status === "active").length;
+        const blocked = items.filter((u) => u.status === "blocked").length;
+        return { total, active, blocked };
+    }, [listQuery.data]);
+
     return (
-        <div className="">
+        <div className="space-y-4 px-0 sm:space-y-5">
             <PageHeader
                 title="Admin Users"
                 subtitle="Create users, assign roles, and search/list existing users."
             />
+
+            {/* Mobile Executive KPI Strip */}
+            {!listQuery.isLoading && (listQuery.data?.items || []).length > 0 && (
+                <div className="grid grid-cols-3 gap-2 md:hidden">
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800 dark:bg-slate-950">
+                        <div className="flex items-center justify-between text-slate-400">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Total</span>
+                            <UsersRound className="h-3.5 w-3.5 text-dailyveg-600" />
+                        </div>
+                        <div className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+                            {userStats.total}
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800 dark:bg-slate-950">
+                        <div className="flex items-center justify-between text-slate-400">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Active</span>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        </div>
+                        <div className="mt-1 text-lg font-black text-emerald-600 dark:text-emerald-400">
+                            {userStats.active}
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs dark:border-slate-800 dark:bg-slate-950">
+                        <div className="flex items-center justify-between text-slate-400">
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Blocked</span>
+                            <ShieldCheck className="h-3.5 w-3.5 text-red-500" />
+                        </div>
+                        <div className="mt-1 text-lg font-black text-red-600 dark:text-red-400">
+                            {userStats.blocked}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/60 dark:border-slate-800/80 dark:bg-slate-950 dark:shadow-brand-dark">
                 <div className="border-b border-slate-200/80 bg-gradient-to-r from-dailyveg-50/80 via-white to-white px-4 py-5 dark:border-slate-800/80 dark:from-dailyveg-950/60 dark:via-slate-950 dark:to-slate-950 sm:px-6">
@@ -265,64 +307,74 @@ export function AdminUsersPage() {
                         </div>
 
                         <div className="grid w-full gap-3 md:grid-cols-3 xl:max-w-4xl">
-                            <div className="grid gap-1.5 md:col-span-1">
+                            <div className="grid gap-1.5">
                                 <Label htmlFor="admin-user-search" className="text-xs font-semibold text-slate-500">Search users</Label>
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         id="admin-user-search"
-                                        className="pl-9"
+                                        className="h-10 pl-9 pr-14 text-sm rounded-xl"
                                         value={listParams.q}
                                         onChange={(e) => setListParams((s) => ({ ...s, page: 1, q: e.target.value }))}
                                         placeholder="Name, phone or email"
                                     />
+                                    {listParams.q ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setListParams((s) => ({ ...s, page: 1, q: "" }))}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                                        >
+                                            Clear
+                                        </button>
+                                    ) : null}
                                 </div>
                             </div>
 
-                    <div className="grid gap-1.5">
-                        <Label className="text-xs font-semibold text-slate-500">Role</Label>
-                        <PremiumSelect
-                            value={listParams.role}
-                            onChange={(value) =>
-                                setListParams((s) => ({
-                                    ...s,
-                                    page: 1,
-                                    role: value || "",
-                                }))
-                            }
-                            options={[
-                                { value: "", label: "All Roles" },
-                                { value: "admin", label: "Admin" },
-                                { value: "warehouse_manager", label: "Warehouse Manager" },
-                                { value: "vendor", label: "Vendor" },
-                                { value: "delivery_partner", label: "Delivery Partner" },
-                                { value: "customer", label: "Customer" },
-                                { value: "support_manager", label: "Support Manager" },
-                            ]}
-                            placeholder="Select role"
-                        />
-                    </div>
+                            <div className="grid grid-cols-2 gap-2 md:col-span-2 md:grid-cols-2 md:gap-3">
+                                <div className="grid gap-1.5">
+                                    <Label className="text-xs font-semibold text-slate-500">Role</Label>
+                                    <PremiumSelect
+                                        value={listParams.role}
+                                        onChange={(value) =>
+                                            setListParams((s) => ({
+                                                ...s,
+                                                page: 1,
+                                                role: value || "",
+                                            }))
+                                        }
+                                        options={[
+                                            { value: "", label: "All Roles" },
+                                            { value: "admin", label: "Admin" },
+                                            { value: "warehouse_manager", label: "Warehouse Manager" },
+                                            { value: "vendor", label: "Vendor" },
+                                            { value: "delivery_partner", label: "Delivery Partner" },
+                                            { value: "customer", label: "Customer" },
+                                            { value: "support_manager", label: "Support Manager" },
+                                        ]}
+                                        placeholder="Select role"
+                                    />
+                                </div>
 
-                    <div className="grid gap-1.5">
-                        <Label className="text-xs font-semibold text-slate-500">Status</Label>
-                        <PremiumSelect
-                            value={listParams.status}
-                            onChange={(value) =>
-                                setListParams((s) => ({
-                                    ...s,
-                                    page: 1,
-                                    status: value || "",
-                                }))
-                            }
-                            options={[
-                                { value: "", label: "All Status" },
-                                { value: "active", label: "Active" },
-                                { value: "blocked", label: "Blocked" },
-                            ]}
-                            placeholder="Select status"
-                        />
-                    </div>
-
+                                <div className="grid gap-1.5">
+                                    <Label className="text-xs font-semibold text-slate-500">Status</Label>
+                                    <PremiumSelect
+                                        value={listParams.status}
+                                        onChange={(value) =>
+                                            setListParams((s) => ({
+                                                ...s,
+                                                page: 1,
+                                                status: value || "",
+                                            }))
+                                        }
+                                        options={[
+                                            { value: "", label: "All Status" },
+                                            { value: "active", label: "Active" },
+                                            { value: "blocked", label: "Blocked" },
+                                        ]}
+                                        placeholder="Select status"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -429,27 +481,104 @@ export function AdminUsersPage() {
                     </table>
                 </div>
 
-                <div className="divide-y divide-slate-100 dark:divide-slate-900 md:hidden">
+                <div className="space-y-3 p-3.5 bg-slate-50/60 dark:bg-slate-900/40 md:hidden">
                     {(listQuery.data?.items || []).map((u) => (
-                        <article key={u.id} className="p-4">
-                            <div className="flex items-start gap-3">
-                                <UserAvatar user={u} size="sm" />
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div><h3 className="truncate font-semibold text-slate-900 dark:text-white">{u.full_name || "Unnamed user"}</h3><p className="mt-0.5 truncate text-xs text-slate-500">{u.email || u.phone || "No contact details"}</p></div>
-                                        <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${u.status === "active" ? "bg-dailyveg-500" : "bg-red-500"}`} title={u.status} />
-                                    </div>
-                                    <div className="mt-3"><RoleBadges roles={u.roles} /></div>
-                                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-900">
-                                        <PasswordLoginStatusBadge user={u} />
-                                        <div className="flex gap-1">
-                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setViewingUser(u)}><Eye className="h-4 w-4" /><span className="sr-only">View details</span></Button>
-                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setEditingUser(u)}><UserRound className="h-4 w-4" /><span className="sr-only">Edit details</span></Button>
-                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setSecurityUser(u)}><KeyRound className="h-4 w-4" /><span className="sr-only">Manage login</span></Button>
-                                            <Button size="sm" variant="outline" className="h-8 gap-1.5 px-2.5" onClick={() => { rolesForm.setValue("user_id", u.id, { shouldValidate: true }); rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true }); rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true }); toast.success("Loaded user into role editor"); }}><ShieldCheck className="h-3.5 w-3.5" /> Roles</Button>
-                                        </div>
+                        <article key={u.id} className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950 space-y-3">
+                            {/* User Header */}
+                            <div className="flex items-start justify-between gap-2.5">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <UserAvatar user={u} size="sm" />
+                                    <div className="min-w-0">
+                                        <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                                            {u.full_name || "Unnamed user"}
+                                        </h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (u.id) {
+                                                    navigator.clipboard.writeText(u.id);
+                                                    toast.success("User ID copied");
+                                                }
+                                            }}
+                                            className="mt-0.5 inline-flex items-center gap-1 font-mono text-[10px] text-slate-400 hover:text-slate-600 bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-800 transition-colors"
+                                            title="Click to copy ID"
+                                        >
+                                            <Copy className="h-2.5 w-2.5 text-slate-400" />
+                                            <span>{u.id ? `${u.id.slice(0, 8)}…` : "—"}</span>
+                                        </button>
                                     </div>
                                 </div>
+                                <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold capitalize ${u.status === "active" ? "border-dailyveg-200 bg-dailyveg-50 text-dailyveg-700 dark:border-dailyveg-800 dark:bg-dailyveg-950/70 dark:text-dailyveg-300" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-300"}`}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${u.status === "active" ? "bg-dailyveg-500" : "bg-red-500"}`} />
+                                    {u.status || "Unknown"}
+                                </span>
+                            </div>
+
+                            {/* Contact Details */}
+                            <div className="space-y-1 rounded-xl bg-slate-50/80 p-2.5 text-xs dark:bg-slate-900/50">
+                                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium">
+                                    <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    {u.phone ? (
+                                        <a href={`tel:${u.phone}`} className="hover:underline text-slate-800 dark:text-slate-100">
+                                            {u.phone}
+                                        </a>
+                                    ) : (
+                                        <span className="text-slate-400">—</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-500 truncate" title={u.email || ""}>
+                                    <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <span className="truncate">{u.email || "No email"}</span>
+                                </div>
+                            </div>
+
+                            {/* Roles & Security */}
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="min-w-0 max-w-full">
+                                    <RoleBadges roles={u.roles} />
+                                </div>
+                                <PasswordLoginStatusBadge user={u} />
+                            </div>
+
+                            {/* 4-Button Touch Grid */}
+                            <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-900">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-auto py-2 px-1 text-xs gap-1 font-medium bg-slate-50/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 rounded-xl"
+                                    onClick={() => setViewingUser(u)}
+                                >
+                                    <Eye className="h-3.5 w-3.5" /> View
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-auto py-2 px-1 text-xs gap-1 font-medium bg-slate-50/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 rounded-xl"
+                                    onClick={() => setEditingUser(u)}
+                                >
+                                    <UserRound className="h-3.5 w-3.5" /> Edit
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-auto py-2 px-1 text-xs gap-1 font-medium bg-slate-50/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 rounded-xl"
+                                    onClick={() => setSecurityUser(u)}
+                                >
+                                    <KeyRound className="h-3.5 w-3.5" /> Login
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-auto py-2 px-1 text-xs gap-1 font-medium border-dailyveg-200 bg-dailyveg-50/70 text-dailyveg-700 hover:bg-dailyveg-100 dark:border-dailyveg-800 dark:bg-dailyveg-950/70 dark:text-dailyveg-300 rounded-xl"
+                                    onClick={() => {
+                                        rolesForm.setValue("user_id", u.id, { shouldValidate: true });
+                                        rolesForm.setValue("roles", u.roles?.length ? [u.roles[0]] : [], { shouldValidate: true });
+                                        rolesForm.setValue("warehouse_ids", u.warehouse_ids || [], { shouldValidate: true });
+                                        toast.success("Loaded user into role editor");
+                                    }}
+                                >
+                                    <ShieldCheck className="h-3.5 w-3.5" /> Roles
+                                </Button>
                             </div>
                         </article>
                     ))}
@@ -458,12 +587,13 @@ export function AdminUsersPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 border-t border-slate-200/80 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/20 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500 text-center sm:text-left">
                         Page <span className="font-semibold text-slate-700 dark:text-slate-200">{listQuery.data?.page ?? 1}</span> of <span className="font-semibold text-slate-700 dark:text-slate-200">{listQuery.data?.total_pages ?? 1}</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
                         <Button
                             variant="outline"
+                            className="h-9"
                             onClick={() => setListParams((s) => ({ ...s, page: Math.max(1, s.page - 1) }))}
                             disabled={(listQuery.data?.page || 1) <= 1}
                         >
@@ -471,6 +601,7 @@ export function AdminUsersPage() {
                         </Button>
                         <Button
                             variant="outline"
+                            className="h-9"
                             onClick={() => setListParams((s) => ({ ...s, page: (s.page || 1) + 1 }))}
                             disabled={(listQuery.data?.page || 1) >= (listQuery.data?.total_pages || 1)}
                         >

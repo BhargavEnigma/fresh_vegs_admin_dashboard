@@ -36,6 +36,34 @@ export const OpsOrdersService = {
         return res.data?.data;
     },
 
+    // PDF exports must not be limited to the table's current page. The OPS API
+    // caps full-detail responses at 100 orders, so collect every page before
+    // handing the document renderer a complete, consistent order set.
+    async listAllForPdf(filters = {}) {
+        const pageSize = 100;
+        const firstPage = await this.list({
+            ...filters,
+            page: 1,
+            limit: pageSize,
+            view: "full",
+        });
+        const orders = [...(firstPage?.orders || [])];
+        const total = Number(firstPage?.total || orders.length);
+        const pages = Math.ceil(total / pageSize);
+
+        for (let page = 2; page <= pages; page += 1) {
+            const response = await this.list({
+                ...filters,
+                page,
+                limit: pageSize,
+                view: "full",
+            });
+            orders.push(...(response?.orders || []));
+        }
+
+        return orders;
+    },
+
     async getById(orderId) {
         const res = await api.get(ENDPOINTS.ops.orders.getById(orderId));
         const payload = res.data?.data;

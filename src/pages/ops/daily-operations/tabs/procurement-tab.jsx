@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -25,6 +26,7 @@ import {
   ArrowRight,
   Store,
   Lock,
+  Download,
 } from "lucide-react";
 import { Card } from "../../../../components/ui/card";
 import { Badge } from "../../../../components/ui/badge";
@@ -39,6 +41,7 @@ import { formatPaiseToRupees, parseDecimal } from "../../../../utils/daily-opera
 import { cn, formatQuantity } from "../../../../lib/utils";
 import { ProductAvatar } from "../../../../components/common/product-avatar";
 import { ProcurementPrintSheet, MandiBuyerPrintSheet } from "../print/procurement-print";
+import { PurchaseListPdf, PurchaseListPrintSheet } from "../print/purchase-list-pdf";
 import { PremiumSelect } from "../../../../components/ui/premium-select";
 import {
   DropdownMenu,
@@ -921,6 +924,7 @@ export function ProcurementTab({
 
   return (
     <div className="space-y-4">
+      <PurchaseListPrintSheet operation={operation} items={items} />
       <ProcurementWorkTable
         data={procurementData}
         isLoading={isLoading}
@@ -944,6 +948,22 @@ export function ProcurementTab({
         onAutoAssign={() => setConfirmAutoAssign(true)}
         onReceive={(item) => isVendorManagedItem(item) ? openVendorCheckIn(item) : handleShortcutReceivedExact(item)}
         onCheckProblem={handleOpenEdit}
+        purchaseExportControls={
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <PDFDownloadLink
+              document={<PurchaseListPdf operation={operation} items={items} />}
+              fileName={`dailyveg-purchase-list-${operation?.delivery_date || "export"}.pdf`}
+              className="inline-flex h-10 flex-1 sm:flex-initial items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs sm:text-sm font-semibold text-slate-800 transition-all hover:border-dailyveg-300 hover:bg-dailyveg-50 hover:text-dailyveg-800 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              aria-disabled={!items.length}
+              onClick={(event) => { if (!items.length) event.preventDefault(); }}
+            >
+              {({ loading }) => <><Download className="mr-1.5 sm:mr-2 h-4 w-4" />{loading ? "Preparing PDF…" : "Download PDF"}</>}
+            </PDFDownloadLink>
+            <Button variant="outline" className="h-10 rounded-xl flex-1 sm:flex-initial text-xs sm:text-sm font-semibold" onClick={() => window.print()} disabled={!items.length}>
+              <Printer className="mr-1.5 sm:mr-2 h-4 w-4" /> Print PDF
+            </Button>
+          </div>
+        }
       />
 
       {false && (<>
@@ -1800,7 +1820,7 @@ export function ProcurementTab({
       {/* Edit Item Modal */}
       {editingItem && (
         <Dialog open={Boolean(editingItem)} onOpenChange={() => setEditingItem(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[95vw] sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Edit Procurement Entry</DialogTitle>
             </DialogHeader>
@@ -1938,10 +1958,10 @@ export function ProcurementTab({
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" size="sm" onClick={() => setEditingItem(null)}>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-initial rounded-xl" onClick={() => setEditingItem(null)}>
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleSaveItem} disabled={isUpdating}>
+                <Button size="sm" className="flex-1 sm:flex-initial rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleSaveItem} disabled={isUpdating}>
                   Save Details
                 </Button>
               </div>
@@ -1952,7 +1972,7 @@ export function ProcurementTab({
 
       {assigningItem && (
         <Dialog open onOpenChange={(open) => !open && setAssigningItem(null)}>
-          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90dvh] overflow-y-auto rounded-2xl p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Assign Vendors</DialogTitle>
             </DialogHeader>
@@ -2225,8 +2245,9 @@ export function ProcurementTab({
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setAssigningItem(null)}>Cancel</Button>
+                <Button variant="outline" className="flex-1 sm:flex-initial rounded-xl" onClick={() => setAssigningItem(null)}>Cancel</Button>
                 <Button
+                  className="flex-1 sm:flex-initial rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
                   onClick={submitAssignments}
                   disabled={
                     assignMutation.isPending ||
@@ -2258,8 +2279,8 @@ export function ProcurementTab({
       />
       {autoAssignResult && (
         <Dialog open onOpenChange={(open) => !open && setAutoAssignResult(null)}>
-          <DialogContent className="max-h-[98vh] max-w-3xl overflow-hidden border-0 p-0 flex flex-col">
-            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-950 to-emerald-950 px-6 py-6 text-white shrink-0">
+          <DialogContent className="max-h-[92dvh] w-[95vw] sm:max-w-3xl overflow-hidden border-0 p-0 flex flex-col rounded-2xl">
+            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-950 to-emerald-950 px-4 sm:px-6 py-5 sm:py-6 text-white shrink-0">
               <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
               <div className="relative flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-xl backdrop-blur">
