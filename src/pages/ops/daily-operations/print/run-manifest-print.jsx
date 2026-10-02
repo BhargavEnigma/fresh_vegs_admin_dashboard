@@ -66,7 +66,7 @@ export function RunManifestPrint({ runDetail }) {
               <th className="py-2 px-2 font-bold text-slate-800">Phone</th>
               <th className="py-2 px-2 font-bold text-slate-800">Area & Address</th>
               <th className="py-2 px-2 font-bold text-slate-800 text-center">Payment</th>
-              <th className="py-2 px-2 font-bold text-slate-800 text-right">COD Due</th>
+              <th className="py-2 px-2 font-bold text-slate-800 text-right">COD order total</th>
               <th className="py-2 px-2 font-bold text-slate-800 text-center w-24">Customer Signature</th>
             </tr>
           </thead>
@@ -102,7 +102,7 @@ export function RunManifestPrint({ runDetail }) {
                   </td>
                   <td className="py-2.5 px-2 text-center">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isCod ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>
-                      {isCod ? "COD" : "Prepaid"}
+                      {isCod ? "COD — collection pending/see payment audit" : "Prepaid"}
                     </span>
                   </td>
                   <td className="py-2.5 px-2 text-right font-bold text-sm text-slate-900">
@@ -122,7 +122,8 @@ export function RunManifestPrint({ runDetail }) {
           <div className="p-3 border border-slate-200 rounded">
             <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[10px] mb-2">Manifest Summary</h4>
             <p>Total Orders assigned: <span className="font-bold">{orders.length}</span></p>
-            <p>Expected COD Cash Collection: <span className="font-bold text-slate-900">{formatPaiseToRupees(runDetail.expected_cod_paise || 0)}</span></p>
+            <p>Expected physical cash (cash held by rider): <span className="font-bold text-slate-900">{formatPaiseToRupees(runDetail.expected_cod_paise || 0)}</span></p>
+            <p className="mt-1 text-slate-500">This run-level amount is not calculated from COD order totals; QR-paid COD is not cash due.</p>
           </div>
           <div className="p-3 border border-slate-200 rounded flex justify-between items-end">
             <div>

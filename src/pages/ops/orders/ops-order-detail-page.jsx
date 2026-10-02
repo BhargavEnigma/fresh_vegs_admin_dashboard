@@ -49,6 +49,7 @@ import { getOrderStatusLabel } from "../../../utils/order-status-timeline";
 import { cn, formatQuantity, assetUrl } from "../../../lib/utils";
 import { getDailyOrderLabel, getPrimaryOrderLabel } from "../../../utils/order-identifier";
 import { DataTable } from "../../../components/common/data-table";
+import { getCodCollection, getDeliveryQrAttempts } from "../../../utils/payment-collection";
 
 function money(paise) {
     const n = Number(paise || 0) / 100;
@@ -295,6 +296,8 @@ export function OpsOrderDetailPage() {
 
     const order = query.data?.order || null;
     const paymentAudit = paymentAuditQuery.data || {};
+    const codCollection = getCodCollection(paymentAudit);
+    const deliveryQrAttempts = getDeliveryQrAttempts(paymentAudit);
 
     const items = order?.items || [];
 
@@ -662,9 +665,18 @@ export function OpsOrderDetailPage() {
                                                 ) : null}
                                             </>
                                         ) : (
-                                            <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:bg-slate-950/60 dark:text-slate-400">
+                                            <div className="mt-3 space-y-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs text-slate-500 dark:bg-slate-950/60 dark:text-slate-400">
                                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                                                <span>Cash on Delivery — online refund not required.</span>
+                                                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                                    <span>Checkout choice</span><span className="font-semibold text-slate-800 dark:text-slate-200">COD</span>
+                                                    <span>Collection state</span><span className="font-semibold text-slate-800 dark:text-slate-200">{codCollection.state}</span>
+                                                    {codCollection.payment ? <><span>Amount collected</span><span className="font-semibold text-slate-800 dark:text-slate-200">{money(codCollection.payment.amount_paise)}</span></> : null}
+                                                    {codCollection.payment?.collected_at ? <><span>Collected at</span><span className="font-semibold text-slate-800 dark:text-slate-200">{formatIndianDateTime(codCollection.payment.collected_at)}</span></> : null}
+                                                    {codCollection.payment?.collected_by_user_id ? <><span>Cash collector ID</span><span className="font-mono text-slate-800 dark:text-slate-200">{codCollection.payment.collected_by_user_id}</span></> : null}
+                                                    {codCollection.payment?.provider_payment_id ? <><span>Razorpay payment ID</span><span className="font-mono text-slate-800 dark:text-slate-200 truncate">{codCollection.payment.provider_payment_id}</span></> : null}
+                                                    {codCollection.payment?.payment_attempt_id ? <><span>Payment attempt ID</span><span className="font-mono text-slate-800 dark:text-slate-200 truncate">{codCollection.payment.payment_attempt_id}</span></> : null}
+                                                </div>
+                                                <p>COD checkout payment; gateway refund workflow is not available here.</p>
                                             </div>
                                         )}
                                     </div>
@@ -1274,28 +1286,19 @@ export function OpsOrderDetailPage() {
                                         </div>
                                     </div>
 
-                                    {(paymentAudit.latest_payment_attempt || null) ? (
-                                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-900">
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-bold text-slate-700 dark:text-slate-300">Latest Attempt Payload</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        copyToClipboard(
-                                                            JSON.stringify(paymentAudit.latest_payment_attempt, null, 2),
-                                                            "Attempt JSON"
-                                                        )
-                                                    }
-                                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-dailyveg-600 hover:underline"
-                                                >
-                                                    <Copy className="h-3 w-3" /> Copy
-                                                </button>
+                                    {String(order?.payment_method || "").toLowerCase() === "cod" && deliveryQrAttempts.map((attempt) => (
+                                        <div key={attempt.id || attempt.payment_attempt_id || attempt.provider_qr_id} className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-900">
+                                            <div className="font-bold text-slate-700 dark:text-slate-300">Delivery UPI QR audit</div>
+                                            <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1">
+                                                <span>Status</span><span className="font-semibold">{attempt.status || "—"}</span>
+                                                <span>QR ID</span><span className="font-mono truncate">{attempt.provider_qr_id || "—"}</span>
+                                                <span>QR status</span><span>{attempt.provider_qr_status || "—"}</span>
+                                                <span>QR expiry</span><span>{formatIndianDateTime(attempt.provider_qr_expires_at) || "—"}</span>
+                                                <span>Payment ID</span><span className="font-mono truncate">{attempt.provider_payment_id || "—"}</span>
+                                                <span>Amount</span><span>{money(attempt.amount_paise)} {attempt.currency || "INR"}</span>
                                             </div>
-                                            <pre className="mt-2 max-h-44 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-slate-600 dark:text-slate-400 thin-scrollbar">
-                                                {JSON.stringify(paymentAudit.latest_payment_attempt, null, 2)}
-                                            </pre>
                                         </div>
-                                    ) : null}
+                                    ))}
 
                                     {canRetryRefund(order, paymentAudit) ? (
                                         <Button
@@ -1379,4 +1382,3 @@ export function OpsOrderDetailPage() {
         </div>
     );
 }
-

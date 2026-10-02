@@ -592,7 +592,7 @@ export function DispatchTab({
                           <span className="font-semibold">Areas:</span> {pRun.areas_covered?.join(", ") || "—"}
                         </div>
                         <div>
-                          <span className="font-semibold">Expected COD:</span> {formatPaiseToRupees(pRun.expected_cod_paise)}
+                          <span className="font-semibold">Expected physical cash:</span> {formatPaiseToRupees(pRun.expected_cod_paise)}
                         </div>
                         {pRun.estimated_duration_mins && (
                           <div>
@@ -689,7 +689,7 @@ export function DispatchTab({
                   <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Orders</span><strong className="text-sm">{selectedProposedRun?.orders_count || 0}</strong></div>
                   <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Distance</span><strong className="text-sm">{selectedProposedRun?.estimated_distance_km ?? "—"} km</strong></div>
                   <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Duration</span><strong className="text-sm">{selectedProposedRun?.estimated_duration_mins ?? "—"} mins</strong></div>
-                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Expected COD</span><strong className="text-sm">{formatPaiseToRupees(selectedProposedRun?.expected_cod_paise || 0)}</strong></div>
+                  <div className="p-1.5"><span className="block text-[10px] text-slate-500 uppercase font-bold">Expected physical cash</span><strong className="text-sm">{formatPaiseToRupees(selectedProposedRun?.expected_cod_paise || 0)}</strong></div>
                 </div>
 
                 {!selectedProposedRun?.orders?.length ? (
@@ -812,7 +812,7 @@ export function DispatchTab({
 
                       <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-900 font-semibold">
                         <span>{orderCount} Packages</span>
-                        <span>COD: {formatPaiseToRupees(run.expected_cod_paise)}</span>
+                        <span>Cash held by rider: {formatPaiseToRupees(run.expected_cod_paise)}</span>
                       </div>
 
                       <div className="flex items-center justify-between gap-1.5 mt-2.5">

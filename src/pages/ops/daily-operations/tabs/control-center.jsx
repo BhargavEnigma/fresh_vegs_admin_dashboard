@@ -549,7 +549,7 @@ export function ControlCenter({
               </span>
             </div>
             <div className="bg-slate-50/50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-              <span className="text-[10px] text-slate-500 block font-medium">Expected COD</span>
+              <span className="text-[10px] text-slate-500 block font-medium">Expected physical cash</span>
               <span className="font-bold text-sm text-slate-900 dark:text-white">
                 {formatPaiseToRupees(finSummary.cod_expected_paise)}
               </span>

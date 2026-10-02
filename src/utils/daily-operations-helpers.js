@@ -237,6 +237,12 @@ export function canReconcileRunCod(run = {}) {
   return orders.every((order) => terminalStatuses.has(String(order?.status || "").toLowerCase()));
 }
 
+// Cash reconciliation is authoritative only when the backend has matched it.
+// A zero expected amount can also mean delivery-time collection has not happened yet.
+export function isRunCashReconciled(run = {}) {
+  return String(run.cod_reconciliation_status || "").toLowerCase() === "matched";
+}
+
 export function canResolveRunCodVariance(run = {}) {
   return canReconcileRunCod(run)
     && run.cod_reconciliation_status === "variance"

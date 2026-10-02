@@ -13,10 +13,13 @@ import {
   isDeliveryRunDispatched,
   canHandoverDeliveryRun,
   canReconcileRunCod,
+  isRunCashReconciled,
   FRIENDLY_EVENT_LABELS,
   ERROR_CODE_MESSAGES,
   matchesStockFilter,
 } from "../src/utils/daily-operations-helpers.js";
+import { getCodCollection, getDeliveryQrAttempts } from "../src/utils/payment-collection.js";
+import fs from "node:fs";
 import { ENDPOINTS } from "../src/api/endpoints.js";
 
 test("1. DECIMAL quantity parsing supports up to 3 decimal places without rounding errors", () => {
@@ -176,6 +179,40 @@ test("6b. A stale run with all terminal orders can proceed to COD reconciliation
     status: "in_progress",
     orders: [{ status: "out_for_delivery" }],
   }), false);
+});
+
+test("cash reconciliation relies on the backend matched status, including zero-cash runs", () => {
+  assert.strictEqual(isRunCashReconciled({ status: "in_progress", expected_cod_paise: 0, cod_reconciliation_status: "pending" }), false);
+  assert.strictEqual(isRunCashReconciled({ status: "completed", expected_cod_paise: 0, cod_reconciliation_status: "matched" }), true);
+});
+
+test("COD collection audit distinguishes cash, delivery QR, and pending collection", () => {
+  const cash = getCodCollection({ legacy_payments: [{ status: "paid", collection_method: "cash", amount_paise: 12000, collected_by_user_id: "rider-1" }] });
+  assert.strictEqual(cash.state, "Physical cash collected");
+  assert.strictEqual(cash.payment.amount_paise, 12000);
+
+  const qr = getCodCollection({ legacy_payments: [{ status: "paid", collection_method: "upi_qr", provider_payment_id: "pay_qr" }] });
+  assert.strictEqual(qr.state, "Delivery UPI QR paid");
+  assert.strictEqual(qr.payment.provider_payment_id, "pay_qr");
+
+  assert.strictEqual(getCodCollection({ legacy_payments: [] }).state, "Pending collection");
+  assert.deepStrictEqual(getDeliveryQrAttempts({ payment_attempts: [{ attempt_type: "online" }, { attempt_type: "delivery_cod_qr", provider_qr_id: "qr_1" }] }), [{ attempt_type: "delivery_cod_qr", provider_qr_id: "qr_1" }]);
+});
+
+test("COD manifest and reconciliation UI use physical-cash language", () => {
+  const manifest = fs.readFileSync(new URL("../src/pages/ops/daily-operations/print/run-manifest-print.jsx", import.meta.url), "utf8");
+  const reconciliation = fs.readFileSync(new URL("../src/pages/ops/daily-operations/tabs/exceptions-close-tab.jsx", import.meta.url), "utf8");
+  assert.match(manifest, /COD order total/);
+  assert.doesNotMatch(manifest, /COD Due/);
+  assert.match(reconciliation, /Expected physical cash/);
+  assert.doesNotMatch(reconciliation, /Expected COD \(Delivered\)/);
+});
+
+test("online prepaid payment and refund controls remain isolated from COD collection UI", () => {
+  const orderDetail = fs.readFileSync(new URL("../src/pages/ops/orders/ops-order-detail-page.jsx", import.meta.url), "utf8");
+  assert.match(orderDetail, /isOnlinePaymentMethod\(order\.payment_method\)/);
+  assert.match(orderDetail, /Initiate \/ Retry Refund/);
+  assert.match(orderDetail, /paymentMethod !== "cod"/);
 });
 
 test("7. Endpoints configuration includes dailyOperations endpoints with expected patterns", () => {

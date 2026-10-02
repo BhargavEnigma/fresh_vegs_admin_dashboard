@@ -33,6 +33,7 @@ import { PremiumSelect } from "../../../../components/ui/premium-select";
 import {
   canReconcileRunCod,
   canResolveRunCodVariance,
+  isRunCashReconciled,
   formatPaiseToRupees,
   parseDecimal,
   mapEventToFriendlyLabel,
@@ -277,7 +278,7 @@ export function ExceptionsCloseTab({
             notes: reconcileNotes || null,
           },
         });
-        toast.success("COD handover saved successfully.");
+        toast.success("Cash handover saved successfully.");
       }
       setReconcilingRun(null);
     } catch (err) {
@@ -614,7 +615,7 @@ export function ExceptionsCloseTab({
                 {runsList.map((run) => {
                   const hasVariance = run.cod_variance_paise !== null && run.cod_variance_paise !== 0;
                   const isNotEntered = run.reported_cod_paise === null || run.handed_over_cod_paise === null;
-                  const isReconciled = (!isNotEntered && !hasVariance) || run.cod_reconciliation_status === "matched" || Number(run.expected_cod_paise || 0) === 0;
+                  const isReconciled = isRunCashReconciled(run);
                   const canReconcile = canReconcileRunCod(run);
                   const isCancelled = run.status === "cancelled";
 
@@ -631,14 +632,14 @@ export function ExceptionsCloseTab({
                           <span className="text-slate-500 font-semibold">({run.delivery_partner?.full_name || "Rider"})</span>
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 font-semibold mt-0.5">
-                          <span>Expected: <span className="font-extrabold text-slate-850 dark:text-slate-200">{formatPaiseToRupees(run.expected_cod_paise)}</span></span>
+                          <span>Expected physical cash: <span className="font-extrabold text-slate-850 dark:text-slate-200">{formatPaiseToRupees(run.expected_cod_paise)}</span></span>
                           {Number(run.failed_cod_paise || 0) > 0 && (
                             <span>Returned (Failed): <span className="font-extrabold text-rose-600 dark:text-rose-400">{formatPaiseToRupees(run.failed_cod_paise)}</span></span>
                           )}
                           {!isNotEntered && (
                             <>
-                              <span>Reported: <span className="font-extrabold text-slate-800 dark:text-slate-300">{formatPaiseToRupees(run.reported_cod_paise)}</span></span>
-                              <span>Handed Over: <span className="font-extrabold text-slate-800 dark:text-slate-300">{formatPaiseToRupees(run.handed_over_cod_paise)}</span></span>
+                              <span>Reported cash: <span className="font-extrabold text-slate-800 dark:text-slate-300">{formatPaiseToRupees(run.reported_cod_paise)}</span></span>
+                              <span>Handed-over cash: <span className="font-extrabold text-slate-800 dark:text-slate-300">{formatPaiseToRupees(run.handed_over_cod_paise)}</span></span>
                             </>
                           )}
                         </div>
@@ -679,7 +680,7 @@ export function ExceptionsCloseTab({
                             </Button>
                           ) : !isClosed ? (
                             <span className="inline-flex rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-                              Awaiting deliveries
+                              {Number(run.expected_cod_paise || 0) === 0 ? "No physical cash collected yet" : "Awaiting collection/delivery"}
                             </span>
                           ) : null
                         )}
@@ -703,7 +704,7 @@ export function ExceptionsCloseTab({
                 <ShieldCheck className="h-4.5 w-4.5 text-indigo-600" /> Manual closure confirmation required
               </p>
               <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">
-                Completing the final COD handover will mark the checklist ready, but the operation remains open until you confirm Close Day below.
+                Completing the final cash handover will mark the checklist ready, but the operation remains open until you confirm Close Day below.
               </p>
             </div>
 
@@ -898,7 +899,7 @@ export function ExceptionsCloseTab({
                   {reconcilingRun.run_code || `RUN #${reconcilingRun.id.slice(0, 6)}`}
                 </p>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-slate-500 font-semibold">
-                  <span>Expected COD (Delivered):</span>
+                  <span>Expected physical cash:</span>
                   <span className="font-bold text-slate-900 dark:text-white text-right">{formatPaiseToRupees(reconcilingRun.expected_cod_paise)}</span>
                   {Number(reconcilingRun.failed_cod_paise || 0) > 0 && (
                     <>
@@ -911,7 +912,7 @@ export function ExceptionsCloseTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs font-bold">Reported COD (₹)</Label>
+                  <Label className="text-xs font-bold">Reported cash (₹)</Label>
                   <Input
                     type="number"
                     step="0.01"

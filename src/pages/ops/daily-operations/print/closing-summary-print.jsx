@@ -79,19 +79,19 @@ export function ClosingSummaryPrint({ operation, overview, reconciliation }) {
           <h3 className="font-bold text-slate-900 uppercase tracking-wider text-[10px] mb-3 border-b border-slate-200 pb-1">COD & Cash Reconciliation</h3>
           <div className="grid grid-cols-4 gap-4 text-center">
             <div>
-              <span className="text-slate-500 text-[10px] uppercase">Expected COD</span>
+              <span className="text-slate-500 text-[10px] uppercase">Expected physical cash</span>
               <p className="font-bold text-sm text-slate-900 mt-1">{formatPaiseToRupees(recMetrics.cod_expected_paise)}</p>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] uppercase">Reported COD</span>
+              <span className="text-slate-500 text-[10px] uppercase">Reported cash</span>
               <p className="font-bold text-sm text-slate-900 mt-1">{formatPaiseToRupees(recMetrics.cod_reported_paise)}</p>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] uppercase">Handed-Over Cash</span>
+              <span className="text-slate-500 text-[10px] uppercase">Handed-over cash</span>
               <p className="font-bold text-sm text-slate-900 mt-1">{formatPaiseToRupees(recMetrics.cod_handed_over_paise)}</p>
             </div>
             <div>
-              <span className="text-slate-500 text-[10px] uppercase">Variance</span>
+              <span className="text-slate-500 text-[10px] uppercase">Cash variance</span>
               <p className={`font-bold text-sm mt-1 ${(recMetrics.cod_variance_paise || 0) !== 0 ? "text-rose-700" : "text-emerald-700"}`}>
                 {formatPaiseToRupees(recMetrics.cod_variance_paise)}
               </p>
